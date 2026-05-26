@@ -1,0 +1,22 @@
+model Conclusion {
+  id              Int      @id
+  conclusionSense String
+  publicationDate DateTime
+  author          String?
+
+  conclusionOperativePartId Int
+  conclusionOperativePart   ConclusionOperativePart @relation(fields: [conclusionOperativePartId], references: [id])
+
+  hearing Hearing?
+
+  @@map("conclusions")
+}
+
+model ConclusionOperativePart {
+  id    Int    @id
+  label String @unique
+
+  conclusions Conclusion[]
+
+  @@map("conclusion_operative_parts")
+}

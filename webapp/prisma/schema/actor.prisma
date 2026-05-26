@@ -1,0 +1,33 @@
+enum ActorType {
+  LEGAL_PERSON
+  NATURAL_PERSON
+}
+
+model Actor {
+  id              Int       @id
+  firstName       String?
+  lastName        String?
+  lastFirstName   String?
+  firstLastName   String?
+  legalPersonName String?
+  legalEntityName String?
+  legalEntityId   Int?
+  actorType       ActorType
+
+  qualityCode String
+  quality     Quality @relation(fields: [qualityCode], references: [code])
+
+  caseFilesAsMainClaimant CaseFile[] @relation("CaseFileMainClaimant")
+  caseFilesAsMainDefender CaseFile[] @relation("CaseFileMainDefender")
+
+  @@map("actors")
+}
+
+model Quality {
+  code String @id
+  name String @unique
+
+  actors Actor[]
+
+  @@map("qualities")
+}
