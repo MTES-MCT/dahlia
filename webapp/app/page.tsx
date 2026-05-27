@@ -10,7 +10,7 @@ export default function Home() {
       <h2>Youhou</h2>
       <p> Ici, un paragraphe de présentation, des images si on veut…</p>
 
-      <p>Aller sur le dashboard <Link href="/dashboard">ici</Link></p>
+      <p>Visialiser les dossiers <Link href="/dossiers">ici</Link></p>
     </>
   );
 }
