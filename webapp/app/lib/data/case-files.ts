@@ -15,14 +15,26 @@ export type CaseFileRow = [string, string, string, string, string];
 export function getActorDisplayName(actor: CaseFileWithRelations['mainClaimant']): string {
   if (actor.legalPersonName) return actor.legalPersonName;
   if (actor.legalEntityName) return actor.legalEntityName;
-  if (actor.firstName && actor.lastName) return `${actor.firstName} ${actor.lastName}`;
+  if (actor.firstName && actor.lastName) return `${actor.lastName} ${actor.firstName}`;
   if (actor.lastName) return actor.lastName;
   if (actor.firstName) return actor.firstName;
   return 'N/A';
 }
 
 
+const ACTOR_SORT_KEYS = ['mainClaimant', 'mainDefender'] as const;
+
+// Pour les acteurs, on trie sur la colonne calculée `displayName` (générée en
+// base, cf. migration actor_display_name) qui reproduit getActorDisplayName.
+function buildOrderBy(sortBy: string, direction: Prisma.SortOrder): Prisma.CaseFileOrderByWithRelationInput {
+  if ((ACTOR_SORT_KEYS as readonly string[]).includes(sortBy)) {
+    return { [sortBy]: { displayName: { sort: direction, nulls: 'last' } } };
+  }
+  return { [sortBy]: direction };
+}
+
 async function fetchCaseFiles(page: number, numberOfCaseFiles: number, sortBy: string | null, sortOrder: string | null = null): Promise<CaseFileWithRelations[]> {
+  const direction: Prisma.SortOrder = sortOrder === 'ascending' ? 'asc' : 'desc';
   return prisma.caseFile.findMany({
     include: {
       mainClaimant: true,
@@ -30,7 +42,7 @@ async function fetchCaseFiles(page: number, numberOfCaseFiles: number, sortBy: s
       urgency: true,
       lastStatus: true,
     },
-    ...(sortBy ? { orderBy: { [sortBy]: sortOrder === 'ascending' ? 'asc' : 'desc' } } : {}),
+    ...(sortBy ? { orderBy: buildOrderBy(sortBy, direction) } : {}),
     skip: (page - 1) * numberOfCaseFiles,
     take: numberOfCaseFiles,
   });

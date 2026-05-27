@@ -1,4 +1,7 @@
-# WEBAPP DAHLIA
+# DAHL'ia
+
+Application d'aide pour organiser les défenses des dossier DALO, DAHO et DAHU
+permets de récupérer les dossiers de contentieux du droit aux logements que les départements doivent défendre
 
 Ce répertoire contient le code de la webapp DAHL'ia
 

@@ -4,7 +4,7 @@ import { fetchCaseFilesTableData } from "@/app/lib/data/case-files";
 import { Pagination } from "@codegouvfr/react-dsfr/Pagination";
 import { SortableColumnHeader } from "@/app/ui/sortable-column-header";
 
-const NUMBER_OF_CASE_FILES = 10;
+const NUMBER_OF_CASE_FILES = 100;
 
 type Props = {
   searchParams: Promise<{ page?: string, sortBy : string, sortOrder : string }>;
@@ -28,8 +28,8 @@ export default async function Page({ searchParams }: Props) {
         fixed
         headers={[
           <SortableColumnHeader key="caseFileNumber" label="Dossier" sortKey="caseFileNumber" />,
-          'Requérant',
-          'Défendeur',
+          <SortableColumnHeader key="mainClaimant" label="Requérant" sortKey="mainClaimant" />,
+          <SortableColumnHeader key="mainDefender" label="Défendeur" sortKey="mainDefender" />,
           'Urgence',
           'État'
         ]}

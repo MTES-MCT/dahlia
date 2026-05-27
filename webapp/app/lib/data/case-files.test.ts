@@ -18,6 +18,8 @@ const actorBase = {
   legalEntityId: null,
   actorType: 'NATURAL_PERSON' as const,
   qualityCode: 'particulier',
+  // Colonne générée en base ; non lue par getActorDisplayName, mais requise par le type Actor.
+  displayName: null,
 };
 
 const mockActor = {
@@ -92,7 +94,7 @@ describe('case-files', () => {
 
     it('returns firstName + lastName when legalPersonName is not available', () => {
       const result = getActorDisplayName(mockActor);
-      expect(result).toBe('Jean Dupont');
+      expect(result).toBe('Dupont Jean');
     });
 
     it('returns lastName when only lastName is available', () => {
@@ -112,7 +114,7 @@ describe('case-files', () => {
 
     it('returns firstName + lastName when both exist', () => {
       const actor = { ...actorBase, id: 99, legalPersonName: null, legalEntityName: null, firstName: 'Marie', lastName: 'Curie' };
-      expect(getActorDisplayName(actor)).toBe('Marie Curie');
+      expect(getActorDisplayName(actor)).toBe('Curie Marie');
     });
   });
 
@@ -121,7 +123,7 @@ describe('case-files', () => {
       const result = formatForTable([mockCaseFile]);
 
       expect(result).toEqual([
-        ['CF-2024-001', 'Jean Dupont', 'Jean Dupont', 'Très urgent', 'En cours'],
+        ['CF-2024-001', 'Dupont Jean', 'Dupont Jean', 'Très urgent', 'En cours'],
       ]);
     });
 
@@ -154,7 +156,7 @@ describe('case-files', () => {
       const result = await fetchCaseFilesTableData(1, 10, 'caseFileNumber', 'descending');
 
       expect(result).toEqual({
-        rows: [['CF-2024-001', 'Jean Dupont', 'Jean Dupont', 'Très urgent', 'En cours']],
+        rows: [['CF-2024-001', 'Dupont Jean', 'Dupont Jean', 'Très urgent', 'En cours']],
         totalPages: 3,
         totalCount: 25,
       });
@@ -181,6 +183,32 @@ describe('case-files', () => {
       expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
         expect.objectContaining({
           orderBy: { caseFileNumber: 'asc' },
+        })
+      );
+    });
+
+    it('sorts by mainClaimant relation on the computed displayName', async () => {
+      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
+      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
+
+      await fetchCaseFilesTableData(1, 10, 'mainClaimant', 'ascending');
+
+      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { mainClaimant: { displayName: { sort: 'asc', nulls: 'last' } } },
+        })
+      );
+    });
+
+    it('sorts by mainDefender relation on the computed displayName descending', async () => {
+      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
+      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
+
+      await fetchCaseFilesTableData(1, 10, 'mainDefender', 'descending');
+
+      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { mainDefender: { displayName: { sort: 'desc', nulls: 'last' } } },
         })
       );
     });

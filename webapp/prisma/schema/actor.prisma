@@ -14,6 +14,11 @@ model Actor {
   legalEntityId   Int?
   actorType       ActorType
 
+  // Colonne calculée par Postgres (GENERATED ALWAYS ... STORED, cf. migration)
+  // reproduisant getActorDisplayName, pour permettre le tri en base sur le nom
+  // affiché. Lecture seule : ne jamais l'écrire (le scraper ne doit pas la passer).
+  displayName String?
+
   qualityCode String
   quality     Quality @relation(fields: [qualityCode], references: [code])
 
