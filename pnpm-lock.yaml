@@ -29,6 +29,9 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      dotenv:
+        specifier: ^17.4.2
+        version: 17.4.2
       next:
         specifier: 16.2.6
         version: 16.2.6(@babel/core@7.29.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(sass@1.100.0)
@@ -69,9 +72,6 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^6.0.2
         version: 6.0.2(vite@8.0.14(@types/node@22.19.19)(jiti@2.7.0)(sass@1.100.0))
-      dotenv:
-        specifier: ^17.4.2
-        version: 17.4.2
       eslint:
         specifier: ^9
         version: 9.39.4(jiti@2.7.0)
