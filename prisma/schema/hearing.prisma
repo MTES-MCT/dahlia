@@ -1,0 +1,14 @@
+model Hearing {
+  hearingId         String     @id
+  convocationDate   DateTime
+  room              String
+  creationDate      DateTime?
+  modificationDates DateTime[]
+
+  lastConclusionId Int?        @unique
+  lastConclusion   Conclusion? @relation(fields: [lastConclusionId], references: [id])
+
+  caseFiles CaseFile[]
+
+  @@map("hearings")
+}

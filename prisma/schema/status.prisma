@@ -1,0 +1,13 @@
+// `statusDate` n'est pas porté ici : c'est une donnée d'application
+// d'un statut à un dossier, stockée sur `CaseFile.lastStatusDate`.
+// Ce modèle représente le catalogue des statuts possibles.
+model Status {
+  id       Int    @id
+  label    String
+  category String
+  groupId  Int
+
+  caseFiles CaseFile[]
+
+  @@map("statuses")
+}

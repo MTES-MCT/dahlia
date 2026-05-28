@@ -1,0 +1,11 @@
+# https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
+
+version: 2
+updates:
+  - package-ecosystem: "pnpm"
+    schedule:
+      interval: "weekly"
+      day: "thursday"
+      time: "06:00" # UTC
+    cooldown:
+      default-days: 7
