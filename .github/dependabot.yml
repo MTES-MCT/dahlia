@@ -2,7 +2,7 @@
 
 version: 2
 updates:
-  - package-ecosystem: "pnpm"
+  - package-ecosystem: "npm"
     schedule:
       interval: "weekly"
       day: "thursday"
