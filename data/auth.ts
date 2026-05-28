@@ -72,8 +72,7 @@ async function fetchWithCookies(
     headers,
   });
 
-  // Get all Set-Cookie headers (Node.js 19+)
-  const setCookies = (response.headers as any).getSetCookie?.() || [];
+  const setCookies = response.headers.getSetCookie();
   for (const setCookie of setCookies) {
     cookies.setCookie(setCookie);
   }

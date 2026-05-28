@@ -34,6 +34,9 @@ export function SortableColumnHeader({ label, sortKey }: Props) {
   return (
     <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
       {label}
+      {/* aria-sort est requis par le CSS DSFR (.fr-btn--sort[aria-sort=...]) pour piloter l'icône de tri. 
+          Hors-spec ARIA sur un <button>, mais nécessaire au rendu visuel. */}
+      {/* eslint-disable-next-line jsx-a11y/role-supports-aria-props */}
       <button
         className={fr.cx('fr-btn--sort')}
         aria-sort={ariaSortValue}
