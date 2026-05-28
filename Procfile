@@ -1,0 +1,1 @@
+postdeploy: pnpm db:migrate:deploy
