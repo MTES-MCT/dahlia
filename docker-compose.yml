@@ -1,0 +1,14 @@
+
+services:
+  dahlia-webapp-db:
+    image: postgres:17-alpine3.23
+    environment:
+      - POSTGRES_USER=dahlia
+      - POSTGRES_PASSWORD=dahlia # pragma: allowlist secret
+      - POSTGRES_DB=dahlia
+    volumes:
+      - ./webapp_dbdata:/var/lib/postgresql/data:delegated
+    expose:
+      - 5432
+    ports:
+      - 5432:5432

@@ -1,0 +1,15 @@
+// Schéma Prisma — point d'entrée (datasource + generator).
+// Les modèles sont définis dans des fichiers séparés (un par domaine)
+// dans ce même dossier. Prisma les agrège automatiquement.
+//
+// Depuis Prisma 7, l'URL de connexion n'est plus déclarée ici :
+// elle est configurée dans `prisma.config.ts` (pour la CLI/migrations)
+// et passée au PrismaClient via un driver adapter (cf. `app/lib/prisma.ts`).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}

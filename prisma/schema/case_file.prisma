@@ -1,0 +1,29 @@
+model CaseFile {
+  caseFileNumber String @id
+
+  assignedToLegalEntityDivisionId Int
+  assignedToLegalEntityDivision   LegalEntityDivision @relation(fields: [assignedToLegalEntityDivisionId], references: [id])
+
+  urgencyId Int?
+  urgency   Urgency? @relation(fields: [urgencyId], references: [id])
+
+  lastStatusId   Int
+  lastStatus     Status   @relation(fields: [lastStatusId], references: [id])
+  lastStatusDate DateTime
+
+  lastHearingId String?
+  lastHearing   Hearing? @relation(fields: [lastHearingId], references: [hearingId])
+
+  procedureState String?
+
+  mainClaimantId Int
+  mainClaimant   Actor @relation("CaseFileMainClaimant", fields: [mainClaimantId], references: [id])
+
+  mainDefenderId Int
+  mainDefender   Actor @relation("CaseFileMainDefender", fields: [mainDefenderId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("case_files")
+}

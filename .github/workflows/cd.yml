@@ -1,0 +1,21 @@
+name: "Test and deploy to preprod environment"
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  deploy_to_preprod:
+    needs: ci
+    name: "Deploy to Preprod"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Preprod
+        uses: kolok/deploy-to-scalingo@v1
+        with:
+          ssh-private-key: ${{ secrets.SCALINGO_SSH_PRIVATE_KEY }}
+          app-name: dahlia-preprod
+          known-host: ssh.osc-secnum-fr1.scalingo.com

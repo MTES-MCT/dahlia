@@ -1,0 +1,9 @@
+model LegalEntityDivision {
+  id        Int    @id
+  name      String
+  shortName String @unique
+
+  caseFiles CaseFile[]
+
+  @@map("legal_entity_divisions")
+}

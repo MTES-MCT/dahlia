@@ -1,0 +1,38 @@
+enum ActorType {
+  LEGAL_PERSON
+  NATURAL_PERSON
+}
+
+model Actor {
+  id              Int       @id
+  firstName       String?
+  lastName        String?
+  lastFirstName   String?
+  firstLastName   String?
+  legalPersonName String?
+  legalEntityName String?
+  legalEntityId   Int?
+  actorType       ActorType
+
+  // Colonne calculée par Postgres (GENERATED ALWAYS ... STORED, cf. migration)
+  // reproduisant getActorDisplayName, pour permettre le tri en base sur le nom
+  // affiché. Lecture seule : ne jamais l'écrire (le scraper ne doit pas la passer).
+  displayName String?
+
+  qualityCode String
+  quality     Quality @relation(fields: [qualityCode], references: [code])
+
+  caseFilesAsMainClaimant CaseFile[] @relation("CaseFileMainClaimant")
+  caseFilesAsMainDefender CaseFile[] @relation("CaseFileMainDefender")
+
+  @@map("actors")
+}
+
+model Quality {
+  code String @id
+  name String @unique
+
+  actors Actor[]
+
+  @@map("qualities")
+}

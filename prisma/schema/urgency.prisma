@@ -1,0 +1,10 @@
+model Urgency {
+  id                   Int     @id
+  key                  String?
+  description          String
+  colorHexadecimalCode String
+
+  caseFiles CaseFile[]
+
+  @@map("urgencies")
+}
