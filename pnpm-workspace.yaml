@@ -9,3 +9,4 @@ ignoredBuiltDependencies:
   - sharp
   - unrs-resolver
 confirmModulesPurge: false
+verifyDepsBeforeRun: false
