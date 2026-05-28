@@ -8,3 +8,4 @@ allowBuilds:
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver
+confirmModulesPurge: false
