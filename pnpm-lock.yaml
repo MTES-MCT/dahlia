@@ -17,6 +17,9 @@ importers:
       '@prisma/client':
         specifier: ^7.8.0
         version: 7.8.0(prisma@7.8.0(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3)
+      '@prisma/config':
+        specifier: ^7.8.0
+        version: 7.8.0
       bcrypt:
         specifier: ^6.0.0
         version: 6.0.0
@@ -26,12 +29,18 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      dotenv:
+        specifier: ^17.4.2
+        version: 17.4.2
       next:
         specifier: 16.2.6
         version: 16.2.6(@babel/core@7.29.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(sass@1.100.0)
       pg:
         specifier: ^8.21.0
         version: 8.21.0
+      prisma:
+        specifier: ^7.8.0
+        version: 7.8.0(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)
       react:
         specifier: 19.2.4
         version: 19.2.4
@@ -39,9 +48,6 @@ importers:
         specifier: 19.2.4
         version: 19.2.4(react@19.2.4)
     devDependencies:
-      '@prisma/config':
-        specifier: ^7.8.0
-        version: 7.8.0
       '@tailwindcss/postcss':
         specifier: ^4
         version: 4.3.0
@@ -66,9 +72,6 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^6.0.2
         version: 6.0.2(vite@8.0.14(@types/node@22.19.19)(jiti@2.7.0)(sass@1.100.0))
-      dotenv:
-        specifier: ^17.4.2
-        version: 17.4.2
       eslint:
         specifier: ^9
         version: 9.39.4(jiti@2.7.0)
@@ -78,9 +81,6 @@ importers:
       jsdom:
         specifier: ^29.1.1
         version: 29.1.1
-      prisma:
-        specifier: ^7.8.0
-        version: 7.8.0(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)
       sass:
         specifier: ^1.99.0
         version: 1.100.0
