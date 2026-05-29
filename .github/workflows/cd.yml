@@ -1,8 +1,10 @@
-name: "Test and deploy to preprod environment"
+name: "CD to Preprod"
+
 on:
   push:
     branches:
       - main
+  workflow_call:
 
 jobs:
   ci:
