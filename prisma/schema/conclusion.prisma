@@ -1,11 +1,11 @@
 model Conclusion {
   id              Int      @id
-  conclusionSense String
+  conclusionSense String?
   publicationDate DateTime
   author          String?
 
-  conclusionOperativePartId Int
-  conclusionOperativePart   ConclusionOperativePart @relation(fields: [conclusionOperativePartId], references: [id])
+  conclusionOperativePartId Int?
+  conclusionOperativePart   ConclusionOperativePart? @relation(fields: [conclusionOperativePartId], references: [id])
 
   hearing Hearing?
 

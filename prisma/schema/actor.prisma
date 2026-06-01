@@ -14,10 +14,16 @@ model Actor {
   legalEntityId   Int?
   actorType       ActorType
 
-  // Colonne calculée par Postgres (GENERATED ALWAYS ... STORED, cf. migration)
-  // reproduisant getActorDisplayName, pour permettre le tri en base sur le nom
-  // affiché. Lecture seule : ne jamais l'écrire (le scraper ne doit pas la passer).
+  // Column computed by Postgres (GENERATED ALWAYS ... STORED, cf. migration)
+  // reproducing getActorDisplayName, to allow sorting in the database on the
+  // displayed name. Read-only: never write it (the scraper must not pass it).
   displayName String?
+
+  // Computed column: lower(f_unaccent(displayName)) — used for accent-insensitive
+  // text search (cf. migration search_unaccent).
+  // Read-only. On the app side, normalize the query the same way before
+  // using `contains` on it.
+  displayNameNormalized String?
 
   qualityCode String
   quality     Quality @relation(fields: [qualityCode], references: [code])

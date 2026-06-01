@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { getActorDisplayName, formatForTable, fetchCaseFilesTableData } from './case-files';
+import { getActorDisplayName, formatForTable, fetchCaseFilesTableData, fetchUsedStatusLabels, normalizeForSearch } from './case-files';
 import { prisma } from '@/app/lib/prisma';
 
 vi.mock('@/app/lib/prisma', () => ({
@@ -7,6 +7,9 @@ vi.mock('@/app/lib/prisma', () => ({
     caseFile: {
       findMany: vi.fn(),
       count: vi.fn(),
+    },
+    status: {
+      findMany: vi.fn(),
     },
   },
 }));
@@ -18,8 +21,9 @@ const actorBase = {
   legalEntityId: null,
   actorType: 'NATURAL_PERSON' as const,
   qualityCode: 'particulier',
-  // Colonne générée en base ; non lue par getActorDisplayName, mais requise par le type Actor.
+  // Computed columns generated in the database; not read by getActorDisplayName, but required by the Actor type.
   displayName: null,
+  displayNameNormalized: null,
 };
 
 const mockActor = {
@@ -84,6 +88,22 @@ const mockCaseFile = {
 describe('case-files', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  describe('normalizeForSearch', () => {
+    it('supprime les diacritiques courants', () => {
+      expect(normalizeForSearch('Café')).toBe('cafe');
+      expect(normalizeForSearch('François')).toBe('francois');
+      expect(normalizeForSearch('Müller')).toBe('muller');
+    });
+
+    it('met en minuscules', () => {
+      expect(normalizeForSearch('DUPONT')).toBe('dupont');
+    });
+
+    it('laisse intacte une chaîne sans accents', () => {
+      expect(normalizeForSearch('dupont')).toBe('dupont');
+    });
   });
 
   describe('getActorDisplayName', () => {
@@ -257,6 +277,122 @@ describe('case-files', () => {
         rows: [],
         totalPages: 0,
         totalCount: 0,
+      });
+    });
+
+    it('omits where when query is null', async () => {
+      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
+      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
+
+      await fetchCaseFilesTableData(1, 10, null, 'descending', null);
+
+      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
+        expect.not.objectContaining({ where: expect.anything() })
+      );
+      expect(vi.mocked(prisma.caseFile.count)).toHaveBeenCalledWith(undefined);
+    });
+
+    it('applies an OR filter on caseFileNumber and the normalized acteurs columns when query is provided', async () => {
+      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
+      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
+
+      await fetchCaseFilesTableData(1, 10, null, 'descending', 'Dupont');
+
+      const expectedWhere = {
+        OR: [
+          { caseFileNumber: { contains: 'Dupont', mode: 'insensitive' } },
+          { mainClaimant: { displayNameNormalized: { contains: 'dupont' } } },
+          { mainDefender: { displayNameNormalized: { contains: 'dupont' } } },
+        ],
+      };
+
+      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expectedWhere })
+      );
+      expect(vi.mocked(prisma.caseFile.count)).toHaveBeenCalledWith({ where: expectedWhere });
+    });
+
+    it('normalizes accents on the acteurs filter while preserving the raw query for caseFileNumber', async () => {
+      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
+      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
+
+      await fetchCaseFilesTableData(1, 10, null, 'descending', 'Frànçois');
+
+      const expectedWhere = {
+        OR: [
+          { caseFileNumber: { contains: 'Frànçois', mode: 'insensitive' } },
+          { mainClaimant: { displayNameNormalized: { contains: 'francois' } } },
+          { mainDefender: { displayNameNormalized: { contains: 'francois' } } },
+        ],
+      };
+
+      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expectedWhere })
+      );
+    });
+
+    it('combines query and sort', async () => {
+      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
+      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
+
+      await fetchCaseFilesTableData(1, 10, 'caseFileNumber', 'ascending', 'TA069');
+
+      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ OR: expect.any(Array) }),
+          orderBy: { caseFileNumber: 'asc' },
+        })
+      );
+    });
+
+    it('filters by status label only when statusLabel is provided alone', async () => {
+      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
+      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
+
+      await fetchCaseFilesTableData(1, 10, null, 'descending', null, 'En cours d\'instruction');
+
+      const expectedWhere = { lastStatus: { label: 'En cours d\'instruction' } };
+
+      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expectedWhere })
+      );
+      expect(vi.mocked(prisma.caseFile.count)).toHaveBeenCalledWith({ where: expectedWhere });
+    });
+
+    it('combines query and status filter with AND', async () => {
+      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
+      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
+
+      await fetchCaseFilesTableData(1, 10, null, 'descending', 'dupont', 'Terminé');
+
+      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            AND: [
+              expect.objectContaining({ OR: expect.any(Array) }),
+              { lastStatus: { label: 'Terminé' } },
+            ],
+          },
+        })
+      );
+    });
+  });
+
+  describe('fetchUsedStatusLabels', () => {
+    it('returns distinct labels of statuses actually used by case files, sorted', async () => {
+      vi.mocked(prisma.status.findMany).mockResolvedValue([
+        { label: 'En cours d\'instruction' },
+        { label: 'Terminé' },
+      ] as never);
+
+      const result = await fetchUsedStatusLabels();
+
+      expect(result).toEqual(['En cours d\'instruction', 'Terminé']);
+      expect(vi.mocked(prisma.status.findMany)).toHaveBeenCalledWith({
+        where: { caseFiles: { some: {} } },
+        select: { label: true },
+        distinct: ['label'],
+        orderBy: { label: 'asc' },
       });
     });
   });
