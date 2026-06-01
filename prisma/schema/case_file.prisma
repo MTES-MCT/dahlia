@@ -19,8 +19,8 @@ model CaseFile {
   mainClaimantId Int
   mainClaimant   Actor @relation("CaseFileMainClaimant", fields: [mainClaimantId], references: [id])
 
-  mainDefenderId Int
-  mainDefender   Actor @relation("CaseFileMainDefender", fields: [mainDefenderId], references: [id])
+  mainDefenderId Int?
+  mainDefender   Actor? @relation("CaseFileMainDefender", fields: [mainDefenderId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
