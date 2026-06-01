@@ -18,6 +18,8 @@ pnpm install                # installer les deps (postinstall lance prisma gener
 pnpm dev                    # dev sur http://localhost:3000
 pnpm test                   # vitest
 pnpm lint                   # eslint (next core-web-vitals + typescript)
+pnpm format                 # prettier --write (formate tout le repo)
+pnpm format:check           # prettier --check (utile en CI)
 pnpm build                  # build prod
 ```
 

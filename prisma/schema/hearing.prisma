@@ -1,7 +1,7 @@
 model Hearing {
   hearingId         String     @id
   convocationDate   DateTime
-  room              String
+  room              String?
   creationDate      DateTime?
   modificationDates DateTime[]
 

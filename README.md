@@ -88,7 +88,7 @@ erDiagram
         string conclusionSense
         DateTime publicationDate
         string author "nullable"
-        int conclusionOperativePartId FK
+        int conclusionOperativePartId FK "nullable"
     }
 
     ConclusionOperativePart {
@@ -132,7 +132,7 @@ erDiagram
     Actor               ||--o{ CaseFile : "mainClaimant"
     Actor               ||--o{ CaseFile : "mainDefender"
     Hearing             |o--o| Conclusion : "lastConclusion"
-    ConclusionOperativePart ||--o{ Conclusion : "operativePart"
+    ConclusionOperativePart |o--o{ Conclusion : "operativePart"
     Quality             ||--o{ Actor    : "has quality"
 ```
 

@@ -40,26 +40,66 @@ Où est-ce que vous en êtes ?
 ## DocumentIA
 
 - Est ce que vous avez besoin d'un GPU pour faire tourner votre solution
+- Est-ce qu'il y a un score de fiabilité
 
 ## Mon Dalo
 
 MonDalo est l'application en amont de DAHL'ia qui gère les recours gracieux au sein de la COMED (Commité de médiation)
 Nous avons tout intérêt à s'aligner sur nos pratiques tant que faire se peut dans la perspective de pérénisation future
 
+- Context
+Dev commencé il y a 1 an 1/2
+Dépo du dossieren ligne par'usager -> fait livré 10/25
+Partie agent : affectation, traitement, enregistrement(n° comDalo), Décision de la CoMed
+RAF : échange agent <-> usager
+Traitement : qualification du dossier -> à faire d'ici la fin de l'année
+Décommissionnement ComDalo en fin 2027
+Irritant -> accéléré la cadence de livraison
+
 - Coté serveur : node + astro si j’ai bien compris
   - Est-ce qu’il y a un compiler type Parcel ou vite
   - Est-ce qu’il y a d’autres packages structurants ?
+Astro.build (avant Nest + Nuxt) : migration page par page (target 11/26)
+Composant en Vue.js
+Typescript
+Très peu d'utilisation de Astro
+
 - Coté client : est-ce que vous utilisé un framework type React ?
-- SSO : CERBERE, FranceConect ?
+Vue.js
+
+- SSO : CERBERE, FranceConnect, ProConnect ?
+-> CERBERE, FranceConnect
+(BetterAuth)
+
 - Stockage de document : S3 ? Sous quel réseau
+-> S3 du MTE
+
 - Déploiement : Où est-ce déployé, cloud, interne, PaaS, IaaS ? DNUM ou cloud ?
+-> Ecocompose (docker-compose sur des machine de prod)
+
 - Combien d’environnement ?
+-> en déployé : dev -> preprod, preprod -> ecole, prod
+
 - Quelle techno DB ?
+-> postgres -> ecosql (postgres toujours)
+
 - Est-ce que vous avez une API ? REST ou GraphQL ? Téléchargement de pièces possibles ?
+Pas d'API prévu (pour le moment)
+
 - Gestion de version : gitlab ?
+gitlab ministère
+
 - CI/CD : gitlab ?
+gitlab ministère
+
 - CD : Comment est-ce déployé ? Sur tag ou branche ou autre ? Qui, quand, comment ?
+merge MR -> déploiement sur `preprod` -> version `prod`
+Déploiement continue -> version selon le num d'epic
+
 - DocumentIA : où est-ce que vous en êtes ? Utilisation en SaaS ? Est-ce qu’il y a des limitations
+Convention à signer pour appeler l'API
+Commence par l'avis d'imposition
+A priori pas de pièces manustrites
 
 ## LITIJ
 
