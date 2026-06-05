@@ -1,13 +1,24 @@
-import { faker, fakerFR } from "@faker-js/faker";
+import { fakerFR } from "@faker-js/faker";
+import { createHash } from "node:crypto";
 import { Actor } from "./interfaces";
 
-faker.seed();
+function seedFor(value: string): number {
+  return createHash("sha256").update(value).digest().readUInt32BE(0);
+}
+
+function deterministic<T>(source: string | null | undefined, fn: () => T): T {
+  if (source) fakerFR.seed(seedFor(source));
+  else fakerFR.seed();
+  return fn();
+}
 
 export function anonymizeActor(actor: Actor): Actor {
   if (actor.actorType === "NATURAL_PERSON") {
-    const firstName = fakerFR.person.firstName();
-    const lastName = fakerFR.person.lastName();
-    const birthLastName = fakerFR.person.lastName();
+    const firstName = deterministic(actor.firstName, () => fakerFR.person.firstName());
+    const lastName = deterministic(actor.lastName, () => fakerFR.person.lastName().toUpperCase());
+    const birthLastName = deterministic(actor.firstLastName, () =>
+      fakerFR.person.lastName().toUpperCase(),
+    );
 
     return {
       ...actor,

@@ -1,0 +1,16 @@
+// Lien typé entre dossiers : un CaseFile peut être lié à plusieurs autres
+// dossiers (rapport "related-case-files"). Les deux côtés du lien sont des
+// FK strictes vers CaseFile — donc les dossiers cibles doivent avoir été
+// scrapés au préalable. Sinon le scraper logge un warning et incrémente un
+// compteur de liens orphelins (cf. scrape-telerecours.ts, phase C).
+model RelatedCaseFile {
+  caseFileNumber String
+  caseFile       CaseFile @relation("RelatedCaseFileSource", fields: [caseFileNumber], references: [caseFileNumber], onDelete: Cascade)
+
+  relatedCaseFileNumber String
+  relatedCaseFile       CaseFile @relation("RelatedCaseFileTarget", fields: [relatedCaseFileNumber], references: [caseFileNumber], onDelete: Cascade)
+
+  @@id([caseFileNumber, relatedCaseFileNumber])
+  @@index([relatedCaseFileNumber])
+  @@map("related_case_files")
+}
