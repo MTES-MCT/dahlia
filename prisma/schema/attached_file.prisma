@@ -1,0 +1,38 @@
+// Catalogue des familles de fichiers Télérecours (DIN, REQ, COUK, …).
+model FileFamilyType {
+  code  String @id
+  label String
+
+  attachedFiles AttachedFile[]
+
+  @@map("file_family_types")
+}
+
+// Pièce jointe d'un dossier. `encodedFileId` est l'identifiant opaque
+// fourni par Télérecours (sert à télécharger le contenu via une autre API).
+// On ne stocke ici que les métadonnées, pas le contenu binaire.
+model AttachedFile {
+  encodedFileId             String   @id
+  originalFileName          String
+  fileName                  String
+  mimeType                  String
+  documentType              String
+  subEventId                Int      @default(0)
+  receiptAcknowledgmentId   Int?
+  receiptAcknowledgmentType String?
+  fileTypeLabel             String
+  eventCreationDate         DateTime
+
+  caseFileNumber String
+  caseFile       CaseFile @relation(fields: [caseFileNumber], references: [caseFileNumber], onDelete: Cascade)
+
+  eventId Int
+  event   CaseFileEvent @relation(fields: [eventId], references: [id])
+
+  fileFamilyTypeCode String
+  fileFamilyType     FileFamilyType @relation(fields: [fileFamilyTypeCode], references: [code])
+
+  @@index([caseFileNumber])
+  @@index([eventId])
+  @@map("attached_files")
+}

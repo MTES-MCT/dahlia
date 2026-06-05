@@ -31,6 +31,13 @@ model Actor {
   caseFilesAsMainClaimant CaseFile[] @relation("CaseFileMainClaimant")
   caseFilesAsMainDefender CaseFile[] @relation("CaseFileMainDefender")
 
+  caseFileEvents CaseFileEvent[] @relation("CaseFileEventActor")
+
+  // Index sur les colonnes calculées (GENERATED ALWAYS) cf. migrations
+  // actor_display_name & search_unaccent. Déclarés ici pour que Prisma ne
+  // tente plus de les DROP/CREATE à chaque diff (l'index sur displayName
+  // est créé par actor_display_name mais Prisma l'ignorait jusqu'ici).
+  @@index([displayName])
   @@map("actors")
 }
 
