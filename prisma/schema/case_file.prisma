@@ -1,6 +1,21 @@
 model CaseFile {
   caseFileNumber String @id
 
+  // Champs renseignés par l'endpoint /api/case-file (liste) et enrichis
+  // par /api/case-file/<id> (detail) pour les dossiers au statut cible.
+  title                          String?
+  creationDate                   DateTime?
+  depositDate                    DateTime?
+  type                           String?
+  estimatedHearingDate           DateTime?
+  estimatedHearingPeriod         String?
+  earliestInstructionClosingDate DateTime?
+  lastDecisionReading            DateTime?
+  directoryReference             String?
+  directoryComplementaryEmails   String[]  @default([])
+  keywords                       String[]  @default([])
+  recipientContactCount          Int?
+
   assignedToLegalEntityDivisionId Int
   assignedToLegalEntityDivision   LegalEntityDivision @relation(fields: [assignedToLegalEntityDivisionId], references: [id])
 
@@ -12,15 +27,27 @@ model CaseFile {
   lastStatusDate DateTime
 
   lastHearingId String?
-  lastHearing   Hearing? @relation(fields: [lastHearingId], references: [hearingId])
+  lastHearing   Hearing? @relation("CaseFileLastHearing", fields: [lastHearingId], references: [hearingId])
+
+  // Liste complète des audiences du dossier (alimentée par
+  // /api/case-file/<id>/hearings — phase B du scraper).
+  hearings Hearing[] @relation("CaseFileHearings")
 
   procedureState String?
+
+  chamberId Int?
+  chamber   Chamber? @relation(fields: [chamberId], references: [id])
 
   mainClaimantId Int
   mainClaimant   Actor @relation("CaseFileMainClaimant", fields: [mainClaimantId], references: [id])
 
   mainDefenderId Int?
   mainDefender   Actor? @relation("CaseFileMainDefender", fields: [mainDefenderId], references: [id])
+
+  events         CaseFileEvent[]
+  attachedFiles  AttachedFile[]
+  relatedSources RelatedCaseFile[] @relation("RelatedCaseFileSource")
+  relatedTargets RelatedCaseFile[] @relation("RelatedCaseFileTarget")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

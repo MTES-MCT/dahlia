@@ -1,0 +1,44 @@
+// Catalogue des mesures (types d'événements) Télérecours.
+// `code` est l'identifiant string fourni par l'API (ex. "RECMEM", "ORDCLOT").
+model Measure {
+  code        String  @id
+  label       String
+  type        String
+  isImportant Boolean
+  family      String?
+
+  caseFileEvents CaseFileEvent[]
+
+  @@map("measures")
+}
+
+// Un événement / mesure appliqué à un dossier (mesure datée).
+// `id` est l'identifiant numérique fourni par l'API (Télérecours).
+model CaseFileEvent {
+  id                     Int       @id
+  subEventId             Int       @default(0)
+  eventDate              DateTime
+  deadlineLabel          String?
+  receiptDate            DateTime?
+  instructionClosingDate DateTime?
+  comment                String?
+  hasAttachment          Boolean   @default(false)
+  generateAR             Boolean   @default(false)
+  nbEventFile            Int       @default(0)
+  piecesNonDownloadable  String?
+  relatedEventCount      Int       @default(0)
+
+  caseFileNumber String
+  caseFile       CaseFile @relation(fields: [caseFileNumber], references: [caseFileNumber], onDelete: Cascade)
+
+  measureCode String
+  measure     Measure @relation(fields: [measureCode], references: [code])
+
+  actorId Int?
+  actor   Actor? @relation("CaseFileEventActor", fields: [actorId], references: [id])
+
+  attachedFiles AttachedFile[]
+
+  @@index([caseFileNumber])
+  @@map("case_file_events")
+}

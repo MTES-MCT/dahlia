@@ -8,7 +8,15 @@ model Hearing {
   lastConclusionId Int?        @unique
   lastConclusion   Conclusion? @relation(fields: [lastConclusionId], references: [id])
 
-  caseFiles CaseFile[]
+  // Dossier auquel appartient l'audience (alimenté par
+  // /api/case-file/<id>/hearings — phase B du scraper).
+  caseFileNumber String?
+  caseFile       CaseFile? @relation("CaseFileHearings", fields: [caseFileNumber], references: [caseFileNumber], onDelete: SetNull)
 
+  // Dossiers qui ont cette audience comme `lastHearing` (relation existante
+  // alimentée par la liste).
+  caseFilesAsLast CaseFile[] @relation("CaseFileLastHearing")
+
+  @@index([caseFileNumber])
   @@map("hearings")
 }

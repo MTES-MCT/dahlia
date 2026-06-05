@@ -17,7 +17,27 @@ Il existe déjà une API utilisée par l'interface
 - Est-ce possibe d'avoir rapidement une authentification machine à machine pour ne pas avoir a émuler l'authentification d'un utilisateur sur le portail d'authentification (SSO) https://authentification.telerecours.fr/
 - Est-ce possible de faire évoler la route API `/api/case-file`
   - Permettre de récupérer la liste des dossier par bloc de 100 ou 1000
-  - Permettre de récupérer les objets liés historiques et documents directement avec cette route API
+  - Permettre de récupérer les objets liés historiques et documents directement avec cette route API, ainsi que les champs et objets :
+    - string title "nullable"
+    - DateTime creationDate "nullable"
+    - DateTime depositDate "nullable"
+    - string type "nullable"
+    - DateTime estimatedHearingDate "nullable"
+    - string estimatedHearingPeriod "nullable"
+    - DateTime earliestInstructionClosingDate "nullable"
+    - DateTime lastDecisionReading "nullable"
+    - string directoryReference "nullable"
+    - string directoryComplementaryEmails "array"
+    - string keywords "array"
+    - int recipientContactCount "nullable"
+    - int chamberId FK "nullable"
+      et les objets:
+    - hearings
+    - chamber
+    - measure
+    - caseFileEvent
+    - AttachedFile (avec FileFamilyType)
+    - RelatedCaseFile
   - Permettre de filtrer sur la date du dernier événement de l'historique
 
 Note : une API en lecture seule est suffisante pour les besoins de notre première itération. Selon la trajectoire de DAHL'ia, nous aurons peut-être un jour besoin de déposer des fichiers dans un dossier
@@ -48,58 +68,58 @@ MonDalo est l'application en amont de DAHL'ia qui gère les recours gracieux au 
 Nous avons tout intérêt à s'aligner sur nos pratiques tant que faire se peut dans la perspective de pérénisation future
 
 - Context
-Dev commencé il y a 1 an 1/2
-Dépo du dossieren ligne par'usager -> fait livré 10/25
-Partie agent : affectation, traitement, enregistrement(n° comDalo), Décision de la CoMed
-RAF : échange agent <-> usager
-Traitement : qualification du dossier -> à faire d'ici la fin de l'année
-Décommissionnement ComDalo en fin 2027
-Irritant -> accéléré la cadence de livraison
+  Dev commencé il y a 1 an 1/2
+  Dépo du dossier en ligne par usager -> fait livré 10/25
+  Partie agent : affectation, traitement, enregistrement(n° comDalo), Décision de la CoMed
+  Reste à faire : échange agent <-> usager
+  Traitement : qualification du dossier -> à faire d'ici la fin de l'année
+  Décommissionnement ComDalo en fin 2027
+  Irritant -> accéléré la cadence de livraison
 
 - Coté serveur : node + astro si j’ai bien compris
   - Est-ce qu’il y a un compiler type Parcel ou vite
   - Est-ce qu’il y a d’autres packages structurants ?
-Astro.build (avant Nest + Nuxt) : migration page par page (target 11/26)
-Composant en Vue.js
-Typescript
-Très peu d'utilisation de Astro
+    Astro.build (avant Nest + Nuxt) : migration page par page (target 11/26)
+    Composant en Vue.js
+    Typescript
+    Très peu d'utilisation de Astro
 
 - Coté client : est-ce que vous utilisé un framework type React ?
-Vue.js
+  Vue.js
 
 - SSO : CERBERE, FranceConnect, ProConnect ?
--> CERBERE, FranceConnect
-(BetterAuth)
+  CERBERE, FranceConnect
+  (BetterAuth)
 
 - Stockage de document : S3 ? Sous quel réseau
--> S3 du MTE
+  S3 du MTE
 
 - Déploiement : Où est-ce déployé, cloud, interne, PaaS, IaaS ? DNUM ou cloud ?
--> Ecocompose (docker-compose sur des machine de prod)
+  Ecocompose (docker-compose sur des machine de prod)
 
 - Combien d’environnement ?
--> en déployé : dev -> preprod, preprod -> ecole, prod
+  en déployé : dev -> preprod, preprod -> ecole, prod
 
 - Quelle techno DB ?
--> postgres -> ecosql (postgres toujours)
+  postgres -> ecosql (postgres toujours)
 
 - Est-ce que vous avez une API ? REST ou GraphQL ? Téléchargement de pièces possibles ?
-Pas d'API prévu (pour le moment)
+  Pas d'API prévu (pour le moment)
 
 - Gestion de version : gitlab ?
-gitlab ministère
+  gitlab ministère
 
 - CI/CD : gitlab ?
-gitlab ministère
+  gitlab ministère
 
 - CD : Comment est-ce déployé ? Sur tag ou branche ou autre ? Qui, quand, comment ?
-merge MR -> déploiement sur `preprod` -> version `prod`
-Déploiement continue -> version selon le num d'epic
+  merge MR -> déploiement sur `preprod` -> version `prod`
+  Déploiement continue -> version selon le num d'epic
 
 - DocumentIA : où est-ce que vous en êtes ? Utilisation en SaaS ? Est-ce qu’il y a des limitations
-Convention à signer pour appeler l'API
-Commence par l'avis d'imposition
-A priori pas de pièces manustrites
+  Convention à signer pour appeler l'API
+  Commence par l'avis d'imposition
+  A priori pas de pièces manustrites
 
 ## LITIJ
 

@@ -1,0 +1,8 @@
+model Chamber {
+  id   Int    @id
+  name String
+
+  caseFiles CaseFile[]
+
+  @@map("chambers")
+}
