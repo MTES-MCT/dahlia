@@ -32,6 +32,44 @@ pnpm dev
 
 Ouvrir [http://localhost:3000](http://localhost:3000) dans votre navigateur pour voir le résultat.
 
+## Authentification & autorisation (ProConnect)
+
+L'authentification repose sur [better-auth](https://www.better-auth.com/) avec le
+plugin `genericOAuth` configuré pour **ProConnect** (OIDC). La configuration vit
+dans [`app/lib/auth.ts`](app/lib/auth.ts) (serveur) et
+[`app/lib/auth-client.ts`](app/lib/auth-client.ts) (client). Les routes d'auth
+sont montées sur `/api/auth/*`.
+
+### Variables d'environnement requises (`.env`)
+
+| Variable                   | Description                                                                                                                   |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `BETTER_AUTH_SECRET`       | Clé de signature des sessions. Générer avec `openssl rand -base64 32`.                                                        |
+| `BETTER_AUTH_URL`          | URL de base de l'app (ex. `http://localhost:3000`).                                                                           |
+| `PROCONNECT_CLIENT_ID`     | Identifiant client de l'app déclarée sur l'espace partenaire ProConnect.                                                      |
+| `PROCONNECT_CLIENT_SECRET` | Secret client ProConnect.                                                                                                     |
+| `PROCONNECT_URL`           | Domaine de base ProConnect (intégration : `https://fca.integ01.dev-agentconnect.fr`). Les endpoints OIDC sont sous `/api/v2`. |
+
+> Côté espace partenaire ProConnect, déclarer la **redirect URI**
+> `http://localhost:3000/api/auth/oauth2/callback/proconnect` et la
+> **post-logout redirect URI** `http://localhost:3000/`.
+
+### Flux
+
+- La page d'accueil `/` est **publique** ; toutes les autres pages exigent un
+  compte **connecté et validé** (cf. `proxy.ts` + `app/(protected)/layout.tsx`).
+- À la première connexion ProConnect, l'utilisateur est créé en base avec
+  `validated = false`. Tant qu'il n'est pas validé, il voit un message d'attente.
+- **Validation manuelle** (admin) via Prisma Studio (`pnpm db:studio`) ou en SQL :
+
+  ```sql
+  UPDATE users SET "validated" = true WHERE email = 'prenom.nom@exemple.gouv.fr';
+  ```
+
+- La particularité ProConnect du `userinfo` renvoyé en **JWT signé** est gérée par
+  un `getUserInfo` personnalisé (vérification via JWKS avec `jose`). La
+  déconnexion fait un logout complet (`end_session_endpoint`).
+
 ## Import des données (scraping Télérecours)
 
 Le script [data/scrape-telerecours.ts](data/scrape-telerecours.ts) interroge l'API
@@ -247,14 +285,16 @@ erDiagram
     }
 
     User {
-        int id PK
-        string firstName
-        string lastName
+        string id PK
+        string name
         string email UK
-        string passwordHash
+        boolean emailVerified
+        string image "nullable"
+        string firstName "nullable"
+        string lastName "nullable"
+        boolean validated "défaut false (autorisation)"
         DateTime createdAt
         DateTime updatedAt
-        DateTime lastLoginAt "nullable"
     }
 
     LegalEntityDivision ||--o{ CaseFile : "assignedTo"
