@@ -38,7 +38,7 @@ export default async function RootLayout({
         </p>,
         {
           iconId: "fr-icon-logout-box-r-line",
-          linkProps: { href: "/api/auth/proconnect-logout" },
+          linkProps: { href: "/api/auth/proconnect-logout", prefetch: false },
           text: "Se déconnecter",
         },
       ]
