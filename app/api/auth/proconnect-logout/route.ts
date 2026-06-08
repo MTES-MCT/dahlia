@@ -10,6 +10,18 @@ import { NextResponse } from "next/server";
 //    on the identity provider side, which will then redirect to the home page.
 export async function GET(request: Request) {
   const requestHeaders = await headers();
+
+  // Garde-fou : Next.js préfetche les <Link> visibles (le lien « Se déconnecter »
+  // du header est toujours dans le viewport en prod). Sans ce garde-fou, ce
+  // prefetch exécuterait signOut() et invaliderait la session juste après le
+  // login. On ignore donc toute requête de prefetch.
+  const isPrefetch =
+    requestHeaders.get("next-router-prefetch") === "1" ||
+    (requestHeaders.get("sec-purpose") ?? "").includes("prefetch");
+  if (isPrefetch) {
+    return new NextResponse(null, { status: 204 });
+  }
+
   const baseUrl = process.env.BETTER_AUTH_URL ?? new URL(request.url).origin;
 
   const session = await auth.api.getSession({ headers: requestHeaders });
