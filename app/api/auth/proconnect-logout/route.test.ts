@@ -12,10 +12,13 @@ vi.mock('@/app/lib/prisma', () => ({
   prisma: { account: { findFirst: vi.fn() } },
 }));
 
+import { headers } from 'next/headers';
+
 vi.mock('next/headers', () => ({
   headers: vi.fn().mockResolvedValue(new Headers()),
 }));
 
+const mockedHeaders = vi.mocked(headers);
 const mockedGetSession = vi.mocked(auth.api.getSession);
 const mockedSignOut = vi.mocked(auth.api.signOut);
 const mockedFindFirst = vi.mocked(prisma.account.findFirst);
@@ -32,7 +35,28 @@ const request = new Request('https://dahlia.example/api/auth/proconnect-logout')
 describe('GET /api/auth/proconnect-logout', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockedHeaders.mockResolvedValue(new Headers());
     delete process.env.BETTER_AUTH_URL;
+  });
+
+  it('ignore une requête de prefetch sans déconnecter (204)', async () => {
+    mockedHeaders.mockResolvedValue(new Headers({ 'next-router-prefetch': '1' }));
+
+    const response = await GET(request);
+
+    expect(response.status).toBe(204);
+    // Un prefetch ne doit jamais invalider la session.
+    expect(mockedSignOut).not.toHaveBeenCalled();
+    expect(mockedGetSession).not.toHaveBeenCalled();
+  });
+
+  it('ignore aussi un prefetch signalé via Sec-Purpose', async () => {
+    mockedHeaders.mockResolvedValue(new Headers({ 'sec-purpose': 'prefetch;prerender' }));
+
+    const response = await GET(request);
+
+    expect(response.status).toBe(204);
+    expect(mockedSignOut).not.toHaveBeenCalled();
   });
 
   it('redirige vers l’accueil et propage le cookie de déconnexion quand aucune session', async () => {
