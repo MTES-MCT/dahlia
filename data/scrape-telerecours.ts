@@ -1,4 +1,4 @@
-import { getTelerecoursCaseFileClient } from "./telerecours-client";
+import { describeError, getTelerecoursCaseFileClient } from "./telerecours-client";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import "dotenv/config";
@@ -690,8 +690,7 @@ async function phaseA(
         else skippedCaseFileNumbers.push(item.caseFileNumber);
       } catch (error) {
         console.error(
-          `✗ Failed to upsert case file ${item.caseFileNumber}:`,
-          error instanceof Error ? error.message : String(error),
+          `✗ Failed to upsert case file ${item.caseFileNumber}: ${describeError(error)}`,
         );
         failedCaseFileNumbers.push(item.caseFileNumber);
       }
@@ -735,10 +734,7 @@ async function phaseB(
       await enrichCaseFile(client, caseFileNumber, args.jurisdiction, args.anonymize);
       enriched++;
     } catch (error) {
-      console.error(
-        `✗ Phase B failed for ${caseFileNumber}:`,
-        error instanceof Error ? error.message : String(error),
-      );
+      console.error(`✗ Phase B failed for ${caseFileNumber}: ${describeError(error)}`);
       failed++;
     }
     await new Promise((resolve) => setTimeout(resolve, 150));
@@ -774,10 +770,7 @@ async function phaseC(
       linkedTotal += linked;
       orphansTotal += orphans;
     } catch (error) {
-      console.error(
-        `✗ Phase C failed for ${caseFileNumber}:`,
-        error instanceof Error ? error.message : String(error),
-      );
+      console.error(`✗ Phase C failed for ${caseFileNumber}: ${describeError(error)}`);
     }
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
@@ -815,6 +808,9 @@ async function main(): Promise<number> {
 main()
   .then((code) => process.exit(code))
   .catch((error) => {
-    console.error("Fatal error:", error instanceof Error ? error.message : String(error));
+    console.error(`Fatal error: ${describeError(error)}`);
+    if (error instanceof Error && error.stack) {
+      console.error(error.stack);
+    }
     process.exit(1);
   });
