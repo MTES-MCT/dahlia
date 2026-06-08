@@ -6,6 +6,44 @@ const USER_AGENT =
 const PAGINATION_PAGE_SIZE = 30;
 const MAX_LOGIN_ATTEMPTS = 10;
 
+const MAX_FETCH_ATTEMPTS = 4;
+const INITIAL_RETRY_DELAY_MS = 1000;
+
+/**
+ * Aplatit la chaîne `error.cause` (utile pour `TypeError: fetch failed` de
+ * undici, dont la vraie raison — ECONNRESET, ENOTFOUND, UND_ERR_SOCKET… —
+ * vit dans `cause`, parfois imbriqué sur plusieurs niveaux).
+ */
+export function describeError(error: unknown): string {
+  if (!(error instanceof Error)) return String(error);
+  const parts: string[] = [`${error.name}: ${error.message}`];
+  let cause: unknown = error.cause;
+  while (cause) {
+    if (cause instanceof Error) {
+      const code = (cause as Error & { code?: string }).code;
+      parts.push(`caused by ${code ? `[${code}] ` : ""}${cause.message}`);
+      cause = cause.cause;
+    } else {
+      parts.push(`caused by ${String(cause)}`);
+      break;
+    }
+  }
+  return parts.join(" → ");
+}
+
+function isNetworkFetchError(error: unknown): boolean {
+  // Node/undici lève un TypeError("fetch failed") dont `.cause` contient
+  // le vrai code (ECONNRESET, ETIMEDOUT, ENOTFOUND, UND_ERR_SOCKET, …).
+  return (
+    error instanceof TypeError ||
+    (error instanceof Error && error.message === "fetch failed")
+  );
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 interface ClientCredentials {
   username: string;
   password: string;
@@ -159,32 +197,97 @@ class TelerecoursCaseFileClient {
       throw new Error("No access token available");
     }
 
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        "User-Agent": USER_AGENT,
-        Authorization: `Bearer ${this.accessToken}`,
-        "X-Jurisdiction-Code": jurisdiction,
-        Accept: "application/json",
-      },
-    });
+    let attempt = 0;
+    let lastError: unknown;
 
-    if (response.status === 401 || response.status === 403) {
-      throw new AuthenticationError(
-        `Authentication required: ${response.status} ${response.statusText}`,
-      );
+    while (attempt < MAX_FETCH_ATTEMPTS) {
+      attempt++;
+      try {
+        const response = await fetch(url, {
+          method: "GET",
+          headers: {
+            "User-Agent": USER_AGENT,
+            Authorization: `Bearer ${this.accessToken}`,
+            "X-Jurisdiction-Code": jurisdiction,
+            Accept: "application/json",
+          },
+        });
+
+        if (response.status === 401 || response.status === 403) {
+          throw new AuthenticationError(
+            `Authentication required: ${response.status} ${response.statusText}`,
+          );
+        }
+
+        // 429 / 5xx → erreurs typiquement transitoires, on retente.
+        if (
+          response.status === 429 ||
+          (response.status >= 500 && response.status < 600)
+        ) {
+          const body = await response.text().catch(() => "");
+          lastError = new Error(
+            `GET ${url} → ${response.status} ${response.statusText}` +
+              (body ? `\nBody: ${body.substring(0, 400)}` : ""),
+          );
+          if (attempt < MAX_FETCH_ATTEMPTS) {
+            const delay = backoffDelay(attempt);
+            console.warn(
+              `⚠ ${response.status} ${response.statusText} on GET ${url} ` +
+                `(attempt ${attempt}/${MAX_FETCH_ATTEMPTS}), retry in ${delay}ms…`,
+            );
+            await sleep(delay);
+            continue;
+          }
+          throw lastError;
+        }
+
+        if (!response.ok) {
+          const text = await response.text();
+          throw new Error(
+            `GET ${url} failed: ${response.status} ${response.statusText}\n` +
+              `Body: ${text.substring(0, 400)}`,
+          );
+        }
+
+        return (await response.json()) as CaseFileResponse;
+      } catch (error) {
+        // Erreurs de logique métier (auth expirée, 4xx non transitoires) :
+        // on remonte tout de suite, c'est à l'appelant de gérer.
+        if (error instanceof AuthenticationError) throw error;
+
+        if (isNetworkFetchError(error)) {
+          lastError = error;
+          if (attempt < MAX_FETCH_ATTEMPTS) {
+            const delay = backoffDelay(attempt);
+            console.warn(
+              `⚠ Network error on GET ${url}: ${describeError(error)} ` +
+                `(attempt ${attempt}/${MAX_FETCH_ATTEMPTS}), retry in ${delay}ms…`,
+            );
+            await sleep(delay);
+            continue;
+          }
+          // Plus de tentatives → on rejette en gardant la cause originelle.
+          throw new Error(
+            `GET ${url} failed after ${attempt} attempts — ${describeError(error)}`,
+            { cause: error },
+          );
+        }
+
+        throw error;
+      }
     }
 
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(
-        `GET ${url} failed: ${response.status} ${response.statusText}\n` +
-          `Body: ${text.substring(0, 400)}`,
-      );
-    }
-
-    return (await response.json()) as CaseFileResponse;
+    // Inatteignable en théorie, mais on respecte les types.
+    throw new Error(
+      `GET ${url} failed after ${MAX_FETCH_ATTEMPTS} attempts — ${describeError(lastError)}`,
+      { cause: lastError instanceof Error ? lastError : undefined },
+    );
   }
+}
+
+function backoffDelay(attempt: number): number {
+  // Backoff exponentiel + jitter : 1s, 2s, 4s (+0–250ms).
+  return INITIAL_RETRY_DELAY_MS * 2 ** (attempt - 1) + Math.floor(Math.random() * 250);
 }
 
 class AuthenticationError extends Error {
