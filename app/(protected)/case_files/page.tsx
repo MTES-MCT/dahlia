@@ -5,6 +5,7 @@ import { Pagination } from "@codegouvfr/react-dsfr/Pagination";
 import { SortableColumnHeader } from "@/app/ui/sortable-column-header";
 import { CaseFilesSearchBar } from "@/app/ui/case-files-search-bar";
 import { CaseFilesSearchByStatus } from "@/app/ui/case-files-search-by-status";
+import Link from "next/link";
 import clsx from "clsx";
 
 const NUMBER_OF_CASE_FILES = 10;
@@ -37,7 +38,12 @@ export default async function Page({ searchParams }: Props) {
 
       <Table
         caption={`${totalCount} dossier${totalCount > 1 ? 's' : ''}`}
-        data={rows}
+        data={rows.map(([caseFileNumber, ...rest]) => [
+          <Link key={caseFileNumber} href={`/case_files/${encodeURIComponent(caseFileNumber)}`}>
+            {caseFileNumber}
+          </Link>,
+          ...rest,
+        ])}
         fixed
         headers={[
           <SortableColumnHeader key="caseFileNumber" label="Dossier" sortKey="caseFileNumber" />,

@@ -135,6 +135,34 @@ export type CaseFilesTableData = {
   totalCount: number;
 };
 
+// case-file detail with all its relations, for the detail page.
+// Load the complete tree (actors, status, hearings → conclusions,
+// events → measures/files, related case files) to display it in JSON.
+export async function fetchCaseFileDetail(caseFileNumber: string) {
+  return prisma.caseFile.findUnique({
+    where: { caseFileNumber },
+    include: {
+      mainClaimant: true,
+      mainDefender: true,
+      urgency: true,
+      lastStatus: true,
+      chamber: true,
+      assignedToLegalEntityDivision: true,
+      lastHearing: { include: { lastConclusion: { include: { conclusionOperativePart: true } } } },
+      hearings: { include: { lastConclusion: { include: { conclusionOperativePart: true } } } },
+      events: {
+        include: { measure: true, actor: true, attachedFiles: true },
+        orderBy: { eventDate: "desc" },
+      },
+      attachedFiles: true,
+      relatedSources: { include: { relatedCaseFile: true } },
+      relatedTargets: { include: { caseFile: true } },
+    },
+  });
+}
+
+export type CaseFileDetail = Prisma.PromiseReturnType<typeof fetchCaseFileDetail>;
+
 export async function fetchCaseFilesTableData(
   page: number,
   numberOfCaseFiles: number,
