@@ -16,16 +16,20 @@ export function anonymizeActor(actor: Actor): Actor {
   if (actor.actorType === "NATURAL_PERSON") {
     const firstName = deterministic(actor.firstName, () => fakerFR.person.firstName());
     const lastName = deterministic(actor.lastName, () => fakerFR.person.lastName().toUpperCase());
-    const birthLastName = deterministic(actor.firstLastName, () =>
-      fakerFR.person.lastName().toUpperCase(),
-    );
+    const firstLastName = firstName + " " + lastName;
+    const lastFirstName = lastName + " " + firstName;
 
+    let legalEntityName = actor.legalEntityName;
+    if (actor.legalEntityName) {
+      legalEntityName = lastFirstName;
+    }
     return {
       ...actor,
       firstName,
       lastName,
-      lastFirstName: firstName,
-      firstLastName: birthLastName,
+      lastFirstName: lastFirstName,
+      firstLastName: firstLastName,
+      legalEntityName: legalEntityName,
     };
   }
 
