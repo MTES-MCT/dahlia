@@ -77,7 +77,7 @@ describe('CaseFilesSearchByStatus', () => {
       expect(pushedUrl).toContain('statut=En+cours+d%27instruction');
     });
 
-    it('supprime statut de l\'URL quand "Tous" est sélectionné', () => {
+    it('force un statut vide dans l\'URL quand "Tous" est sélectionné', () => {
       vi.mocked(useSearchParams).mockReturnValue(
         new URLSearchParams({ statut: 'Terminé' }) as never
       );
@@ -86,7 +86,8 @@ describe('CaseFilesSearchByStatus', () => {
       fireEvent.change(getSelect(), { target: { value: '' } });
 
       const pushedUrl = mockPush.mock.calls[0][0] as string;
-      expect(pushedUrl).not.toContain('statut=');
+      expect(pushedUrl).toContain('statut=');
+      expect(pushedUrl).not.toContain('statut=Termin');
     });
 
     it('supprime le paramètre page au changement', () => {
@@ -122,7 +123,7 @@ describe('CaseFilesSearchByStatus', () => {
       expect(pushedUrl).not.toContain('page=');
     });
 
-    it('pousse "?" sans paramètres quand "Tous" est sélectionné et qu\'il n\'y a aucun autre paramètre', () => {
+    it('pousse "?statut=" quand "Tous" est sélectionné et qu\'il n\'y a aucun autre paramètre', () => {
       vi.mocked(useSearchParams).mockReturnValue(
         new URLSearchParams({ statut: 'Terminé' }) as never
       );
@@ -130,7 +131,7 @@ describe('CaseFilesSearchByStatus', () => {
 
       fireEvent.change(getSelect(), { target: { value: '' } });
 
-      expect(mockPush).toHaveBeenCalledWith('?');
+      expect(mockPush).toHaveBeenCalledWith('?statut=');
     });
   });
 });

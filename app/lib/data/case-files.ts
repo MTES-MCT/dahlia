@@ -7,10 +7,23 @@ type CaseFileWithRelations = Prisma.CaseFileGetPayload<{
     mainDefender: true;
     urgency: true;
     lastStatus: true;
+    lastHearing: true;
   };
 }>;
 
-export type CaseFileRow = [string, string, string, string, string];
+// The last element is the raw hearing convocation date (or null): the UI cell
+// formats it and derives a status badge from it (see MemoryDeadlineCell).
+export type CaseFileRow = [string, string, string, string, string, Date | null];
+
+// Format a date as dd/mm/yyyy (French format); empty string when absent.
+export function formatDateFr(date: Date | null): string {
+  if (!date) return "";
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date);
+}
 
 export function getActorDisplayName(actor: CaseFileWithRelations["mainDefender"]): string {
   if (!actor) return "N/A";
@@ -24,6 +37,11 @@ export function getActorDisplayName(actor: CaseFileWithRelations["mainDefender"]
 
 const ACTOR_SORT_KEYS = ["mainClaimant", "mainDefender"] as const;
 
+// Sort key for the memory-production deadline column: the convocation date of
+// the last hearing. It lives on the `lastHearing` relation, so it needs a
+// dedicated nested orderBy (see buildOrderBy).
+export const HEARING_CONVOCATION_SORT_KEY = "convocationDate";
+
 // Pour les acteurs, on trie sur la colonne calculée `displayName` (générée en
 // base, cf. migration actor_display_name) qui reproduit getActorDisplayName.
 function buildOrderBy(
@@ -32,6 +50,13 @@ function buildOrderBy(
 ): Prisma.CaseFileOrderByWithRelationInput {
   if ((ACTOR_SORT_KEYS as readonly string[]).includes(sortBy)) {
     return { [sortBy]: { displayName: { sort: direction, nulls: "last" } } };
+  }
+  if (sortBy === HEARING_CONVOCATION_SORT_KEY) {
+    // `convocationDate` is a required field, so the `nulls` option is not allowed
+    // here. Case files without a last hearing (null relation) are sorted NULLS
+    // LAST by Postgres in ascending order — which is our default — so they end up
+    // last as intended.
+    return { lastHearing: { convocationDate: direction } };
   }
   return { [sortBy]: direction };
 }
@@ -91,6 +116,7 @@ async function fetchCaseFiles(
       mainDefender: true,
       urgency: true,
       lastStatus: true,
+      lastHearing: true,
     },
     ...(where ? { where } : {}),
     ...(sortBy ? { orderBy: buildOrderBy(sortBy, direction) } : {}),
@@ -122,10 +148,11 @@ export async function fetchUsedStatusLabels(): Promise<string[]> {
 export function formatForTable(caseFiles: CaseFileWithRelations[]): CaseFileRow[] {
   return caseFiles.map((caseFile) => [
     caseFile.caseFileNumber,
+    formatDateFr(caseFile.depositDate),
     getActorDisplayName(caseFile.mainClaimant),
     getActorDisplayName(caseFile.mainDefender),
-    caseFile.urgency?.description || "N/A",
     caseFile.lastStatus.label,
+    caseFile.lastHearing?.convocationDate ?? null,
   ]);
 }
 

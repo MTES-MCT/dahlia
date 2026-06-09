@@ -2,12 +2,14 @@ import { fr } from "@codegouvfr/react-dsfr";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { fetchCaseFileDetail } from "@/app/lib/data/case-files";
+import { Breadcrumb } from "@codegouvfr/react-dsfr/Breadcrumb";
 
 type Props = {
   params: Promise<{ caseFileNumber: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export default async function Page({ params }: Props) {
+export default async function Page({ params, searchParams }: Props) {
   const { caseFileNumber } = await params;
   const caseFile = await fetchCaseFileDetail(decodeURIComponent(caseFileNumber));
 
@@ -15,20 +17,34 @@ export default async function Page({ params }: Props) {
     notFound();
   }
 
+  // Reconstruit l'URL de retour vers le tableau de bord en conservant la
+  // dernière recherche de l'utilisateur (page, tri, recherche, statut),
+  // transmise via les query params du lien d'origine.
+  const resolvedSearchParams = await searchParams;
+  const backParams = new URLSearchParams();
+  for (const [key, value] of Object.entries(resolvedSearchParams)) {
+    if (typeof value === "string") backParams.set(key, value);
+  }
+  const backQueryString = backParams.toString();
+  const backHref = `/case_files${backQueryString ? `?${backQueryString}` : ""}`;
+
   return (
     <>
-      <div className={fr.cx("fr-mt-3w")}>
-        <Link
-          href="/case_files"
-          className={fr.cx("fr-link", "fr-icon-arrow-go-back-line", "fr-link--icon-left")}
-        >
-          Retour au tableau de bord
-        </Link>
-      </div>
-
-      <h1 className={fr.cx("fr-mt-2w", "fr-h2")}>
-        Dossier {caseFile.caseFileNumber} : {caseFile.title}
-      </h1>
+      <Breadcrumb
+        currentPageLabel={caseFile.caseFileNumber + (caseFile.title ? ` - ${caseFile.title}` : "")}
+        segments={[
+          {
+            label: (
+              <span className={fr.cx("fr-icon-arrow-go-back-line", "fr-link--icon-left")}>
+                Tableau de bord
+              </span>
+            ),
+            linkProps: {
+              href: backHref,
+            },
+          },
+        ]}
+      />
 
       <pre
         className={fr.cx("fr-p-2w")}

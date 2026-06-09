@@ -91,6 +91,22 @@ describe('SortableColumnHeader', () => {
 
       expect(screen.getByRole('button').getAttribute('aria-label')).toBe('Trier par Numero');
     });
+
+    it('est actif avec son ordre par defaut quand aucun tri n\'est defini dans l\'URL', () => {
+      vi.mocked(useSearchParams).mockReturnValue(new URLSearchParams() as never);
+      render(<SortableColumnHeader label="Date" sortKey="convocationDate" defaultOrder="ascending" />);
+
+      expect(screen.getByRole('button').getAttribute('aria-sort')).toBe('ascending');
+    });
+
+    it('reste inactif quand un autre tri est explicitement defini malgre un defaultOrder', () => {
+      vi.mocked(useSearchParams).mockReturnValue(
+        new URLSearchParams({ sortBy: 'caseFileNumber', sortOrder: 'ascending' }) as never
+      );
+      render(<SortableColumnHeader label="Date" sortKey="convocationDate" defaultOrder="ascending" />);
+
+      expect(screen.getByRole('button').getAttribute('aria-sort')).toBe('none');
+    });
   });
 
   describe('comportement au clic', () => {
@@ -135,6 +151,15 @@ describe('SortableColumnHeader', () => {
 
       const pushedUrl = mockPush.mock.calls[0][0] as string;
       expect(pushedUrl).not.toContain('page=');
+    });
+
+    it('bascule vers descending au clic quand la colonne est le tri par defaut ascending', () => {
+      vi.mocked(useSearchParams).mockReturnValue(new URLSearchParams() as never);
+      render(<SortableColumnHeader label="Date" sortKey="convocationDate" defaultOrder="ascending" />);
+
+      fireEvent.click(screen.getByRole('button'));
+
+      expect(mockPush).toHaveBeenCalledWith('?sortBy=convocationDate&sortOrder=descending');
     });
 
     it('conserve les autres parametres URL existants', () => {
