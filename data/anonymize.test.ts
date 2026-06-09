@@ -22,7 +22,8 @@ describe("anonymizeActor", () => {
     expect(anonymized.lastName).toBeTruthy();
     expect(anonymized.firstName).not.toBe("Jean");
     expect(anonymized.lastName).not.toBe("Dupont");
-    expect(anonymized.lastFirstName).toBe(anonymized.firstName);
+    expect(anonymized.lastFirstName).toBe(anonymized.lastName + " " + anonymized.firstName);
+    expect(anonymized.firstLastName).toBe(anonymized.firstName + " " + anonymized.lastName);
     expect(anonymized.id).toBe(1);
   });
 
