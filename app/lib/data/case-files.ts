@@ -1,5 +1,10 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/app/lib/prisma";
+import { formatDateFr, getActorDisplayName } from "@/app/lib/case-file-format";
+
+// Re-exported so existing imports from this data module keep working; the actual
+// implementations live in a Prisma-free module shared with client components.
+export { formatDateFr, getActorDisplayName };
 
 type CaseFileWithRelations = Prisma.CaseFileGetPayload<{
   include: {
@@ -14,26 +19,6 @@ type CaseFileWithRelations = Prisma.CaseFileGetPayload<{
 // The last element is the raw hearing convocation date (or null): the UI cell
 // formats it and derives a status badge from it (see MemoryDeadlineCell).
 export type CaseFileRow = [string, string, string, string, string, Date | null];
-
-// Format a date as dd/mm/yyyy (French format); empty string when absent.
-export function formatDateFr(date: Date | null): string {
-  if (!date) return "";
-  return new Intl.DateTimeFormat("fr-FR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(date);
-}
-
-export function getActorDisplayName(actor: CaseFileWithRelations["mainDefender"]): string {
-  if (!actor) return "N/A";
-  if (actor.legalPersonName) return actor.legalPersonName;
-  if (actor.legalEntityName) return actor.legalEntityName;
-  if (actor.firstName && actor.lastName) return `${actor.lastName} ${actor.firstName}`;
-  if (actor.lastName) return actor.lastName;
-  if (actor.firstName) return actor.firstName;
-  return "N/A";
-}
 
 const ACTOR_SORT_KEYS = ["mainClaimant", "mainDefender"] as const;
 

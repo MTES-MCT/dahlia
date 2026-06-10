@@ -1,8 +1,8 @@
 import { fr } from "@codegouvfr/react-dsfr";
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { fetchCaseFileDetail } from "@/app/lib/data/case-files";
 import { Breadcrumb } from "@codegouvfr/react-dsfr/Breadcrumb";
+import { CaseFileTabs } from "@/app/ui/case-file-tabs";
 
 type Props = {
   params: Promise<{ caseFileNumber: string }>;
@@ -46,17 +46,7 @@ export default async function Page({ params, searchParams }: Props) {
         ]}
       />
 
-      <pre
-        className={fr.cx("fr-p-2w")}
-        style={{
-          overflowX: "auto",
-          backgroundColor: "var(--background-alt-grey)",
-          borderRadius: "0.5rem",
-        }}
-        hidden={false}
-      >
-        {JSON.stringify(caseFile, null, 2)}
-      </pre>
+      <CaseFileTabs caseFile={caseFile} />
     </>
   );
 }
