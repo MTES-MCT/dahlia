@@ -42,3 +42,6 @@ next-env.d.ts
 
 # db
 webapp_dbdata/
+
+# continue
+.continue/
