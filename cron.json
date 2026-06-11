@@ -1,0 +1,7 @@
+{
+  "jobs": [
+    {
+      "command": "0 1 * * * pnpm scrape:dev -- --all --anonymize"
+    }
+  ]
+}
