@@ -96,6 +96,17 @@ const mockCaseFile = {
   mainDefender: mockActor,
   urgency: mockUrgency,
   lastStatus: mockStatus,
+  lastHearing: null,
+};
+
+const mockHearing = {
+  hearingId: '98577',
+  convocationDate: new Date('2026-07-01T13:00:00.000Z'),
+  room: 'n° 5',
+  creationDate: null,
+  modificationDates: [],
+  lastConclusionId: null,
+  caseFileNumber: 'CF-2024-001',
 };
 
 describe('case-files', () => {
@@ -156,15 +167,34 @@ describe('case-files', () => {
       const result = formatForTable([mockCaseFile]);
 
       expect(result).toEqual([
-        ['CF-2024-001', 'Dupont Jean', 'Dupont Jean', 'Très urgent', 'En cours'],
+        ['CF-2024-001', '', 'Dupont Jean', 'Dupont Jean', 'En cours', null],
       ]);
     });
 
-    it('handles missing urgency gracefully', () => {
-      const caseFile = { ...mockCaseFile, urgency: null, urgencyId: null };
+    it('exposes the raw lastHearing convocationDate as the last column', () => {
+      const caseFile = { ...mockCaseFile, lastHearing: mockHearing };
       const result = formatForTable([caseFile]);
 
-      expect(result[0][3]).toBe('N/A');
+      expect(result[0][5]).toEqual(mockHearing.convocationDate);
+    });
+
+    it('exposes a null memory deadline when lastHearing is absent', () => {
+      const result = formatForTable([mockCaseFile]);
+
+      expect(result[0][5]).toBeNull();
+    });
+
+    it('formats depositDate as dd/mm/yyyy', () => {
+      const caseFile = { ...mockCaseFile, depositDate: new Date('2024-03-09') };
+      const result = formatForTable([caseFile]);
+
+      expect(result[0][1]).toBe('09/03/2024');
+    });
+
+    it('renders an empty depositDate as an empty string', () => {
+      const result = formatForTable([mockCaseFile]);
+
+      expect(result[0][1]).toBe('');
     });
 
     it('formats multiple case files', () => {
@@ -174,7 +204,7 @@ describe('case-files', () => {
       expect(result).toHaveLength(2);
       expect(result[0][0]).toBe('CF-2024-001');
       expect(result[1][0]).toBe('CF-2024-002');
-      expect(result[1][1]).toBe('SARL Acme');
+      expect(result[1][2]).toBe('SARL Acme');
     });
   });
 
@@ -189,7 +219,7 @@ describe('case-files', () => {
       const result = await fetchCaseFilesTableData(1, 10, 'caseFileNumber', 'descending');
 
       expect(result).toEqual({
-        rows: [['CF-2024-001', 'Dupont Jean', 'Dupont Jean', 'Très urgent', 'En cours']],
+        rows: [['CF-2024-001', '', 'Dupont Jean', 'Dupont Jean', 'En cours', null]],
         totalPages: 3,
         totalCount: 25,
       });
@@ -199,6 +229,7 @@ describe('case-files', () => {
           mainDefender: true,
           urgency: true,
           lastStatus: true,
+          lastHearing: true,
         },
         orderBy: { caseFileNumber: 'desc' },
         skip: 0,
@@ -242,6 +273,19 @@ describe('case-files', () => {
       expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
         expect.objectContaining({
           orderBy: { mainDefender: { displayName: { sort: 'desc', nulls: 'last' } } },
+        })
+      );
+    });
+
+    it('sorts by the lastHearing convocationDate through the relation', async () => {
+      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
+      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
+
+      await fetchCaseFilesTableData(1, 10, 'convocationDate', 'ascending');
+
+      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { lastHearing: { convocationDate: 'asc' } },
         })
       );
     });

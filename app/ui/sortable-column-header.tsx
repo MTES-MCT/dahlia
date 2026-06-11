@@ -3,30 +3,35 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { fr } from '@codegouvfr/react-dsfr';
 
+type SortOrder = 'ascending' | 'descending';
+
 type Props = {
   label: string;
   sortKey: string;
+  // When set, this column is the default sort applied when no `sortBy` is in the
+  // URL: it appears active with this order even though no param is present.
+  defaultOrder?: SortOrder;
 };
 
-export function SortableColumnHeader({ label, sortKey }: Props) {
+export function SortableColumnHeader({ label, sortKey, defaultOrder }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const currentSortBy = searchParams.get('sortBy');
   const currentSortOrder = searchParams.get('sortOrder');
 
-  const isActive = currentSortBy === sortKey;
-  const ariaSortValue = isActive
-    ? ((currentSortOrder ?? 'ascending') as 'ascending' | 'descending')
-    : 'none';
+  // No sort in the URL → fall back to this column's default sort, if any.
+  const isDefaultActive = currentSortBy === null && defaultOrder !== undefined;
+  const isActive = currentSortBy === sortKey || isDefaultActive;
+  const effectiveOrder: SortOrder = isDefaultActive
+    ? defaultOrder
+    : ((currentSortOrder ?? 'ascending') as SortOrder);
+  const ariaSortValue = isActive ? effectiveOrder : 'none';
 
   function handleClick() {
     const params = new URLSearchParams(searchParams.toString());
     params.set('sortBy', sortKey);
-    params.set(
-      'sortOrder',
-      isActive && currentSortOrder === 'ascending' ? 'descending' : 'ascending'
-    );
+    params.set('sortOrder', isActive && effectiveOrder === 'ascending' ? 'descending' : 'ascending');
     params.delete('page');
     router.push(`?${params.toString()}`);
   }

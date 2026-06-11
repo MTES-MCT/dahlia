@@ -62,3 +62,7 @@ pnpm db:format              # formater les .prisma
 
 - Avant toute modification de code, donne-moi tes 2 principales hypothèses sur la cause racine de cette erreur, comment tu vérifierais chacune, et laquelle tu testeras en premier. Ne modifie aucun fichier tant que nous ne sommes pas d'accord sur la cause.
 - Après avoir corrigé le problème, exécute l'ensemble de la suite de tests pertinente et colle-en le résumé. Si quelque chose échoue, corrige-le avant de me dire que c'est terminé.
+
+## Commentaires
+
+Tous les commentaires dans les fichiers de la base de code doivent être rédigés en anglais
