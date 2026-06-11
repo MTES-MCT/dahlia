@@ -584,7 +584,8 @@ function parseArgs(): Args {
     sort: undefined,
     all: false,
     legalEntityDivisionIds: [],
-    anonymize: false,
+    // Default: anonymize unless running against the prod environment.
+    anonymize: process.env.ENVIRONMENT !== "production",
     skipEnrichment: false,
   };
 
