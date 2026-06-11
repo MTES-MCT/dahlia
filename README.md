@@ -101,7 +101,7 @@ ciblé (`<JURIDICTION>_…`) :
 | `--sort <champ>`                 | _(aucun)_         | Critère de tri transmis tel quel à l'API (paramètre `sort`).                                                                                                           |
 | `--all`                          | `false`           | Récupère **tous** les dossiers. Sans ce flag, seuls les dossiers « inscrits au rôle » sont demandés (`onlyEnrolled=true`).                                             |
 | `--legalEntityDivisionIds <ids>` | env `…_DIVISIONS` | Liste d'IDs de divisions à filtrer, séparés par des virgules (ex. `2488,1234`). Surcharge la variable d'env. Sert aussi à cibler les dossiers à enrichir (Phases B/C). |
-| `--anonymize`                    | `false`           | Anonymise les acteurs (requérants/défendeurs) avant insertion en base.                                                                                                 |
+| `--anonymize`                    | `true` sauf si `ENV=prod` | Anonymise les acteurs (requérants/défendeurs) avant insertion en base. Le défaut dépend de la variable d'env `ENV` : anonymisation activée en dev/preprod, désactivée en prod. |
 | `--skipEnrichment`               | `false`           | N'exécute que la Phase A (liste des dossiers) et saute les Phases B et C (détails, audiences, mesures, pièces jointes, dossiers liés).                                 |
 
 ### Déroulé du script
