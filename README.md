@@ -93,16 +93,16 @@ ciblé (`<JURIDICTION>_…`) :
 
 ### Options
 
-| Option                           | Défaut            | Description                                                                                                                                                            |
-| -------------------------------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--jurisdiction <code>`          | `TA069`           | Code de la juridiction. Détermine aussi quelles variables d'env sont lues (`<code>_TELERECOURS_*`) et l'en-tête `X-Jurisdiction-Code` envoyé à l'API.                  |
-| `--page <n>`                     | `0`               | Page de départ (0-based) pour la liste des dossiers (Phase A). Le script continue ensuite jusqu'à la dernière page.                                                    |
-| `--size <n>`                     | `30`              | Nombre de dossiers par page lors de l'appel à `/api/case-file`.                                                                                                        |
-| `--sort <champ>`                 | _(aucun)_         | Critère de tri transmis tel quel à l'API (paramètre `sort`).                                                                                                           |
-| `--all`                          | `false`           | Récupère **tous** les dossiers. Sans ce flag, seuls les dossiers « inscrits au rôle » sont demandés (`onlyEnrolled=true`).                                             |
-| `--legalEntityDivisionIds <ids>` | env `…_DIVISIONS` | Liste d'IDs de divisions à filtrer, séparés par des virgules (ex. `2488,1234`). Surcharge la variable d'env. Sert aussi à cibler les dossiers à enrichir (Phases B/C). |
+| Option                           | Défaut                    | Description                                                                                                                                                                    |
+| -------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--jurisdiction <code>`          | `TA069`                   | Code de la juridiction. Détermine aussi quelles variables d'env sont lues (`<code>_TELERECOURS_*`) et l'en-tête `X-Jurisdiction-Code` envoyé à l'API.                          |
+| `--page <n>`                     | `0`                       | Page de départ (0-based) pour la liste des dossiers (Phase A). Le script continue ensuite jusqu'à la dernière page.                                                            |
+| `--size <n>`                     | `30`                      | Nombre de dossiers par page lors de l'appel à `/api/case-file`.                                                                                                                |
+| `--sort <champ>`                 | _(aucun)_                 | Critère de tri transmis tel quel à l'API (paramètre `sort`).                                                                                                                   |
+| `--all`                          | `false`                   | Récupère **tous** les dossiers. Sans ce flag, seuls les dossiers « inscrits au rôle » sont demandés (`onlyEnrolled=true`).                                                     |
+| `--legalEntityDivisionIds <ids>` | env `…_DIVISIONS`         | Liste d'IDs de divisions à filtrer, séparés par des virgules (ex. `2488,1234`). Surcharge la variable d'env. Sert aussi à cibler les dossiers à enrichir (Phases B/C).         |
 | `--anonymize`                    | `true` sauf si `ENV=prod` | Anonymise les acteurs (requérants/défendeurs) avant insertion en base. Le défaut dépend de la variable d'env `ENV` : anonymisation activée en dev/preprod, désactivée en prod. |
-| `--skipEnrichment`               | `false`           | N'exécute que la Phase A (liste des dossiers) et saute les Phases B et C (détails, audiences, mesures, pièces jointes, dossiers liés).                                 |
+| `--skipEnrichment`               | `false`                   | N'exécute que la Phase A (liste des dossiers) et saute les Phases B et C (détails, audiences, mesures, pièces jointes, dossiers liés).                                         |
 
 ### Déroulé du script
 

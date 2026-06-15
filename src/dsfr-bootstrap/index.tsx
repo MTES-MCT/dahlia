@@ -14,13 +14,7 @@ declare module "@codegouvfr/react-dsfr/next-app-router" {
 }
 
 export function DsfrProvider(props: DsfrProviderProps) {
-  return (
-    <DsfrProviderBase
-      defaultColorScheme={defaultColorScheme}
-      Link={Link}
-      {...props}
-    />
-  );
+  return <DsfrProviderBase defaultColorScheme={defaultColorScheme} Link={Link} {...props} />;
 }
 
 export { StartDsfrOnHydration };
