@@ -98,7 +98,11 @@ export default async function Page({ searchParams }: Props) {
         fixed
         headers={[
           <SortableColumnHeader key="caseFileNumber" label="Dossier" sortKey="caseFileNumber" />,
-          <SortableColumnHeader key="depositDate" label="Date de réception" sortKey="depositDate" />,
+          <SortableColumnHeader
+            key="depositDate"
+            label="Date de réception"
+            sortKey="depositDate"
+          />,
           <SortableColumnHeader key="mainClaimant" label="Requérant" sortKey="mainClaimant" />,
           <SortableColumnHeader key="mainDefender" label="Défendeur" sortKey="mainDefender" />,
           "Statut",

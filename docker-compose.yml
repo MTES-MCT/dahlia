@@ -1,4 +1,3 @@
-
 services:
   dahlia-webapp-db:
     image: postgres:17-alpine3.23
