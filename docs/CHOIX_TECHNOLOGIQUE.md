@@ -27,7 +27,7 @@ On peut utiliser le framework `node` «next.js» avec une plus grosse communaut�
 
 Plusieurs options :
 
-- Scalingo : c'est un PaaS (plateforme as a service), on lui envoie du code et il se débrouille pour l'exécuter 
+- Scalingo : c'est un PaaS (plateforme as a service), on lui envoie du code et il se débrouille pour l'exécuter
   - avantage : simple
   - désavantage : peu flexible, pas complet (pas de stockage de type s3), performances dégradé quand les bases de données commence à être importante
 - Scaleway : C'est un IaaS (Infrastructure as a service)

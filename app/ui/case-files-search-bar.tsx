@@ -1,24 +1,24 @@
-'use client';
+"use client";
 
-import { useRouter, useSearchParams } from 'next/navigation';
-import { SearchBar } from '@codegouvfr/react-dsfr/SearchBar';
+import { useRouter, useSearchParams } from "next/navigation";
+import { SearchBar } from "@codegouvfr/react-dsfr/SearchBar";
 
 export function CaseFilesSearchBar({ className }: { className?: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const currentQuery = searchParams.get('q') ?? '';
+  const currentQuery = searchParams.get("q") ?? "";
 
   function handleSearch(text: string) {
     const params = new URLSearchParams(searchParams.toString());
     const trimmed = text.trim();
     if (trimmed) {
-      params.set('q', trimmed);
+      params.set("q", trimmed);
     } else {
-      params.delete('q');
+      params.delete("q");
     }
-    params.delete('page');
+    params.delete("page");
     const qs = params.toString();
-    router.push(qs ? `?${qs}` : '?');
+    router.push(qs ? `?${qs}` : "?");
   }
 
   return (
@@ -31,7 +31,6 @@ export function CaseFilesSearchBar({ className }: { className?: string }) {
       allowEmptySearch
       onButtonClick={handleSearch}
       className={className}
-
-      />
+    />
   );
 }

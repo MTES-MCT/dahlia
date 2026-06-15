@@ -48,9 +48,68 @@ Note : une API en lecture seule est suffisante pour les besoins de notre premiè
 
 ## Ministère de l'interieur / ASTREE
 
+### Actuellement
+
+Prototype pas interfacé à télérecours
+Agent : télérecours -> puis SIAGE : double saisi dans SIAGE et TELERECOURS
+SIAGE n'est pas relié à télérecours
+ASTREE - synchro avec SIAGE
+
+Difficultés techniques lié à l'environnement du MI très contraignant
+Refonte technique de SIAGE
+
+### Prochainement
+
+Prototype v2
+
+- gestion du flux entrant
+  - 4 grandes fct
+  - Téléchargement automatique depuis télérecours
+    Accord pour faire un robot de scrapping
+    API trouvée, essai plutôt concluant
+  - rappatriment des pièces
+  - déversement auto dans SIAGE
+    refonte conséquente : pas possible en 2026
+- conserver le contentieux "permis à point"
+- ajout contentieux "étrangers" - très varié
+
+QUESTIONS :
+
+- Interprétation des pièces avec IA ?
+  - tests en cours
+- Reverser des pièces dans TELERECOURS ?
+  - C'est un sujet mais pas la priorité
+
+- Extrait des morceaux de pièce
+  - dans le document : word, PDF, scan - pas de requête manuscrite
+  - techniquement
+    -> OCR (Mistral OCR), DocumentIA : étude en cours
+    -> Extraction LLM
+    -> Récupération des prénom, nom, num permis… etc dans les requêtes
+    -> Open-Source ?
+  - tip
+    - plusieurs prénoms
+    - I vs 1
+    - Paramétrage juridique : Moyen vs infraction, ex: exces de vitesse () mais contestation car jamais notifié
+    - recherche de mot clé selon le juriste -> rentre
+    - 500 requêtes dossiers clos -> requête + décision -> apprentissage
+    - Qualité un peu moyenne après cette apprentissage -> demande d'annotation
+
+Astree jénère un squelète de mémoire avec le plan de défense, pas d'interprétation de défense
+-> suite : automatisation avec banque de paragraphe ? paramétrable ?
+
+Recherche de jurisprudence : demande mais pas une priorité, déjà
+
+Recueil de jurisprudance par l'ADAGE
+
+- Mutualisation
+  - Code open-source ? -> en attente de partage
+  - techno python
+  - API TEERECOURS, SGG / DINUM, demande en cours
+
 ### Scrapper
 
-Où en être vous du développement d'un scrapper de TéléRecours ?
+Où en êtes vous du développement d'un scrapper de TéléRecours ?
 Est-ce qu'on peut mutualiser l'effort, si oui, quelles sont vos containtes ?
 
 ### Lecture et interprétation de document

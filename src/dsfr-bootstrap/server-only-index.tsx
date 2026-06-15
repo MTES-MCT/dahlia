@@ -1,7 +1,7 @@
 import {
   DsfrHeadBase,
   type DsfrHeadProps,
-  createGetHtmlAttributes
+  createGetHtmlAttributes,
 } from "@codegouvfr/react-dsfr/next-app-router/server-only-index";
 import { defaultColorScheme } from "./defaultColorScheme";
 import Link from "next/link";
