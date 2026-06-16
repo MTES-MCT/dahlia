@@ -9,15 +9,10 @@ const REDIRECT_URI = `${API_HOST}/auth-callback`;
 const SCOPE = "openid profile telerecours";
 
 const USER_AGENT =
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:150.0) " +
-  "Gecko/20100101 Firefox/150.0";
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:150.0) " + "Gecko/20100101 Firefox/150.0";
 
 function b64url(data: Buffer): string {
-  return data
-    .toString("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=/g, "");
+  return data.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
 }
 
 interface PKCEPair {
@@ -57,7 +52,7 @@ class SessionCookies {
 
 async function fetchWithCookies(
   url: string,
-  options: RequestInit & { cookies?: SessionCookies }
+  options: RequestInit & { cookies?: SessionCookies },
 ): Promise<{ response: Response; cookies: SessionCookies }> {
   const cookies = options.cookies || new SessionCookies();
   const headers = new Headers(options.headers);
@@ -82,7 +77,7 @@ async function fetchWithCookies(
 
 export async function fetchLoginForm(
   cookies: SessionCookies,
-  challenge: string
+  challenge: string,
 ): Promise<LoginFormData & { cookies: SessionCookies }> {
   const state = crypto.randomBytes(16).toString("hex");
   const nonce = crypto.randomBytes(16).toString("hex");
@@ -100,20 +95,15 @@ export async function fetchLoginForm(
 
   const authorizeUrl = `${AUTHORITY}/connect/authorize?${params.toString()}`;
 
-  const { response, cookies: newCookies } = await fetchWithCookies(
-    authorizeUrl,
-    {
-      method: "GET",
-      headers: { "User-Agent": USER_AGENT },
-      cookies,
-      redirect: "follow",
-    }
-  );
+  const { response, cookies: newCookies } = await fetchWithCookies(authorizeUrl, {
+    method: "GET",
+    headers: { "User-Agent": USER_AGENT },
+    cookies,
+    redirect: "follow",
+  });
 
   if (!response.ok) {
-    throw new Error(
-      `Failed to fetch login form: ${response.status} ${response.statusText}`
-    );
+    throw new Error(`Failed to fetch login form: ${response.status} ${response.statusText}`);
   }
 
   const html = await response.text();
@@ -144,7 +134,6 @@ export async function fetchLoginForm(
     throw new Error("ReturnUrl not found in login form");
   }
 
-
   return { url: loginUrl, fields, cookies: newCookies };
 }
 
@@ -153,7 +142,7 @@ export async function submitLogin(
   loginUrl: string,
   formFields: Record<string, string>,
   username: string,
-  password: string
+  password: string,
 ): Promise<{ code: string; cookies: SessionCookies }> {
   const payload = new URLSearchParams({
     ...formFields,
@@ -198,41 +187,35 @@ export async function submitLogin(
       currentUrl = location;
     }
 
-
     if (currentUrl.startsWith(REDIRECT_URI)) {
       const url = new URL(currentUrl);
       const code = url.searchParams.get("code");
       if (!code) {
-        throw new Error(
-          `Authentication failed: no code returned. URL=${currentUrl}`
-        );
+        throw new Error(`Authentication failed: no code returned. URL=${currentUrl}`);
       }
       console.log("✓ Authorization code received");
       return { code, cookies: currentCookies };
     }
 
-    ({ response, cookies: newCookies } = await fetchWithCookies(
-      currentUrl,
-      {
-        method: "GET",
-        headers: { "User-Agent": USER_AGENT },
-        cookies: currentCookies,
-        redirect: "manual",
-      }
-    ));
+    ({ response, cookies: newCookies } = await fetchWithCookies(currentUrl, {
+      method: "GET",
+      headers: { "User-Agent": USER_AGENT },
+      cookies: currentCookies,
+      redirect: "manual",
+    }));
     currentCookies = newCookies;
   }
 
   throw new Error(
     `OIDC flow did not end on auth-callback — check credentials. ` +
-      `Last status: ${response.status}`
+      `Last status: ${response.status}`,
   );
 }
 
 export async function exchangeCode(
   cookies: SessionCookies,
   code: string,
-  verifier: string
+  verifier: string,
 ): Promise<string> {
   const payload = new URLSearchParams({
     grant_type: "authorization_code",
@@ -242,24 +225,19 @@ export async function exchangeCode(
     code_verifier: verifier,
   });
 
-  const { response } = await fetchWithCookies(
-    `${AUTHORITY}/connect/token`,
-    {
-      method: "POST",
-      headers: {
-        "User-Agent": USER_AGENT,
-        Accept: "application/json",
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: payload.toString(),
-      cookies,
-    }
-  );
+  const { response } = await fetchWithCookies(`${AUTHORITY}/connect/token`, {
+    method: "POST",
+    headers: {
+      "User-Agent": USER_AGENT,
+      Accept: "application/json",
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: payload.toString(),
+    cookies,
+  });
 
   if (!response.ok) {
-    throw new Error(
-      `Token exchange failed: ${response.status} ${response.statusText}`
-    );
+    throw new Error(`Token exchange failed: ${response.status} ${response.statusText}`);
   }
 
   const data = (await response.json()) as Record<string, unknown>;
@@ -267,7 +245,7 @@ export async function exchangeCode(
 
   if (typeof accessToken !== "string") {
     throw new Error(
-      `Unexpected token response: access_token not found. Response: ${JSON.stringify(data)}`
+      `Unexpected token response: access_token not found. Response: ${JSON.stringify(data)}`,
     );
   }
 
@@ -275,25 +253,13 @@ export async function exchangeCode(
   return accessToken;
 }
 
-export async function login(
-  username: string,
-  password: string
-): Promise<string> {
+export async function login(username: string, password: string): Promise<string> {
   const cookies = new SessionCookies();
   const { verifier, challenge } = makePKCE();
 
-  const { url: loginUrl, fields, cookies: c1 } = await fetchLoginForm(
-    cookies,
-    challenge
-  );
+  const { url: loginUrl, fields, cookies: c1 } = await fetchLoginForm(cookies, challenge);
 
-  const { code, cookies: c2 } = await submitLogin(
-    c1,
-    loginUrl,
-    fields,
-    username,
-    password
-  );
+  const { code, cookies: c2 } = await submitLogin(c1, loginUrl, fields, username, password);
 
   const accessToken = await exchangeCode(c2, code, verifier);
   return accessToken;

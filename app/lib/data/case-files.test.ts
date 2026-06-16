@@ -96,6 +96,7 @@ const mockCaseFile = {
   chamberId: null,
   mainClaimantId: 1,
   mainDefenderId: 1,
+  isDeleted: false,
   createdAt: new Date("2024-01-01"),
   updatedAt: new Date("2024-01-01"),
   mainClaimant: mockActor,
@@ -261,6 +262,7 @@ describe("case-files", () => {
           lastStatus: true,
           lastHearing: true,
         },
+        where: { isDeleted: false },
         orderBy: { caseFileNumber: "desc" },
         skip: 0,
         take: 10,
@@ -367,16 +369,18 @@ describe("case-files", () => {
       });
     });
 
-    it("omits where when query is null", async () => {
+    it("only filters out deleted case files when no query/status is provided", async () => {
       vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
       vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
 
       await fetchCaseFilesTableData(1, 10, null, "descending", null);
 
       expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
-        expect.not.objectContaining({ where: expect.anything() }),
+        expect.objectContaining({ where: { isDeleted: false } }),
       );
-      expect(vi.mocked(prisma.caseFile.count)).toHaveBeenCalledWith(undefined);
+      expect(vi.mocked(prisma.caseFile.count)).toHaveBeenCalledWith({
+        where: { isDeleted: false },
+      });
     });
 
     it("applies an OR filter on caseFileNumber and the normalized acteurs columns when query is provided", async () => {
@@ -386,10 +390,15 @@ describe("case-files", () => {
       await fetchCaseFilesTableData(1, 10, null, "descending", "Dupont");
 
       const expectedWhere = {
-        OR: [
-          { caseFileNumber: { contains: "Dupont", mode: "insensitive" } },
-          { mainClaimant: { displayNameNormalized: { contains: "dupont" } } },
-          { mainDefender: { displayNameNormalized: { contains: "dupont" } } },
+        AND: [
+          { isDeleted: false },
+          {
+            OR: [
+              { caseFileNumber: { contains: "Dupont", mode: "insensitive" } },
+              { mainClaimant: { displayNameNormalized: { contains: "dupont" } } },
+              { mainDefender: { displayNameNormalized: { contains: "dupont" } } },
+            ],
+          },
         ],
       };
 
@@ -406,10 +415,15 @@ describe("case-files", () => {
       await fetchCaseFilesTableData(1, 10, null, "descending", "Frànçois");
 
       const expectedWhere = {
-        OR: [
-          { caseFileNumber: { contains: "Frànçois", mode: "insensitive" } },
-          { mainClaimant: { displayNameNormalized: { contains: "francois" } } },
-          { mainDefender: { displayNameNormalized: { contains: "francois" } } },
+        AND: [
+          { isDeleted: false },
+          {
+            OR: [
+              { caseFileNumber: { contains: "Frànçois", mode: "insensitive" } },
+              { mainClaimant: { displayNameNormalized: { contains: "francois" } } },
+              { mainDefender: { displayNameNormalized: { contains: "francois" } } },
+            ],
+          },
         ],
       };
 
@@ -426,7 +440,9 @@ describe("case-files", () => {
 
       expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: expect.objectContaining({ OR: expect.any(Array) }),
+          where: {
+            AND: [{ isDeleted: false }, expect.objectContaining({ OR: expect.any(Array) })],
+          },
           orderBy: { caseFileNumber: "asc" },
         }),
       );
@@ -438,7 +454,9 @@ describe("case-files", () => {
 
       await fetchCaseFilesTableData(1, 10, null, "descending", null, "En cours d'instruction");
 
-      const expectedWhere = { lastStatus: { label: "En cours d'instruction" } };
+      const expectedWhere = {
+        AND: [{ isDeleted: false }, { lastStatus: { label: "En cours d'instruction" } }],
+      };
 
       expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
         expect.objectContaining({ where: expectedWhere }),
@@ -456,6 +474,7 @@ describe("case-files", () => {
         expect.objectContaining({
           where: {
             AND: [
+              { isDeleted: false },
               expect.objectContaining({ OR: expect.any(Array) }),
               { lastStatus: { label: "Terminé" } },
             ],
@@ -476,7 +495,7 @@ describe("case-files", () => {
 
       expect(result).toEqual(["En cours d'instruction", "Terminé"]);
       expect(vi.mocked(prisma.status.findMany)).toHaveBeenCalledWith({
-        where: { caseFiles: { some: {} } },
+        where: { caseFiles: { some: { isDeleted: false } } },
         select: { label: true },
         distinct: ["label"],
         orderBy: { label: "asc" },
