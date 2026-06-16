@@ -20,6 +20,7 @@
     "db:studio": "prisma studio",
     "db:format": "prisma format",
     "scrape:dev": "ts-node -P data/tsconfig.json data/scrape-telerecours.ts",
+    "download:dev": "ts-node -P data/tsconfig.json data/telecharge-fichier.ts",
     "test": "vitest"
   },
   "dependencies": {

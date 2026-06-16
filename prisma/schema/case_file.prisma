@@ -35,6 +35,11 @@ model CaseFile {
 
   procedureState String?
 
+  // Set to true when a case file present in DB is no longer returned by the
+  // Telerecours list scrape within the same perimeter (see scrape-telerecours
+  // reconciliation). Soft delete: hidden from the UI but kept in DB.
+  isDeleted Boolean @default(false)
+
   chamberId Int?
   chamber   Chamber? @relation(fields: [chamberId], references: [id])
 

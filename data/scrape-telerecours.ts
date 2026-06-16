@@ -2,17 +2,8 @@ import { describeError, getTelerecoursCaseFileClient } from "./telerecours-clien
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import "dotenv/config";
-import {
-  Actor,
-  AttachedFile,
-  CaseFile,
-  CaseFileDetail,
-  CaseFileEvent,
-  Hearing,
-  PagedResponse,
-  RelatedCaseFileSummary,
-} from "./interfaces";
-import { anonymizeActor } from "./anonymize";
+import { CaseFile, RelatedCaseFileSummary } from "./interfaces";
+import { enrichCaseFile, upsertCaseFile } from "./enrich-case-file";
 
 const TARGET_STATUS_LABEL = "Inscrit au rôle d'une audience";
 
@@ -43,480 +34,6 @@ function getEnv(key: string): string {
     throw new Error(`Missing environment variable: ${key}`);
   }
   return value;
-}
-
-function parseDate(value: string | null | undefined): Date | undefined {
-  return value ? new Date(value) : undefined;
-}
-
-async function upsertActor(actor: Actor, anonymize: boolean = false): Promise<void> {
-  if (anonymize) {
-    actor = anonymizeActor(actor);
-  }
-  const data = {
-    firstName: actor.firstName,
-    lastName: actor.lastName,
-    lastFirstName: actor.lastFirstName,
-    firstLastName: actor.firstLastName,
-    legalPersonName: actor.legalPersonName,
-    legalEntityName: actor.legalEntityName,
-    legalEntityId: actor.legalEntityId,
-    actorType: actor.actorType as "LEGAL_PERSON" | "NATURAL_PERSON",
-    qualityCode: actor.quality?.code || "R",
-  };
-  await prisma.actor.upsert({
-    where: { id: actor.id },
-    update: data,
-    create: { id: actor.id, ...data },
-  });
-}
-
-async function upsertCaseFile(caseFile: CaseFile, anonymize: boolean = false): Promise<boolean> {
-  const missingFields: string[] = [];
-  if (!caseFile.assignedToLegalEntityDivision) missingFields.push("assignedToLegalEntityDivision");
-  if (!caseFile.lastStatus) missingFields.push("lastStatus");
-  if (!caseFile.mainClaimant) missingFields.push("mainClaimant");
-  if (
-    missingFields.length > 0 ||
-    !caseFile.assignedToLegalEntityDivision ||
-    !caseFile.lastStatus ||
-    !caseFile.mainClaimant
-  ) {
-    console.warn(
-      `⚠ Skipping case file ${caseFile.caseFileNumber}: missing required field(s) ${missingFields.join(", ")}`,
-    );
-    return false;
-  }
-
-  if (caseFile.mainClaimant.quality) {
-    await prisma.quality.upsert({
-      where: { code: caseFile.mainClaimant.quality.code },
-      update: { name: caseFile.mainClaimant.quality.name },
-      create: {
-        code: caseFile.mainClaimant.quality.code,
-        name: caseFile.mainClaimant.quality.name,
-      },
-    });
-  }
-  if (caseFile.mainDefender && caseFile.mainDefender.quality) {
-    await prisma.quality.upsert({
-      where: { code: caseFile.mainDefender.quality.code },
-      update: { name: caseFile.mainDefender.quality.name },
-      create: {
-        code: caseFile.mainDefender.quality.code,
-        name: caseFile.mainDefender.quality.name,
-      },
-    });
-  }
-
-  await prisma.legalEntityDivision.upsert({
-    where: { id: caseFile.assignedToLegalEntityDivision.id },
-    update: {
-      name: caseFile.assignedToLegalEntityDivision.name,
-      shortName: caseFile.assignedToLegalEntityDivision.shortName,
-    },
-    create: {
-      id: caseFile.assignedToLegalEntityDivision.id,
-      name: caseFile.assignedToLegalEntityDivision.name,
-      shortName: caseFile.assignedToLegalEntityDivision.shortName,
-    },
-  });
-
-  if (caseFile.urgency) {
-    await prisma.urgency.upsert({
-      where: { id: caseFile.urgency.id },
-      update: {
-        key: caseFile.urgency.key,
-        description: caseFile.urgency.description,
-        colorHexadecimalCode: caseFile.urgency.colorHexadecimalCode,
-      },
-      create: {
-        id: caseFile.urgency.id,
-        key: caseFile.urgency.key,
-        description: caseFile.urgency.description,
-        colorHexadecimalCode: caseFile.urgency.colorHexadecimalCode,
-      },
-    });
-  }
-
-  await prisma.status.upsert({
-    where: { id: caseFile.lastStatus.id },
-    update: {
-      label: caseFile.lastStatus.label,
-      category: caseFile.lastStatus.category,
-      groupId: caseFile.lastStatus.groupId,
-    },
-    create: {
-      id: caseFile.lastStatus.id,
-      label: caseFile.lastStatus.label,
-      category: caseFile.lastStatus.category,
-      groupId: caseFile.lastStatus.groupId,
-    },
-  });
-
-  if (caseFile.lastHearing?.lastConclusion?.conclusionOperativePart) {
-    await prisma.conclusionOperativePart.upsert({
-      where: { id: caseFile.lastHearing.lastConclusion.conclusionOperativePart.id },
-      update: { label: caseFile.lastHearing.lastConclusion.conclusionOperativePart.label },
-      create: {
-        id: caseFile.lastHearing.lastConclusion.conclusionOperativePart.id,
-        label: caseFile.lastHearing.lastConclusion.conclusionOperativePart.label,
-      },
-    });
-  }
-
-  const lastConclusion = caseFile.lastHearing?.lastConclusion;
-  if (lastConclusion) {
-    if (lastConclusion.id == null || lastConclusion.publicationDate == null) {
-      console.warn(
-        `⚠ Skipping Conclusion upsert for case file ${caseFile.caseFileNumber}: ` +
-          `missing required field (id=${lastConclusion.id}, publicationDate=${lastConclusion.publicationDate})`,
-      );
-    } else {
-      const operativePartId = lastConclusion.conclusionOperativePart?.id ?? null;
-      await prisma.conclusion.upsert({
-        where: { id: lastConclusion.id },
-        update: {
-          conclusionSense: lastConclusion.conclusionSense,
-          publicationDate: new Date(lastConclusion.publicationDate),
-          author: lastConclusion.author,
-          conclusionOperativePartId: operativePartId,
-        },
-        create: {
-          id: lastConclusion.id,
-          conclusionSense: lastConclusion.conclusionSense,
-          publicationDate: new Date(lastConclusion.publicationDate),
-          author: lastConclusion.author,
-          conclusionOperativePartId: operativePartId,
-        },
-      });
-    }
-  }
-
-  await upsertActor(caseFile.mainClaimant, anonymize);
-  if (caseFile.mainDefender) {
-    await upsertActor(caseFile.mainDefender, anonymize);
-  }
-
-  if (caseFile.lastHearing) {
-    await prisma.hearing.upsert({
-      where: { hearingId: caseFile.lastHearing.hearingId },
-      update: {
-        convocationDate: new Date(caseFile.lastHearing.convocationDate),
-        room: caseFile.lastHearing.room,
-        lastConclusionId: caseFile.lastHearing.lastConclusion?.id,
-      },
-      create: {
-        hearingId: caseFile.lastHearing.hearingId,
-        convocationDate: new Date(caseFile.lastHearing.convocationDate),
-        room: caseFile.lastHearing.room,
-        lastConclusionId: caseFile.lastHearing.lastConclusion?.id,
-      },
-    });
-  }
-
-  await prisma.caseFile.upsert({
-    where: { caseFileNumber: caseFile.caseFileNumber },
-    update: {
-      procedureState: caseFile.procedureState,
-      assignedToLegalEntityDivisionId: caseFile.assignedToLegalEntityDivision.id,
-      urgencyId: caseFile.urgency?.id,
-      lastStatusId: caseFile.lastStatus.id,
-      lastStatusDate: new Date(caseFile.lastStatus.statusDate),
-      mainClaimantId: caseFile.mainClaimant.id,
-      mainDefenderId: caseFile.mainDefender?.id,
-      lastHearingId: caseFile.lastHearing?.hearingId,
-    },
-    create: {
-      caseFileNumber: caseFile.caseFileNumber,
-      procedureState: caseFile.procedureState,
-      assignedToLegalEntityDivisionId: caseFile.assignedToLegalEntityDivision.id,
-      urgencyId: caseFile.urgency?.id,
-      lastStatusId: caseFile.lastStatus.id,
-      lastStatusDate: new Date(caseFile.lastStatus.statusDate),
-      mainClaimantId: caseFile.mainClaimant.id,
-      mainDefenderId: caseFile.mainDefender?.id,
-      lastHearingId: caseFile.lastHearing?.hearingId,
-    },
-  });
-
-  return true;
-}
-
-// ───── Phase B helpers ─────
-
-// Itère sur toutes les pages d'un endpoint paginé. Le fetcher reçoit le n°
-// de page (0-based) et doit retourner un PagedResponse<T>.
-async function* paginate<T>(
-  fetcher: (page: number) => Promise<PagedResponse<T>>,
-): AsyncGenerator<T> {
-  let page = 0;
-  while (true) {
-    const response = await fetcher(page);
-    for (const item of response.content) {
-      yield item;
-    }
-    const totalPages = response.page?.totalPages ?? 1;
-    if (page + 1 >= totalPages) return;
-    page += 1;
-  }
-}
-
-async function upsertCaseFileDetail(detail: CaseFileDetail): Promise<void> {
-  if (detail.chamber) {
-    await prisma.chamber.upsert({
-      where: { id: detail.chamber.id },
-      update: { name: detail.chamber.name },
-      create: { id: detail.chamber.id, name: detail.chamber.name },
-    });
-  }
-
-  await prisma.caseFile.update({
-    where: { caseFileNumber: detail.caseFileNumber },
-    data: {
-      title: detail.title ?? null,
-      creationDate: parseDate(detail.creationDate),
-      depositDate: parseDate(detail.depositDate),
-      type: detail.type ?? null,
-      estimatedHearingDate: parseDate(detail.estimatedHearingDate),
-      estimatedHearingPeriod: detail.estimatedHearingPeriod ?? null,
-      earliestInstructionClosingDate: parseDate(detail.earliestInstructionClosingDate),
-      lastDecisionReading: parseDate(detail.lastDecisionReading),
-      directoryReference: detail.directory?.reference ?? null,
-      directoryComplementaryEmails: detail.directory?.complementaryRecipientEmails ?? [],
-      keywords: detail.keywords ?? [],
-      recipientContactCount: detail.recipientContactCount ?? null,
-      chamberId: detail.chamber?.id ?? null,
-    },
-  });
-}
-
-async function upsertHearingForCaseFile(caseFileNumber: string, hearing: Hearing): Promise<void> {
-  if (hearing.lastConclusion?.conclusionOperativePart) {
-    await prisma.conclusionOperativePart.upsert({
-      where: { id: hearing.lastConclusion.conclusionOperativePart.id },
-      update: { label: hearing.lastConclusion.conclusionOperativePart.label },
-      create: {
-        id: hearing.lastConclusion.conclusionOperativePart.id,
-        label: hearing.lastConclusion.conclusionOperativePart.label,
-      },
-    });
-  }
-  if (hearing.lastConclusion?.id != null && hearing.lastConclusion.publicationDate != null) {
-    await prisma.conclusion.upsert({
-      where: { id: hearing.lastConclusion.id },
-      update: {
-        conclusionSense: hearing.lastConclusion.conclusionSense,
-        publicationDate: new Date(hearing.lastConclusion.publicationDate),
-        author: hearing.lastConclusion.author,
-        conclusionOperativePartId: hearing.lastConclusion.conclusionOperativePart?.id ?? null,
-      },
-      create: {
-        id: hearing.lastConclusion.id,
-        conclusionSense: hearing.lastConclusion.conclusionSense,
-        publicationDate: new Date(hearing.lastConclusion.publicationDate),
-        author: hearing.lastConclusion.author,
-        conclusionOperativePartId: hearing.lastConclusion.conclusionOperativePart?.id ?? null,
-      },
-    });
-  }
-
-  await prisma.hearing.upsert({
-    where: { hearingId: hearing.hearingId },
-    update: {
-      convocationDate: new Date(hearing.convocationDate),
-      room: hearing.room,
-      creationDate: parseDate(hearing.creationDate),
-      modificationDates: (hearing.modificationDates ?? []).map((d) => new Date(d)),
-      lastConclusionId: hearing.lastConclusion?.id ?? null,
-      caseFileNumber,
-    },
-    create: {
-      hearingId: hearing.hearingId,
-      convocationDate: new Date(hearing.convocationDate),
-      room: hearing.room,
-      creationDate: parseDate(hearing.creationDate),
-      modificationDates: (hearing.modificationDates ?? []).map((d) => new Date(d)),
-      lastConclusionId: hearing.lastConclusion?.id ?? null,
-      caseFileNumber,
-    },
-  });
-}
-
-async function upsertCaseFileEvent(
-  caseFileNumber: string,
-  event: CaseFileEvent,
-  anonymize: boolean,
-): Promise<void> {
-  await prisma.measure.upsert({
-    where: { code: event.measure.id },
-    update: {
-      label: event.measure.label,
-      type: event.measure.type,
-      isImportant: event.measure.isImportant,
-      family: event.measure.family,
-    },
-    create: {
-      code: event.measure.id,
-      label: event.measure.label,
-      type: event.measure.type,
-      isImportant: event.measure.isImportant,
-      family: event.measure.family,
-    },
-  });
-
-  if (event.actor) {
-    if (event.actor.quality) {
-      await prisma.quality.upsert({
-        where: { code: event.actor.quality.code },
-        update: { name: event.actor.quality.name },
-        create: { code: event.actor.quality.code, name: event.actor.quality.name },
-      });
-    }
-    await upsertActor(event.actor, anonymize);
-  }
-
-  const data = {
-    subEventId: event.subEventId,
-    eventDate: new Date(event.eventDate),
-    deadlineLabel: event.deadlineLabel,
-    receiptDate: parseDate(event.receiptDate),
-    instructionClosingDate: parseDate(event.instructionClosingDate),
-    comment: event.comment,
-    hasAttachment: event.hasAttachment,
-    generateAR: event.generateAR,
-    nbEventFile: event.nbEventFile,
-    piecesNonDownloadable: event.piecesNonDownloadable,
-    relatedEventCount: event.relatedEventCount,
-    caseFileNumber,
-    measureCode: event.measure.id,
-    actorId: event.actor?.id ?? null,
-  };
-  await prisma.caseFileEvent.upsert({
-    where: { id: event.id },
-    update: data,
-    create: { id: event.id, ...data },
-  });
-}
-
-async function upsertAttachedFile(
-  caseFileNumber: string,
-  file: AttachedFile,
-): Promise<{ upserted: boolean; reason?: string }> {
-  // L'event correspondant doit déjà avoir été créé par la phase B/measures.
-  const event = await prisma.caseFileEvent.findUnique({ where: { id: file.eventId } });
-  if (!event) {
-    return { upserted: false, reason: `event ${file.eventId} not found` };
-  }
-
-  await prisma.fileFamilyType.upsert({
-    where: { code: file.fileFamilyType },
-    update: { label: file.fileTypeLabel },
-    create: { code: file.fileFamilyType, label: file.fileTypeLabel },
-  });
-  // La measure attachée au file est aussi présente dans les events → upsert
-  // par sécurité au cas où measures aurait été partiel.
-  await prisma.measure.upsert({
-    where: { code: file.measure.measureId },
-    update: { label: file.measure.measureLabel, type: file.measure.measureType },
-    create: {
-      code: file.measure.measureId,
-      label: file.measure.measureLabel,
-      type: file.measure.measureType,
-      isImportant: false,
-      family: null,
-    },
-  });
-
-  const data = {
-    originalFileName: file.originalFileName,
-    fileName: file.fileName,
-    mimeType: file.mimeType,
-    documentType: file.documentType,
-    subEventId: file.subEventId,
-    receiptAcknowledgmentId: file.receiptAcknowledgmentId,
-    receiptAcknowledgmentType: file.receiptAcknowledgmentType,
-    fileTypeLabel: file.fileTypeLabel,
-    eventCreationDate: new Date(file.eventCreationDate),
-    caseFileNumber,
-    eventId: file.eventId,
-    fileFamilyTypeCode: file.fileFamilyType,
-  };
-  await prisma.attachedFile.upsert({
-    where: { encodedFileId: file.encodedFileId },
-    update: data,
-    create: { encodedFileId: file.encodedFileId, ...data },
-  });
-  return { upserted: true };
-}
-
-async function enrichCaseFile(
-  client: Client,
-  caseFileNumber: string,
-  jurisdiction: string,
-  anonymize: boolean,
-): Promise<void> {
-  // 1. Détail enrichi
-  const detail = (await client.getCaseFileDetail(
-    caseFileNumber,
-    jurisdiction,
-  )) as unknown as CaseFileDetail;
-  // On ré-upsert la base CaseFile (au cas où le détail apporte des champs
-  // manquants côté liste) puis on remplit les colonnes détail.
-  if (detail.assignedToLegalEntityDivision && detail.lastStatus && detail.mainClaimant) {
-    await upsertCaseFile(detail, anonymize);
-  }
-  await upsertCaseFileDetail(detail);
-
-  // 2. Toutes les audiences
-  let hearingsCount = 0;
-  for await (const hearing of paginate<Hearing>(async (page) => {
-    return (await client.getCaseFileHearings(
-      caseFileNumber,
-      jurisdiction,
-      page,
-    )) as unknown as PagedResponse<Hearing>;
-  })) {
-    await upsertHearingForCaseFile(caseFileNumber, hearing);
-    hearingsCount++;
-  }
-
-  // 3. Tous les events (measures)
-  let eventsCount = 0;
-  for await (const event of paginate<CaseFileEvent>(async (page) => {
-    return (await client.getCaseFileMeasures(
-      caseFileNumber,
-      jurisdiction,
-      page,
-    )) as unknown as PagedResponse<CaseFileEvent>;
-  })) {
-    await upsertCaseFileEvent(caseFileNumber, event, anonymize);
-    eventsCount++;
-  }
-
-  // 4. Toutes les pièces jointes
-  let filesCount = 0;
-  let filesSkipped = 0;
-  for await (const file of paginate<AttachedFile>(async (page) => {
-    return (await client.getCaseFileAttachedFiles(
-      caseFileNumber,
-      jurisdiction,
-      page,
-    )) as unknown as PagedResponse<AttachedFile>;
-  })) {
-    const result = await upsertAttachedFile(caseFileNumber, file);
-    if (result.upserted) {
-      filesCount++;
-    } else {
-      filesSkipped++;
-      console.warn(`  ⚠ Attached file ${file.encodedFileId} skipped: ${result.reason}`);
-    }
-  }
-
-  console.log(
-    `  ✓ ${caseFileNumber}: ${hearingsCount} hearings, ${eventsCount} events, ` +
-      `${filesCount} files (${filesSkipped} skipped)`,
-  );
 }
 
 // ───── Phase C : related case files ─────
@@ -631,7 +148,7 @@ function parseArgs(): Args {
 async function phaseA(
   client: Client,
   args: Args,
-): Promise<{ processed: number; upserted: number }> {
+): Promise<{ processed: number; upserted: number; seen: string[] }> {
   console.log(`\n══ Phase A — scrape liste /api/case-file (${args.jurisdiction}) ══`);
 
   let pageIndex = args.page;
@@ -641,6 +158,9 @@ async function phaseA(
   let upsertCount = 0;
   const skippedCaseFileNumbers: string[] = [];
   const failedCaseFileNumbers: string[] = [];
+  // Every case file number returned by the list, regardless of upsert outcome:
+  // these still exist in Telerecours and must NOT be marked deleted (phase A.5).
+  const seen = new Set<string>();
 
   while (true) {
     console.log(
@@ -684,9 +204,10 @@ async function phaseA(
         skippedCaseFileNumbers.push("(unknown)");
         continue;
       }
+      seen.add(item.caseFileNumber);
 
       try {
-        const upserted = await upsertCaseFile(item as CaseFile, args.anonymize);
+        const upserted = await upsertCaseFile(prisma, item as CaseFile, args.anonymize);
         if (upserted) upsertCount++;
         else skippedCaseFileNumbers.push(item.caseFileNumber);
       } catch (error) {
@@ -707,7 +228,34 @@ async function phaseA(
     `✓ Phase A : ${upsertCount}/${totalProcessed} dossiers upsertés ` +
       `(${skippedCaseFileNumbers.length} skipped, ${failedCaseFileNumbers.length} failed).`,
   );
-  return { processed: totalProcessed, upserted: upsertCount };
+  return { processed: totalProcessed, upserted: upsertCount, seen: [...seen] };
+}
+
+// ───── Phase A.5 : reconciliation (soft delete) ─────
+
+// Mark as deleted every case file present in DB within the scraped perimeter
+// but absent from the list returned by phase A. The perimeter must mirror the
+// scrape scope:
+//   - always restricted to the scraped legalEntityDivisionIds;
+//   - without --all the list is fetched with onlyEnrolled=true, which maps to
+//     the "Inscrit au rôle d'une audience" status, so the perimeter is also
+//     restricted to that status (a case file that has since left that status is
+//     no longer enrolled and is legitimately treated as out of scope).
+async function reconcileDeleted(args: Args, seen: string[]): Promise<number> {
+  console.log(`\n══ Phase A.5 — réconciliation (dossiers absents marqués supprimés) ══`);
+
+  const result = await prisma.caseFile.updateMany({
+    where: {
+      assignedToLegalEntityDivisionId: { in: args.legalEntityDivisionIds },
+      ...(args.all ? {} : { lastStatus: { label: TARGET_STATUS_LABEL } }),
+      caseFileNumber: { notIn: seen },
+      isDeleted: false,
+    },
+    data: { isDeleted: true },
+  });
+
+  console.log(`✓ Phase A.5 : ${result.count} dossier(s) marqué(s) supprimé(s).`);
+  return result.count;
 }
 
 async function phaseB(
@@ -720,6 +268,7 @@ async function phaseB(
     where: {
       lastStatus: { label: TARGET_STATUS_LABEL },
       assignedToLegalEntityDivisionId: { in: args.legalEntityDivisionIds },
+      isDeleted: false,
     },
     select: { caseFileNumber: true },
     orderBy: { lastStatusDate: "desc" },
@@ -732,7 +281,7 @@ async function phaseB(
   for (const { caseFileNumber } of targets) {
     try {
       console.log(`→ Enrichissement ${caseFileNumber}…`);
-      await enrichCaseFile(client, caseFileNumber, args.jurisdiction, args.anonymize);
+      await enrichCaseFile(prisma, client, caseFileNumber, args.jurisdiction, args.anonymize);
       enriched++;
     } catch (error) {
       console.error(`✗ Phase B failed for ${caseFileNumber}: ${describeError(error)}`);
@@ -755,6 +304,7 @@ async function phaseC(
     where: {
       lastStatus: { label: TARGET_STATUS_LABEL },
       assignedToLegalEntityDivisionId: { in: args.legalEntityDivisionIds },
+      isDeleted: false,
     },
     select: { caseFileNumber: true },
   });
@@ -794,6 +344,8 @@ async function main(): Promise<number> {
     await prisma.$disconnect();
     return 2;
   }
+
+  await reconcileDeleted(args, a.seen);
 
   if (!args.skipEnrichment) {
     await phaseB(client, args);

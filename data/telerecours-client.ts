@@ -10,9 +10,9 @@ const MAX_FETCH_ATTEMPTS = 4;
 const INITIAL_RETRY_DELAY_MS = 1000;
 
 /**
- * Aplatit la chaîne `error.cause` (utile pour `TypeError: fetch failed` de
- * undici, dont la vraie raison — ECONNRESET, ENOTFOUND, UND_ERR_SOCKET… —
- * vit dans `cause`, parfois imbriqué sur plusieurs niveaux).
+ * Flatten the `error.cause` string (useful for `TypeError: fetch failed` from
+ * undici, whose real reason — ECONNRESET, ENOTFOUND, UND_ERR_SOCKET… — is in
+ * `cause`, sometimes nested several levels deep).
  */
 export function describeError(error: unknown): string {
   if (!(error instanceof Error)) return String(error);
@@ -34,10 +34,7 @@ export function describeError(error: unknown): string {
 function isNetworkFetchError(error: unknown): boolean {
   // Node/undici lève un TypeError("fetch failed") dont `.cause` contient
   // le vrai code (ECONNRESET, ETIMEDOUT, ENOTFOUND, UND_ERR_SOCKET, …).
-  return (
-    error instanceof TypeError ||
-    (error instanceof Error && error.message === "fetch failed")
-  );
+  return error instanceof TypeError || (error instanceof Error && error.message === "fetch failed");
 }
 
 function sleep(ms: number): Promise<void> {
@@ -96,11 +93,45 @@ class TelerecoursCaseFileClient {
   }
 
   async get<T = CaseFileResponse>(path: string, jurisdiction: string): Promise<T> {
-    await this.ensureAuthenticated();
     const url = path.startsWith("http") ? path : `${API_HOST}${path}`;
+    return this.withReauth(
+      async () => (await this.makeAuthenticatedRequest(url, jurisdiction)) as T,
+    );
+  }
 
+  /**
+   * Download the binary content of a file via
+   * `/api/file-api/<encodedFileId>/data` and return it as a Buffer,
+   * with the file name (from Content-Disposition) and the MIME type.
+   */
+  async downloadFile(
+    encodedFileId: string,
+    jurisdiction: string,
+  ): Promise<{ data: Buffer; fileName?: string; mimeType?: string }> {
+    const url = `${API_HOST}/api/file-api/${encodedFileId}/data`;
+    return this.withReauth(async () => {
+      const response = await this.fetchWithRetry(
+        url,
+        jurisdiction,
+        "application/json, text/plain, */*",
+      );
+      const data = Buffer.from(await response.arrayBuffer());
+      return {
+        data,
+        fileName: parseContentDispositionFileName(response.headers.get("content-disposition")),
+        mimeType: response.headers.get("content-type") ?? undefined,
+      };
+    });
+  }
+
+  /**
+   * Ensure authentication, execute `fn`, and if the token has expired
+   * (AuthenticationError) re-login once and then retry.
+   */
+  private async withReauth<T>(fn: () => Promise<T>): Promise<T> {
+    await this.ensureAuthenticated();
     try {
-      return (await this.makeAuthenticatedRequest(url, jurisdiction)) as T;
+      return await fn();
     } catch (error) {
       if (error instanceof AuthenticationError) {
         console.log(`⚠ Authentication expired, attempting to re-login and retry...`);
@@ -108,7 +139,7 @@ class TelerecoursCaseFileClient {
 
         try {
           await this.ensureAuthenticated();
-          return (await this.makeAuthenticatedRequest(url, jurisdiction)) as T;
+          return await fn();
         } catch (retryError) {
           throw new Error(
             `Failed after re-authentication: ${retryError instanceof Error ? retryError.message : String(retryError)}`,
@@ -193,6 +224,20 @@ class TelerecoursCaseFileClient {
     url: string,
     jurisdiction: string,
   ): Promise<CaseFileResponse> {
+    const response = await this.fetchWithRetry(url, jurisdiction);
+    return (await response.json()) as CaseFileResponse;
+  }
+
+  /**
+   * Perform a GET authenticated with retry (429/5xx + network errors) and
+   * return the raw `Response` (already checked `ok`). Throw an
+   * AuthenticationError on 401/403 to trigger a re-login upstream.
+   */
+  private async fetchWithRetry(
+    url: string,
+    jurisdiction: string,
+    accept = "application/json",
+  ): Promise<Response> {
     if (!this.accessToken) {
       throw new Error("No access token available");
     }
@@ -209,7 +254,7 @@ class TelerecoursCaseFileClient {
             "User-Agent": USER_AGENT,
             Authorization: `Bearer ${this.accessToken}`,
             "X-Jurisdiction-Code": jurisdiction,
-            Accept: "application/json",
+            Accept: accept,
           },
         });
 
@@ -219,11 +264,8 @@ class TelerecoursCaseFileClient {
           );
         }
 
-        // 429 / 5xx → erreurs typiquement transitoires, on retente.
-        if (
-          response.status === 429 ||
-          (response.status >= 500 && response.status < 600)
-        ) {
+        // 429 / 5xx → typically transient errors, retry.
+        if (response.status === 429 || response.status >= 500) {
           const body = await response.text().catch(() => "");
           lastError = new Error(
             `GET ${url} → ${response.status} ${response.statusText}` +
@@ -249,10 +291,10 @@ class TelerecoursCaseFileClient {
           );
         }
 
-        return (await response.json()) as CaseFileResponse;
+        return response;
       } catch (error) {
-        // Erreurs de logique métier (auth expirée, 4xx non transitoires) :
-        // on remonte tout de suite, c'est à l'appelant de gérer.
+        // Business logic errors (auth expired, 4xx non transient) :
+        // throw immediately, it's up to the caller to handle.
         if (error instanceof AuthenticationError) throw error;
 
         if (isNetworkFetchError(error)) {
@@ -266,18 +308,17 @@ class TelerecoursCaseFileClient {
             await sleep(delay);
             continue;
           }
-          // Plus de tentatives → on rejette en gardant la cause originelle.
-          throw new Error(
-            `GET ${url} failed after ${attempt} attempts — ${describeError(error)}`,
-            { cause: error },
-          );
+          // No more attempts → reject keeping the original cause.
+          throw new Error(`GET ${url} failed after ${attempt} attempts — ${describeError(error)}`, {
+            cause: error,
+          });
         }
 
         throw error;
       }
     }
 
-    // Inatteignable en théorie, mais on respecte les types.
+    // Theoretically unreachable, but respect the types.
     throw new Error(
       `GET ${url} failed after ${MAX_FETCH_ATTEMPTS} attempts — ${describeError(lastError)}`,
       { cause: lastError instanceof Error ? lastError : undefined },
@@ -286,8 +327,29 @@ class TelerecoursCaseFileClient {
 }
 
 function backoffDelay(attempt: number): number {
-  // Backoff exponentiel + jitter : 1s, 2s, 4s (+0–250ms).
+  // Exponential backoff + jitter: 1s, 2s, 4s (+0–250ms).
   return INITIAL_RETRY_DELAY_MS * 2 ** (attempt - 1) + Math.floor(Math.random() * 250);
+}
+
+/**
+ * Extract the file name from a `Content-Disposition` header. Handle the RFC 5987
+ * `filename*=UTF-8''…` (prioritary) and the classic `filename="…"`. Return
+ * undefined if nothing exploitable.
+ */
+function parseContentDispositionFileName(header: string | null): string | undefined {
+  if (!header) return undefined;
+
+  const extended = header.match(/filename\*=(?:UTF-8'')?([^;]+)/i);
+  if (extended) {
+    try {
+      return decodeURIComponent(extended[1].trim().replace(/^"|"$/g, ""));
+    } catch {
+      // Valeur mal encodée : on retombe sur la forme classique ci-dessous.
+    }
+  }
+
+  const basic = header.match(/filename="?([^";]+)"?/i);
+  return basic ? basic[1].trim() : undefined;
 }
 
 class AuthenticationError extends Error {

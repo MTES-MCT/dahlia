@@ -59,11 +59,10 @@ export function normalizeForSearch(value: string): string {
 
 // Build the Prisma filter combining the text search (case-insensitive and accent-insensitive) and the status label filter.
 // All criteria are combined with AND; each criterion absent (null) is ignored.
-function buildWhere(
-  query: string | null,
-  statusLabel: string | null,
-): Prisma.CaseFileWhereInput | undefined {
-  const conditions: Prisma.CaseFileWhereInput[] = [];
+function buildWhere(query: string | null, statusLabel: string | null): Prisma.CaseFileWhereInput {
+  // Soft-deleted case files (absent from the latest Telerecours scrape within
+  // their perimeter) are always hidden from the UI.
+  const conditions: Prisma.CaseFileWhereInput[] = [{ isDeleted: false }];
 
   if (query) {
     const normalized = normalizeForSearch(query);
@@ -80,7 +79,6 @@ function buildWhere(
     conditions.push({ lastStatus: { label: statusLabel } });
   }
 
-  if (conditions.length === 0) return undefined;
   if (conditions.length === 1) return conditions[0];
   return { AND: conditions };
 }
@@ -103,7 +101,7 @@ async function fetchCaseFiles(
       lastStatus: true,
       lastHearing: true,
     },
-    ...(where ? { where } : {}),
+    where,
     ...(sortBy ? { orderBy: buildOrderBy(sortBy, direction) } : {}),
     skip: (page - 1) * numberOfCaseFiles,
     take: numberOfCaseFiles,
@@ -115,14 +113,14 @@ async function fetchCaseFilesCount(
   statusLabel: string | null = null,
 ): Promise<number> {
   const where = buildWhere(query, statusLabel);
-  return prisma.caseFile.count(where ? { where } : undefined);
+  return prisma.caseFile.count({ where });
 }
 
 // Status labels actually used by at least one case file — source of truth for the filter dropdown and server-side validation.
 // Sometimes several `Status` lines share the same `label` (cf. Telerecours catalogue): we deduplicate on the label.
 export async function fetchUsedStatusLabels(): Promise<string[]> {
   const statuses = await prisma.status.findMany({
-    where: { caseFiles: { some: {} } },
+    where: { caseFiles: { some: { isDeleted: false } } },
     select: { label: true },
     distinct: ["label"],
     orderBy: { label: "asc" },

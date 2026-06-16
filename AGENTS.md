@@ -33,6 +33,32 @@ pnpm db:reset               # reset complet
 pnpm db:format              # formater les .prisma
 ```
 
+#### ⚠ Migrations et colonnes générées (`GENERATED ALWAYS … STORED`)
+
+La table `actors` a deux colonnes calculées par Postgres (`displayName`,
+`displayNameNormalized`, cf. migrations `actor_display_name`, `search_unaccent`,
+`actor_display_name_by_actor_type`). Prisma 7 **ne supporte pas** les colonnes
+générées : dans le schéma elles sont déclarées en simples `String?`. Résultat,
+**à chaque** `pnpm db:migrate`, Prisma détecte une fausse différence et injecte
+des `ALTER TABLE "actors" ALTER COLUMN … DROP DEFAULT` que Postgres refuse
+(erreur `42601`), faisant échouer la migration.
+
+Workflow obligatoire pour créer une migration tant que ces colonnes existent :
+
+```sh
+# 1. Générer la migration SANS l'appliquer
+pnpm exec prisma migrate dev --create-only --name <nom>
+# 2. Éditer prisma/migrations/<…>_<nom>/migration.sql :
+#    supprimer toute ligne parasite ALTER TABLE "actors" ALTER COLUMN … DROP DEFAULT
+#    (ne garder que les changements réellement voulus)
+# 3. Appliquer la migration corrigée
+pnpm exec prisma migrate deploy
+pnpm db:generate
+```
+
+Ne jamais lancer `pnpm db:migrate` directement pour une nouvelle migration : il
+applique aussitôt et échoue avant qu'on puisse corriger le SQL.
+
 ### Import de données
 
 `pnpm scrape:dev` (`data/scrape-telerecours.ts`) : scrape l'API Télérecours et **upsert** en base. Nécessite `<JURIDICTION>_TELERECOURS_USERNAME/PASSWORD` dans `.env`. Args : `--jurisdiction TA069 --page 0 --size 30 --all --legalEntityDivisionIds 2488`. Documentation complète des options et du déroulé (phases A/B/C) dans le README, section « Import des données (scraping Télérecours) ».
