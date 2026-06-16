@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { fetchCaseFileDetail } from "@/app/lib/data/case-files";
 import { Breadcrumb } from "@codegouvfr/react-dsfr/Breadcrumb";
 import { CaseFileTabs } from "@/app/ui/case-file-tabs";
+import { RefreshCaseFileButton } from "@/app/ui/refresh-case-file-button";
 
 type Props = {
   params: Promise<{ caseFileNumber: string }>;
@@ -45,6 +46,8 @@ export default async function Page({ params, searchParams }: Props) {
           },
         ]}
       />
+
+      <RefreshCaseFileButton caseFileNumber={caseFile.caseFileNumber} />
 
       <CaseFileTabs caseFile={caseFile} />
     </>
