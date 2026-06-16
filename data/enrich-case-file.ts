@@ -443,8 +443,10 @@ export async function enrichCaseFile(
   jurisdiction: string,
   anonymize: boolean,
 ): Promise<void> {
+  const safeCaseFileNumberForLog = caseFileNumber.replace(/[\r\n]/g, "");
+
   // 1. Enriched detail
-  console.log("Enriching case file", caseFileNumber);
+  console.log("Enriching case file", safeCaseFileNumberForLog);
   const detail = (await client.getCaseFileDetail(
     caseFileNumber,
     jurisdiction,
@@ -502,7 +504,7 @@ export async function enrichCaseFile(
   }
 
   console.log(
-    `  ✓ ${caseFileNumber}: ${hearingsCount} hearings, ${eventsCount} events, ` +
+    `  ✓ ${safeCaseFileNumberForLog}: ${hearingsCount} hearings, ${eventsCount} events, ` +
       `${filesCount} files (${filesSkipped} skipped)`,
   );
 }
