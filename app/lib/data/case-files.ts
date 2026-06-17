@@ -57,22 +57,171 @@ export function normalizeForSearch(value: string): string {
     .toLowerCase();
 }
 
-// Build the Prisma filter combining the text search (case-insensitive and accent-insensitive) and the status label filter.
-// All criteria are combined with AND; each criterion absent (null) is ignored.
+// Faceted-search builders: a facet `key:value` in the search box restricts the
+// match to a single displayed column instead of the global OR. Keys map to the
+// column names (normalized: lowercase + accents removed), so `requerant:`,
+// `Requérant:` and `REQUERANT:` are all accepted. The value is matched
+// case-insensitively and accent-insensitively (same rules as the free search).
+// Multi-word values match when every word is found, in any order.
+function facetSearchWords(value: string): string[] {
+  return value.trim().split(/\s+/).filter(Boolean);
+}
+
+function buildWordAndFilter(
+  words: string[],
+  buildContains: (word: string) => Prisma.CaseFileWhereInput,
+): Prisma.CaseFileWhereInput {
+  if (words.length <= 1) {
+    return buildContains(words[0] ?? "");
+  }
+  return { AND: words.map(buildContains) };
+}
+
+const FACET_BUILDERS: Record<
+  string,
+  (normalizedValue: string, rawValue: string) => Prisma.CaseFileWhereInput
+> = {
+  dossier: (_normalized, raw) =>
+    buildWordAndFilter(facetSearchWords(raw), (word) => ({
+      caseFileNumber: { contains: word, mode: "insensitive" },
+    })),
+  requerant: (normalized) =>
+    buildWordAndFilter(facetSearchWords(normalized), (word) => ({
+      mainClaimant: { displayNameNormalized: { contains: word } },
+    })),
+  defendeur: (normalized) =>
+    buildWordAndFilter(facetSearchWords(normalized), (word) => ({
+      mainDefender: { displayNameNormalized: { contains: word } },
+    })),
+  statut: (normalized) =>
+    buildWordAndFilter(facetSearchWords(normalized), (word) => ({
+      lastStatus: ({ labelNormalized: { contains: word } } as unknown as Prisma.StatusWhereInput),
+    })),
+};
+
+// Facet keys recognized in the search box (column names of the table).
+export const FACET_KEYS = Object.keys(FACET_BUILDERS);
+
+const FACET_KEY_SET = new Set<string>(FACET_KEYS);
+
+export type ParsedSearch = {
+  // Free text searched globally (OR across caseFileNumber + actors), or null.
+  freeText: string | null;
+  // Column-scoped filters extracted from `key:value` tokens.
+  facets: { key: string; value: string }[];
+};
+
+type SearchToken = { value: string; quoted: boolean };
+
+// Split on whitespace while keeping double-quoted segments as a single token
+// (quotes are stripped when the whole token is quoted). Quoted spans embedded
+// in an unquoted token (e.g. facet values) are kept as part of that token.
+function tokenizeSearchQuery(query: string): SearchToken[] {
+  const tokens: SearchToken[] = [];
+  const trimmed = query.trim();
+  let i = 0;
+
+  while (i < trimmed.length) {
+    while (i < trimmed.length && /\s/.test(trimmed[i])) {
+      i++;
+    }
+    if (i >= trimmed.length) break;
+
+    if (trimmed[i] === '"') {
+      i++;
+      const start = i;
+      while (i < trimmed.length && trimmed[i] !== '"') {
+        i++;
+      }
+      tokens.push({ value: trimmed.slice(start, i), quoted: true });
+      if (i < trimmed.length) i++;
+      continue;
+    }
+
+    const start = i;
+    while (i < trimmed.length) {
+      if (/\s/.test(trimmed[i])) break;
+      if (trimmed[i] === '"') {
+        i++;
+        while (i < trimmed.length && trimmed[i] !== '"') {
+          i++;
+        }
+        if (i < trimmed.length) i++;
+        continue;
+      }
+      i++;
+    }
+    tokens.push({ value: trimmed.slice(start, i), quoted: false });
+  }
+
+  return tokens.filter((token) => token.value.length > 0);
+}
+
+function unwrapQuotedValue(value: string): string {
+  if (value.length >= 2 && value.startsWith('"') && value.endsWith('"')) {
+    return value.slice(1, -1);
+  }
+  return value;
+}
+
+// Split the raw search string into facets (`key:value` whose key is a known
+// column) and the remaining free text. A token is a facet only when its key is
+// recognized and its value is non-empty; otherwise it stays free text — so a
+// stray colon never silently drops a search term. Double-quoted segments are
+// kept as one token even when they contain spaces.
+export function parseSearchQuery(query: string): ParsedSearch {
+  const tokens = tokenizeSearchQuery(query);
+  const facets: { key: string; value: string }[] = [];
+  const freeTokens: string[] = [];
+
+  for (const { value: token, quoted } of tokens) {
+    if (quoted) {
+      freeTokens.push(token);
+      continue;
+    }
+
+    const separatorIndex = token.indexOf(":");
+    if (separatorIndex > 0) {
+      const normalizedKey = normalizeForSearch(token.slice(0, separatorIndex));
+      const value = unwrapQuotedValue(token.slice(separatorIndex + 1));
+      if (value && FACET_KEY_SET.has(normalizedKey)) {
+        facets.push({ key: normalizedKey, value });
+        continue;
+      }
+    }
+    freeTokens.push(token);
+  }
+
+  return { freeText: freeTokens.join(" ") || null, facets };
+}
+
+// Build the Prisma filter combining the search box (free text + facets) and the
+// status label filter. All criteria are combined with AND; each criterion
+// absent (null) is ignored.
 function buildWhere(query: string | null, statusLabel: string | null): Prisma.CaseFileWhereInput {
   // Soft-deleted case files (absent from the latest Telerecours scrape within
   // their perimeter) are always hidden from the UI.
-  const conditions: Prisma.CaseFileWhereInput[] = [{ isDeleted: false }];
+  const conditions: Prisma.CaseFileWhereInput[] = [{ isDeleted: false } as Prisma.CaseFileWhereInput];
 
   if (query) {
-    const normalized = normalizeForSearch(query);
-    conditions.push({
-      OR: [
-        { caseFileNumber: { contains: query, mode: "insensitive" } },
-        { mainClaimant: { displayNameNormalized: { contains: normalized } } },
-        { mainDefender: { displayNameNormalized: { contains: normalized } } },
-      ],
-    });
+    const { freeText, facets } = parseSearchQuery(query);
+
+    // Free text: global OR across the case-file number and both actors.
+    if (freeText) {
+      const normalized = normalizeForSearch(freeText);
+      conditions.push({
+        OR: [
+          { caseFileNumber: { contains: freeText, mode: "insensitive" } },
+          { mainClaimant: { displayNameNormalized: { contains: normalized } } },
+          { mainDefender: { displayNameNormalized: { contains: normalized } } },
+        ],
+      });
+    }
+
+    // Facets: each one restricts a single column; combined with AND.
+    for (const facet of facets) {
+      conditions.push(FACET_BUILDERS[facet.key](normalizeForSearch(facet.value), facet.value));
+    }
   }
 
   if (statusLabel) {
@@ -120,7 +269,7 @@ async function fetchCaseFilesCount(
 // Sometimes several `Status` lines share the same `label` (cf. Telerecours catalogue): we deduplicate on the label.
 export async function fetchUsedStatusLabels(): Promise<string[]> {
   const statuses = await prisma.status.findMany({
-    where: { caseFiles: { some: { isDeleted: false } } },
+    where: { caseFiles: { some: { isDeleted: false } as Prisma.CaseFileWhereInput } },
     select: { label: true },
     distinct: ["label"],
     orderBy: { label: "asc" },

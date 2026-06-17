@@ -5,6 +5,7 @@ import {
   fetchCaseFilesTableData,
   fetchUsedStatusLabels,
   normalizeForSearch,
+  parseSearchQuery,
 } from "./case-files";
 import { prisma } from "@/app/lib/prisma";
 
@@ -134,6 +135,79 @@ describe("case-files", () => {
 
     it("laisse intacte une chaîne sans accents", () => {
       expect(normalizeForSearch("dupont")).toBe("dupont");
+    });
+  });
+
+  describe("parseSearchQuery", () => {
+    it("treats a plain query as free text without facets", () => {
+      expect(parseSearchQuery("dupont")).toEqual({ freeText: "dupont", facets: [] });
+    });
+
+    it("extracts a single facet and restricts to its column", () => {
+      expect(parseSearchQuery("requerant:prefet")).toEqual({
+        freeText: null,
+        facets: [{ key: "requerant", value: "prefet" }],
+      });
+    });
+
+    it("normalizes the facet key (case- and accent-insensitive)", () => {
+      expect(parseSearchQuery("Requérant:prefet")).toEqual({
+        freeText: null,
+        facets: [{ key: "requerant", value: "prefet" }],
+      });
+    });
+
+    it("supports several facets combined together", () => {
+      expect(parseSearchQuery("requerant:prefet defendeur:dupont")).toEqual({
+        freeText: null,
+        facets: [
+          { key: "requerant", value: "prefet" },
+          { key: "defendeur", value: "dupont" },
+        ],
+      });
+    });
+
+    it("keeps free text alongside facets", () => {
+      expect(parseSearchQuery("prefet statut:cours")).toEqual({
+        freeText: "prefet",
+        facets: [{ key: "statut", value: "cours" }],
+      });
+    });
+
+    it("keeps an unknown key as free text", () => {
+      expect(parseSearchQuery("foo:bar")).toEqual({ freeText: "foo:bar", facets: [] });
+    });
+
+    it("keeps a key with an empty value as free text", () => {
+      expect(parseSearchQuery("requerant:")).toEqual({ freeText: "requerant:", facets: [] });
+    });
+
+    it("treats a double-quoted segment as a single free-text token", () => {
+      expect(parseSearchQuery('"jean dupont"')).toEqual({
+        freeText: "jean dupont",
+        facets: [],
+      });
+    });
+
+    it("keeps quoted free text alongside unquoted tokens and facets", () => {
+      expect(parseSearchQuery('prefet "jean dupont" statut:cours')).toEqual({
+        freeText: "prefet jean dupont",
+        facets: [{ key: "statut", value: "cours" }],
+      });
+    });
+
+    it("supports quoted facet values containing spaces", () => {
+      expect(parseSearchQuery('requerant:"jean dupont"')).toEqual({
+        freeText: null,
+        facets: [{ key: "requerant", value: "jean dupont" }],
+      });
+    });
+
+    it("treats a quoted key:value pair as literal free text", () => {
+      expect(parseSearchQuery('"requerant:prefet"')).toEqual({
+        freeText: "requerant:prefet",
+        facets: [],
+      });
     });
   });
 
@@ -445,6 +519,146 @@ describe("case-files", () => {
           },
           orderBy: { caseFileNumber: "asc" },
         }),
+      );
+    });
+
+    it("restricts the search to the requerant column for a requerant: facet", async () => {
+      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
+      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
+
+      await fetchCaseFilesTableData(1, 10, null, "descending", "requerant:Préfet");
+
+      const expectedWhere = {
+        AND: [
+          { isDeleted: false },
+          { mainClaimant: { displayNameNormalized: { contains: "prefet" } } },
+        ],
+      };
+
+      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expectedWhere }),
+      );
+      expect(vi.mocked(prisma.caseFile.count)).toHaveBeenCalledWith({ where: expectedWhere });
+    });
+
+    it("combines several facets with AND, each scoped to its column", async () => {
+      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
+      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
+
+      await fetchCaseFilesTableData(1, 10, null, "descending", "requerant:prefet defendeur:dupont");
+
+      const expectedWhere = {
+        AND: [
+          { isDeleted: false },
+          { mainClaimant: { displayNameNormalized: { contains: "prefet" } } },
+          { mainDefender: { displayNameNormalized: { contains: "dupont" } } },
+        ],
+      };
+
+      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expectedWhere }),
+      );
+    });
+
+    it("filters the dossier column case-insensitively for a dossier: facet", async () => {
+      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
+      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
+
+      await fetchCaseFilesTableData(1, 10, null, "descending", "dossier:TA069");
+
+      const expectedWhere = {
+        AND: [{ isDeleted: false }, { caseFileNumber: { contains: "TA069", mode: "insensitive" } }],
+      };
+
+      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expectedWhere }),
+      );
+    });
+
+    it("filters the statut column accent-insensitively for a statut: facet", async () => {
+      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
+      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
+
+      await fetchCaseFilesTableData(1, 10, null, "descending", "statut:role");
+
+      const expectedWhere = {
+        AND: [{ isDeleted: false }, { lastStatus: { labelNormalized: { contains: "role" } } }],
+      };
+
+      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expectedWhere }),
+      );
+    });
+
+    it("combines free text (global OR) with a facet", async () => {
+      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
+      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
+
+      await fetchCaseFilesTableData(1, 10, null, "descending", "dupont requerant:prefet");
+
+      const expectedWhere = {
+        AND: [
+          { isDeleted: false },
+          {
+            OR: [
+              { caseFileNumber: { contains: "dupont", mode: "insensitive" } },
+              { mainClaimant: { displayNameNormalized: { contains: "dupont" } } },
+              { mainDefender: { displayNameNormalized: { contains: "dupont" } } },
+            ],
+          },
+          { mainClaimant: { displayNameNormalized: { contains: "prefet" } } },
+        ],
+      };
+
+      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expectedWhere }),
+      );
+    });
+
+    it("matches every word of a multi-word requerant facet regardless of order", async () => {
+      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
+      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
+
+      await fetchCaseFilesTableData(1, 10, null, "descending", 'requerant:"Dupont Jean"');
+
+      const expectedWhere = {
+        AND: [
+          { isDeleted: false },
+          {
+            AND: [
+              { mainClaimant: { displayNameNormalized: { contains: "dupont" } } },
+              { mainClaimant: { displayNameNormalized: { contains: "jean" } } },
+            ],
+          },
+        ],
+      };
+
+      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expectedWhere }),
+      );
+    });
+
+    it("matches every word of a multi-word statut facet regardless of order", async () => {
+      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
+      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
+
+      await fetchCaseFilesTableData(1, 10, null, "descending", 'statut:"Inscrit role audience"');
+
+      const expectedWhere = {
+        AND: [
+          { isDeleted: false },
+          {
+            AND: [
+              { lastStatus: { labelNormalized: { contains: "inscrit" } } },
+              { lastStatus: { labelNormalized: { contains: "role" } } },
+              { lastStatus: { labelNormalized: { contains: "audience" } } },
+            ],
+          },
+        ],
+      };
+
+      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expectedWhere }),
       );
     });
 
