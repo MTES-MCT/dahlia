@@ -1,0 +1,28 @@
+name: 🌞 Deploy
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  deploy_prod:
+    name: ⏩ Deploy to Prod
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy to Prod
+        uses: kolok/deploy-to-scalingo@3c03e17a8815000194aa06289db6e80ef1a687bc # v1
+        with:
+          ssh-private-key: ${{ secrets.SCALINGO_SSH_PRIVATE_KEY }}
+          app-name: dahlia-prod
+          known-host: ssh.osc-secnum-fr1.scalingo.com
+
+permissions:
+  contents: read
