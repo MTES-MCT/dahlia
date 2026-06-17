@@ -12,7 +12,7 @@ type Props = {
   caseFile: NonNullable<CaseFileDetail>;
 };
 
-type TabId = "details" | "fichiers" | "historique" | "debug";
+type TabId = "details" | "pieces" | "historique" | "debug";
 
 // Render a label/value pair; values that are empty are still displayed as "—"
 // so the details list keeps a stable, readable layout.
@@ -34,7 +34,7 @@ export function CaseFileTabs({ caseFile }: Props) {
       onTabChange={(tabId) => setSelectedTabId(tabId as TabId)}
       tabs={[
         { tabId: "details", label: "Détails" },
-        { tabId: "fichiers", label: "Fichiers" },
+        { tabId: "pieces", label: "Pièces" },
         { tabId: "historique", label: "Historique" },
         { tabId: "debug", label: "Debug" },
       ]}
@@ -60,9 +60,9 @@ export function CaseFileTabs({ caseFile }: Props) {
         </dl>
       )}
 
-      {selectedTabId === "fichiers" && (
+      {selectedTabId === "pieces" && (
         <Table
-          caption={`${caseFile.attachedFiles.length} fichier${
+          caption={`${caseFile.attachedFiles.length} pièce${
             caseFile.attachedFiles.length > 1 ? "s" : ""
           }`}
           headers={["Nom", "Type", "Date", "Format"]}

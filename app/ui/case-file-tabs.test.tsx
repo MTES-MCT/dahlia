@@ -56,10 +56,10 @@ describe("CaseFileTabs", () => {
     expect(screen.getByText("Préfecture du Rhône")).toBeTruthy();
   });
 
-  it("affiche le tableau des fichiers au clic sur l'onglet Fichiers", () => {
+  it("affiche le tableau des pièces au clic sur l'onglet Pièces", () => {
     render(<CaseFileTabs caseFile={caseFile} />);
 
-    fireEvent.click(screen.getByRole("tab", { name: "Fichiers" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Pièces" }));
 
     expect(screen.getByText("requete.pdf")).toBeTruthy();
     expect(screen.getByText("Requête")).toBeTruthy();
