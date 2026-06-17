@@ -13,15 +13,31 @@ jobs:
 
   deploy_to_preprod:
     needs: ci
-    name: "Deploy to Preprod"
+    name: ▶️ Deploy to Preprod
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Deploy to Preprod
-        uses: kolok/deploy-to-scalingo@v1
+        uses: kolok/deploy-to-scalingo@3c03e17a8815000194aa06289db6e80ef1a687bc # v1
         with:
           ssh-private-key: ${{ secrets.SCALINGO_SSH_PRIVATE_KEY }}
           app-name: dahlia-preprod
           known-host: ssh.osc-secnum-fr1.scalingo.com
+
+  update_release_draft:
+    needs: [deploy_to_preprod]
+    permissions:
+      contents: write
+    runs-on: ubuntu-slim
+    name: 🔢 Create Release
+    steps:
+      - uses: release-drafter/release-drafter@693d20e7c1ce1a81d3a41962f85914253b518449 # v7.3.1
+        id: release-drafter
+        with:
+          config-name: release-config.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    outputs:
+      tag_name: ${{ steps.release-drafter.outputs.tag_name }}
