@@ -6,7 +6,7 @@ import {
   HEARING_CONVOCATION_SORT_KEY,
 } from "@/app/lib/data/case-files";
 import { Pagination } from "@codegouvfr/react-dsfr/Pagination";
-import { SortableColumnHeader } from "@/app/ui/sortable-column-header";
+import { ColumnHeader } from "@/app/ui/column-header";
 import { MemoryDeadlineCell } from "@/app/ui/memory-deadline-cell";
 import { CaseFilesSearch } from "@/app/ui/case-files-search";
 import Link from "next/link";
@@ -113,16 +113,27 @@ export default async function Page({ searchParams }: Props) {
         )}
         fixed
         headers={[
-          <SortableColumnHeader key="caseFileNumber" label="Dossier" sortKey="caseFileNumber" />,
-          <SortableColumnHeader
-            key="depositDate"
-            label="Date de réception"
-            sortKey="depositDate"
+          <ColumnHeader
+            key="caseFileNumber"
+            label="Dossier"
+            sortKey="caseFileNumber"
+            facetKey="dossier"
           />,
-          <SortableColumnHeader key="mainClaimant" label="Requérant" sortKey="mainClaimant" />,
-          <SortableColumnHeader key="mainDefender" label="Défendeur" sortKey="mainDefender" />,
-          "Statut",
-          <SortableColumnHeader
+          <ColumnHeader key="depositDate" label="Date de réception" sortKey="depositDate" />,
+          <ColumnHeader
+            key="mainClaimant"
+            label="Requérant"
+            sortKey="mainClaimant"
+            facetKey="requerant"
+          />,
+          <ColumnHeader
+            key="mainDefender"
+            label="Défendeur"
+            sortKey="mainDefender"
+            facetKey="defendeur"
+          />,
+          <ColumnHeader key="status" label="Statut" facetKey="statut" />,
+          <ColumnHeader
             key={HEARING_CONVOCATION_SORT_KEY}
             label="Date limite de production de mémoire"
             sortKey={HEARING_CONVOCATION_SORT_KEY}

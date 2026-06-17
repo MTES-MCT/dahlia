@@ -1,10 +1,18 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/app/lib/prisma";
 import { formatDateFr, getActorDisplayName } from "@/app/lib/case-file-format";
+import {
+  normalizeForSearch,
+  parseSearchQuery,
+  FACET_KEYS,
+  type FacetKey,
+} from "@/app/lib/case-file-search";
 
 // Re-exported so existing imports from this data module keep working; the actual
-// implementations live in a Prisma-free module shared with client components.
+// implementations live in Prisma-free modules shared with client components.
 export { formatDateFr, getActorDisplayName };
+export { normalizeForSearch, parseSearchQuery, FACET_KEYS };
+export type { ParsedSearch, FacetKey } from "@/app/lib/case-file-search";
 
 type CaseFileWithRelations = Prisma.CaseFileGetPayload<{
   include: {
@@ -46,17 +54,6 @@ function buildOrderBy(
   return { [sortBy]: direction };
 }
 
-// Normalization on the JS side to match the Postgres column `displayNameNormalized`
-// (= lower(f_unaccent(displayName))). NFD + diacritics removal +
-// lowercase — equivalent to unaccent for the common latin diacritics
-// (é, è, ç, à, ï, ô, û, ñ, …) that cover the French-speaking need.
-export function normalizeForSearch(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase();
-}
-
 // Faceted-search builders: a facet `key:value` in the search box restricts the
 // match to a single displayed column instead of the global OR. Keys map to the
 // column names (normalized: lowercase + accents removed), so `requerant:`,
@@ -78,7 +75,7 @@ function buildWordAndFilter(
 }
 
 const FACET_BUILDERS: Record<
-  string,
+  FacetKey,
   (normalizedValue: string, rawValue: string) => Prisma.CaseFileWhereInput
 > = {
   dossier: (_normalized, raw) =>
@@ -95,105 +92,9 @@ const FACET_BUILDERS: Record<
     })),
   statut: (normalized) =>
     buildWordAndFilter(facetSearchWords(normalized), (word) => ({
-      lastStatus: ({ labelNormalized: { contains: word } } as unknown as Prisma.StatusWhereInput),
+      lastStatus: { labelNormalized: { contains: word } } as unknown as Prisma.StatusWhereInput,
     })),
 };
-
-// Facet keys recognized in the search box (column names of the table).
-export const FACET_KEYS = Object.keys(FACET_BUILDERS);
-
-const FACET_KEY_SET = new Set<string>(FACET_KEYS);
-
-export type ParsedSearch = {
-  // Free text searched globally (OR across caseFileNumber + actors), or null.
-  freeText: string | null;
-  // Column-scoped filters extracted from `key:value` tokens.
-  facets: { key: string; value: string }[];
-};
-
-type SearchToken = { value: string; quoted: boolean };
-
-// Split on whitespace while keeping double-quoted segments as a single token
-// (quotes are stripped when the whole token is quoted). Quoted spans embedded
-// in an unquoted token (e.g. facet values) are kept as part of that token.
-function tokenizeSearchQuery(query: string): SearchToken[] {
-  const tokens: SearchToken[] = [];
-  const trimmed = query.trim();
-  let i = 0;
-
-  while (i < trimmed.length) {
-    while (i < trimmed.length && /\s/.test(trimmed[i])) {
-      i++;
-    }
-    if (i >= trimmed.length) break;
-
-    if (trimmed[i] === '"') {
-      i++;
-      const start = i;
-      while (i < trimmed.length && trimmed[i] !== '"') {
-        i++;
-      }
-      tokens.push({ value: trimmed.slice(start, i), quoted: true });
-      if (i < trimmed.length) i++;
-      continue;
-    }
-
-    const start = i;
-    while (i < trimmed.length) {
-      if (/\s/.test(trimmed[i])) break;
-      if (trimmed[i] === '"') {
-        i++;
-        while (i < trimmed.length && trimmed[i] !== '"') {
-          i++;
-        }
-        if (i < trimmed.length) i++;
-        continue;
-      }
-      i++;
-    }
-    tokens.push({ value: trimmed.slice(start, i), quoted: false });
-  }
-
-  return tokens.filter((token) => token.value.length > 0);
-}
-
-function unwrapQuotedValue(value: string): string {
-  if (value.length >= 2 && value.startsWith('"') && value.endsWith('"')) {
-    return value.slice(1, -1);
-  }
-  return value;
-}
-
-// Split the raw search string into facets (`key:value` whose key is a known
-// column) and the remaining free text. A token is a facet only when its key is
-// recognized and its value is non-empty; otherwise it stays free text — so a
-// stray colon never silently drops a search term. Double-quoted segments are
-// kept as one token even when they contain spaces.
-export function parseSearchQuery(query: string): ParsedSearch {
-  const tokens = tokenizeSearchQuery(query);
-  const facets: { key: string; value: string }[] = [];
-  const freeTokens: string[] = [];
-
-  for (const { value: token, quoted } of tokens) {
-    if (quoted) {
-      freeTokens.push(token);
-      continue;
-    }
-
-    const separatorIndex = token.indexOf(":");
-    if (separatorIndex > 0) {
-      const normalizedKey = normalizeForSearch(token.slice(0, separatorIndex));
-      const value = unwrapQuotedValue(token.slice(separatorIndex + 1));
-      if (value && FACET_KEY_SET.has(normalizedKey)) {
-        facets.push({ key: normalizedKey, value });
-        continue;
-      }
-    }
-    freeTokens.push(token);
-  }
-
-  return { freeText: freeTokens.join(" ") || null, facets };
-}
 
 // Build the Prisma filter combining the search box (free text + facets) and the
 // status label filter. All criteria are combined with AND; each criterion
@@ -201,7 +102,9 @@ export function parseSearchQuery(query: string): ParsedSearch {
 function buildWhere(query: string | null, statusLabel: string | null): Prisma.CaseFileWhereInput {
   // Soft-deleted case files (absent from the latest Telerecours scrape within
   // their perimeter) are always hidden from the UI.
-  const conditions: Prisma.CaseFileWhereInput[] = [{ isDeleted: false } as Prisma.CaseFileWhereInput];
+  const conditions: Prisma.CaseFileWhereInput[] = [
+    { isDeleted: false } as Prisma.CaseFileWhereInput,
+  ];
 
   if (query) {
     const { freeText, facets } = parseSearchQuery(query);

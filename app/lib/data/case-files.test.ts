@@ -72,6 +72,8 @@ const mockStatus = {
   label: "En cours",
   category: "in-progress",
   groupId: 1,
+  // Computed column generated in the database (lower(f_unaccent(label))).
+  labelNormalized: null,
 };
 
 const mockCaseFile = {

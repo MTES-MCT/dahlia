@@ -22,11 +22,7 @@ describe("CaseFilesSearch", () => {
 
   it("est un form GET vers /case_files sans champ page", () => {
     render(
-      <CaseFilesSearch
-        statusOptions={OPTIONS}
-        defaultStatut={DEFAULT_STATUT}
-        currentQuery=""
-      />,
+      <CaseFilesSearch statusOptions={OPTIONS} defaultStatut={DEFAULT_STATUT} currentQuery="" />,
     );
 
     const form = getForm();
@@ -60,11 +56,7 @@ describe("CaseFilesSearch", () => {
 
   it("affiche un bouton « Rechercher » et un lien de réinitialisation", () => {
     render(
-      <CaseFilesSearch
-        statusOptions={OPTIONS}
-        defaultStatut={DEFAULT_STATUT}
-        currentQuery=""
-      />,
+      <CaseFilesSearch statusOptions={OPTIONS} defaultStatut={DEFAULT_STATUT} currentQuery="" />,
     );
 
     const button = screen.getByRole("button", { name: "Rechercher" });

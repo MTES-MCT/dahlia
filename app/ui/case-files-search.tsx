@@ -53,7 +53,7 @@ export function CaseFilesSearch({
         <input type="hidden" name="sortOrder" value={sortOrderParam} />
       )}
 
-      <div className={clsx("flex", "flex-row", "gap-4", "items-center", fr.cx("fr-mt-2w"))}>
+      <div className={clsx("flex", "flex-row", "gap-4", "items-center")}>
         <button className={fr.cx("fr-btn")} type="submit">
           Rechercher
         </button>
