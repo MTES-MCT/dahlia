@@ -1,0 +1,35 @@
+name-template: "v$RESOLVED_VERSION 🌈"
+tag-template: "v$RESOLVED_VERSION"
+categories:
+  - title: "🚀 Fonctionnalités"
+    labels:
+      - "feature"
+      - "enhancement"
+  - title: "🐛 Corrections de bug"
+    labels:
+      - "fix"
+      - "bugfix"
+      - "bug"
+  - title: "🧰 Technique"
+    label: "technical"
+  - title: "📗 Documentation"
+    label: "documentation"
+  - title: "🔗 Montées de versions"
+    label: "dependencies"
+change-template: "- $TITLE @$AUTHOR (#$NUMBER)"
+change-title-escapes: '\<*_&' # You can add # and @ to disable mentions, and add ` to disable code blocks.
+version-resolver:
+  major:
+    labels:
+      - "major"
+  minor:
+    labels:
+      - "minor"
+  patch:
+    labels:
+      - "patch"
+  default: patch
+template: |
+  ## Changements
+
+  $CHANGES
