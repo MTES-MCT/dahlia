@@ -38,6 +38,24 @@ describe("MemoryDeadlineCell", () => {
     expect(screen.getByText("Urgent")).toBeTruthy();
   });
 
+  it('affiche le badge "Très urgent" quand la date est a moins de 3 jours ouvres + 1 jour', () => {
+    // today (2026-06-09, tuesday) + 1 business days = wednesday 2026-06-10.
+    render(<MemoryDeadlineCell date={new Date("2026-06-10T13:00:00")} />);
+
+    expect(screen.getByText("10/06/2026")).toBeTruthy();
+    expect(screen.getByText("Très urgent")).toBeTruthy();
+    expect(screen.queryByText("Urgent")).toBeNull();
+  });
+
+  it('affiche le badge "Très urgent" quand la date est a moins de 3 jours ouvres + 2 jours', () => {
+    // today (2026-06-09, tuesday) + 1 business days = wednesday 2026-06-10.
+    render(<MemoryDeadlineCell date={new Date("2026-06-11T13:00:00")} />);
+
+    expect(screen.getByText("11/06/2026")).toBeTruthy();
+    expect(screen.getByText("Très urgent")).toBeTruthy();
+    expect(screen.queryByText("Urgent")).toBeNull();
+  });
+
   it('affiche le badge "Passé" quand la date est anterieure a aujourd\'hui', () => {
     render(<MemoryDeadlineCell date={new Date("2026-06-01T13:00:00")} />);
 
@@ -46,8 +64,8 @@ describe("MemoryDeadlineCell", () => {
   });
 
   it("considere une date juste a la limite des deux semaines comme non urgente", () => {
-    // today (2026-06-09) + 14 days = 2026-06-23 → not strictly inferior, so no badge.
-    render(<MemoryDeadlineCell date={new Date("2026-06-23T00:00:00")} />);
+    // today (2026-06-09) + 11 business days = 2026-06-24 → not strictly inferior, so no badge.
+    render(<MemoryDeadlineCell date={new Date("2026-06-24T00:00:00")} />);
 
     expect(screen.queryByText("Urgent")).toBeNull();
     expect(screen.queryByText("Passé")).toBeNull();
