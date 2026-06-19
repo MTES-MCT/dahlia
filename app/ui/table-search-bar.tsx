@@ -1,5 +1,4 @@
-import { Input } from "@codegouvfr/react-dsfr/Input";
-import clsx from "clsx";
+import { SearchBar } from "@/app/ui/search-bar";
 
 type Props = {
   // URL param name backing this table's search query (also used for the input id).
@@ -16,16 +15,13 @@ type Props = {
 
 export function TableSearchBar({ name, label, defaultValue, placeholder, className }: Props) {
   return (
-    <Input
-      className={clsx(className)}
+    <SearchBar
+      id={`${name}-search`}
+      name={name}
       label={label}
-      nativeInputProps={{
-        id: `${name}-search`,
-        name,
-        type: "search",
-        defaultValue,
-        placeholder,
-      }}
+      defaultValue={defaultValue}
+      placeholder={placeholder}
+      className={className}
     />
   );
 }

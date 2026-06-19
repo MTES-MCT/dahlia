@@ -3,9 +3,9 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { fr } from "@codegouvfr/react-dsfr";
 import { Button } from "@codegouvfr/react-dsfr/Button";
-import { Input } from "@codegouvfr/react-dsfr/Input";
 import clsx from "clsx";
 import { type TableParamNames } from "@/app/lib/case-file-search";
+import { HiddenField } from "@/app/ui/hidden-field";
 import { TableSearchBar } from "@/app/ui/table-search-bar";
 
 type Props = {
@@ -51,12 +51,7 @@ export function TableSearch({ params, label, placeholder, className }: Props) {
   return (
     <form role="search" method="get" action={pathname} className={clsx("fr-mb-2w", className)}>
       {hiddenParams.map(([key, val], index) => (
-        <Input
-          key={`${key}-${index}`}
-          label={key}
-          hideLabel
-          nativeInputProps={{ type: "hidden", name: key, value: val }}
-        />
+        <HiddenField key={`${key}-${index}`} name={key} value={val} />
       ))}
       <TableSearchBar
         // Remount on query change so the uncontrolled field re-seeds from the

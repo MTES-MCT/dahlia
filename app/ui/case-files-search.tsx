@@ -1,10 +1,10 @@
 import { fr } from "@codegouvfr/react-dsfr";
 import { Button } from "@codegouvfr/react-dsfr/Button";
-import { Input } from "@codegouvfr/react-dsfr/Input";
 import clsx from "clsx";
 import Link from "next/link";
 import { CaseFilesSearchByStatus } from "@/app/ui/case-files-search-by-status";
 import { CaseFilesSearchBar } from "@/app/ui/case-files-search-bar";
+import { HiddenField } from "@/app/ui/hidden-field";
 
 type Props = {
   // Status options and the label preselected when `statut` is absent from the URL.
@@ -54,19 +54,9 @@ export function CaseFilesSearch({
 
       {/* Mirror the current sort context. Emit the sort fields only when an
           explicit sort is set, to keep page.tsx's default detection. */}
-      {sortByParam && (
-        <Input
-          label="Champ de tri"
-          hideLabel
-          nativeInputProps={{ type: "hidden", name: "sortBy", value: sortByParam }}
-        />
-      )}
+      {sortByParam && <HiddenField name="sortBy" value={sortByParam} />}
       {sortByParam && sortOrderParam && (
-        <Input
-          label="Ordre de tri"
-          hideLabel
-          nativeInputProps={{ type: "hidden", name: "sortOrder", value: sortOrderParam }}
-        />
+        <HiddenField name="sortOrder" value={sortOrderParam} />
       )}
 
       <div className={clsx("flex", "flex-row", "gap-4", "items-center")}>

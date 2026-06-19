@@ -1,5 +1,4 @@
-import { Input } from "@codegouvfr/react-dsfr/Input";
-import clsx from "clsx";
+import { SearchBar } from "@/app/ui/search-bar";
 
 type Props = {
   // Current search query, used as the input default value.
@@ -7,18 +6,17 @@ type Props = {
   className?: string;
 };
 
+const PLACEHOLDER = 'ex. « dupont » ou « requerant:prefet defendeur:"jean dupont" »';
+
 export function CaseFilesSearchBar({ currentQuery, className }: Props) {
   return (
-    <Input
-      className={clsx(className)}
+    <SearchBar
+      id="case-files-search"
+      name="dahliaq"
       label="Rechercher"
-      nativeInputProps={{
-        id: "case-files-search",
-        type: "search",
-        name: "dahliaq",
-        defaultValue: currentQuery,
-        placeholder: 'ex. « dupont » ou « requerant:prefet defendeur:"jean dupont" »',
-      }}
+      defaultValue={currentQuery}
+      placeholder={PLACEHOLDER}
+      className={className}
     />
   );
 }
