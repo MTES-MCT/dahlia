@@ -60,7 +60,7 @@ describe("ColumnFilterButton", () => {
 
     fireEvent.click(getToggleButton());
     fireEvent.change(screen.getByRole("searchbox"), { target: { value: "martin" } });
-    fireEvent.click(screen.getByRole("button", { name: "Filtrer", exact: true }));
+    fireEvent.click(screen.getByRole("button", { name: "Filtrer" }));
 
     expect(mockPush).toHaveBeenCalledTimes(1);
     const pushedUrl = mockPush.mock.calls[0][0] as string;
@@ -87,7 +87,7 @@ describe("ColumnFilterButton", () => {
 
     fireEvent.click(getToggleButton());
     fireEvent.change(screen.getByRole("searchbox"), { target: { value: "" } });
-    fireEvent.click(screen.getByRole("button", { name: "Filtrer", exact: true }));
+    fireEvent.click(screen.getByRole("button", { name: "Filtrer" }));
 
     expect(mockPush).toHaveBeenCalledWith("?", { scroll: false });
   });
