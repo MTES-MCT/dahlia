@@ -10,6 +10,7 @@ import { Footer } from "@codegouvfr/react-dsfr/Footer";
 import clsx from "clsx";
 import { headers } from "next/headers";
 import { auth } from "@/app/lib/auth";
+import { EnvironmentBanner } from "@/app/ui/environment-banner";
 
 export const metadata: Metadata = {
   title: "DAHL'ia (Ministères du logement)",
@@ -70,6 +71,7 @@ export default async function RootLayout({
       </head>
       <body className={clsx("min-h-dvh", "flex", "flex-col")}>
         <StartDsfrOnHydration />
+        <EnvironmentBanner environment={process.env.ENVIRONMENT} />
         <Header
           brandTop={
             <>
