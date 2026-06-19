@@ -48,17 +48,17 @@ describe("CaseFileTabs", () => {
     cleanup();
   });
 
-  it("affiche l'onglet Détails par défaut", () => {
+  it("affiche l'onglet Pièces par défaut", () => {
     render(<CaseFileTabs caseFile={caseFile} />);
 
-    expect(screen.getByText("Dossier de test")).toBeTruthy();
-    expect(screen.getByText("Dupont Jean")).toBeTruthy();
-    expect(screen.getByText("Préfecture du Rhône")).toBeTruthy();
+    expect(screen.getByText("requete.pdf")).toBeTruthy();
+    expect(screen.getByText("Requête")).toBeTruthy();
   });
 
   it("affiche le tableau des pièces au clic sur l'onglet Pièces", () => {
     render(<CaseFileTabs caseFile={caseFile} />);
 
+    fireEvent.click(screen.getByRole("tab", { name: "Historique" }));
     fireEvent.click(screen.getByRole("tab", { name: "Pièces" }));
 
     expect(screen.getByText("requete.pdf")).toBeTruthy();
