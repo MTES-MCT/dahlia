@@ -70,6 +70,47 @@ sont montées sur `/api/auth/*`.
   un `getUserInfo` personnalisé (vérification via JWKS avec `jose`). La
   déconnexion fait un logout complet (`end_session_endpoint`).
 
+## Tests
+
+### Tests unitaires (Vitest)
+
+```sh
+pnpm test            # watch
+pnpm test run        # une passe (CI)
+```
+
+### Tests end-to-end (Playwright)
+
+Les tests end-to-end (`tests/e2e/`) couvrent la page de garde non connectée, le
+processus de connexion et l'accès à la liste des dossiers une fois connecté.
+
+- **Mock ProConnect** : un faux fournisseur OIDC ([tests/e2e/mock-proconnect/server.mjs](tests/e2e/mock-proconnect/server.mjs))
+  implémente le flux authorization-code + PKCE (discovery, `authorize`, `token`,
+  `userinfo` en JWT signé, JWKS). `playwright.config.ts` pointe `PROCONNECT_URL`
+  dessus, donc aucun appel à la vraie intégration ProConnect.
+- **Base de test** : une base `dahlia_test` dédiée (jamais la base de dev),
+  migrée puis remplie par [tests/e2e/seed.ts](tests/e2e/seed.ts) (divisions,
+  statuts, acteurs, dossiers déterministes).
+- Playwright démarre lui-même le mock et l'app (`next build && next start` sur un
+  `distDir` isolé `.next-e2e`, port 3100), donc l'app de dev peut tourner en
+  parallèle sur le port 3000.
+
+Première exécution locale :
+
+```sh
+docker compose up -d                       # Postgres (depuis la racine du repo)
+createdb -h localhost -U dahlia dahlia_test # ou: CREATE DATABASE dahlia_test;
+pnpm exec playwright install chromium      # navigateur (une seule fois)
+
+export DATABASE_URL="postgresql://dahlia:dahlia@localhost:5432/dahlia_test?schema=public"
+pnpm db:migrate:deploy                     # applique les migrations sur la base de test
+pnpm test:e2e:seed                         # remplit les données de test
+pnpm test:e2e                              # lance les tests Playwright
+```
+
+En CI, le job `🎭 Playwright E2E` (cf. [.github/workflows/ci.yml](.github/workflows/ci.yml))
+fait tout cela automatiquement avec un service Postgres.
+
 ## Import des données (scraping Télérecours)
 
 Le script [data/scrape-telerecours.ts](data/scrape-telerecours.ts) interroge l'API
