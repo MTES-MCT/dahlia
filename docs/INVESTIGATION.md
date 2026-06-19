@@ -40,7 +40,7 @@ Il existe déjà une API utilisée par l'interface
     - RelatedCaseFile
   - Permettre de filtrer sur la date du dernier événement de l'historique
 
-Note : une API en lecture seule est suffisante pour les besoins de notre première itération. Selon la trajectoire de DAHL'ia, nous aurons peut-être un jour besoin de déposer des fichiers dans un dossier
+Note : une API en lecture seule est suffisante pour les besoins de notre première itération. Selon la trajectoire de DAHL'ia, nous aurons peut-être un jour besoin de déposer des pièces dans un dossier
 
 ### Architecture
 

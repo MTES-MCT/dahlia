@@ -7,6 +7,10 @@ model Status {
   category String
   groupId  Int
 
+  // Computed column: lower(f_unaccent(label)) — used for accent-insensitive
+  // text search (cf. migration status_label_normalized). Read-only.
+  labelNormalized String?
+
   caseFiles CaseFile[]
 
   @@map("statuses")

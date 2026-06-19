@@ -132,15 +132,28 @@ function parseArgs(): Args {
     }
   }
 
-  // Défaut des divisions : variable d'env <JURIDICTION>_TELERECOURS_DIVISIONS
-  // (ex. TA069_TELERECOURS_DIVISIONS=2488,1234), sauf si fourni en CLI.
+  // Default for divisions: <JURIDICTION>_TELERECOURS_DIVISIONS env var
+  // (e.g. TA069_TELERECOURS_DIVISIONS=2488,1234), unless provided via CLI.
+  // If neither is set, the array stays empty and the division filter is
+  // simply not applied (all divisions of the jurisdiction are scraped).
   if (!divisionIdsFromCli) {
-    args.legalEntityDivisionIds = parseDivisionIds(
-      getEnv(`${args.jurisdiction}_TELERECOURS_DIVISIONS`),
-    );
+    const envValue = process.env[`${args.jurisdiction}_TELERECOURS_DIVISIONS`];
+    if (envValue) {
+      args.legalEntityDivisionIds = parseDivisionIds(envValue);
+    }
   }
 
   return args;
+}
+
+// Build a Prisma where-fragment for the division filter. When no division is
+// configured (neither via CLI nor env), return an empty object so the clause
+// is omitted entirely rather than degenerating into `{ in: [] }` (which would
+// match nothing).
+function divisionWhere(args: Args): { assignedToLegalEntityDivisionId?: { in: number[] } } {
+  return args.legalEntityDivisionIds.length > 0
+    ? { assignedToLegalEntityDivisionId: { in: args.legalEntityDivisionIds } }
+    : {};
 }
 
 // ───── Main ─────
@@ -236,7 +249,9 @@ async function phaseA(
 // Mark as deleted every case file present in DB within the scraped perimeter
 // but absent from the list returned by phase A. The perimeter must mirror the
 // scrape scope:
-//   - always restricted to the scraped legalEntityDivisionIds;
+//   - restricted to the scraped legalEntityDivisionIds when configured (CLI
+//     arg or env var); otherwise the filter is omitted and all divisions of
+//     the jurisdiction are considered;
 //   - without --all the list is fetched with onlyEnrolled=true, which maps to
 //     the "Inscrit au rôle d'une audience" status, so the perimeter is also
 //     restricted to that status (a case file that has since left that status is
@@ -246,7 +261,7 @@ async function reconcileDeleted(args: Args, seen: string[]): Promise<number> {
 
   const result = await prisma.caseFile.updateMany({
     where: {
-      assignedToLegalEntityDivisionId: { in: args.legalEntityDivisionIds },
+      ...divisionWhere(args),
       ...(args.all ? {} : { lastStatus: { label: TARGET_STATUS_LABEL } }),
       caseFileNumber: { notIn: seen },
       isDeleted: false,
@@ -267,7 +282,7 @@ async function phaseB(
   const targets = await prisma.caseFile.findMany({
     where: {
       lastStatus: { label: TARGET_STATUS_LABEL },
-      assignedToLegalEntityDivisionId: { in: args.legalEntityDivisionIds },
+      ...divisionWhere(args),
       isDeleted: false,
     },
     select: { caseFileNumber: true },
@@ -303,7 +318,7 @@ async function phaseC(
   const targets = await prisma.caseFile.findMany({
     where: {
       lastStatus: { label: TARGET_STATUS_LABEL },
-      assignedToLegalEntityDivisionId: { in: args.legalEntityDivisionIds },
+      ...divisionWhere(args),
       isDeleted: false,
     },
     select: { caseFileNumber: true },
