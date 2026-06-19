@@ -1,4 +1,4 @@
-// Catalogue des familles de fichiers Télérecours (DIN, REQ, COUK, …).
+// Catalogue des familles de pièces Télérecours (DIN, REQ, COUK, …).
 model FileFamilyType {
   code  String @id
   label String

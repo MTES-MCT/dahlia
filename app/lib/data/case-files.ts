@@ -1,10 +1,18 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/app/lib/prisma";
 import { formatDateFr, getActorDisplayName } from "@/app/lib/case-file-format";
+import {
+  normalizeForSearch,
+  parseSearchQuery,
+  FACET_KEYS,
+  type FacetKey,
+} from "@/app/lib/case-file-search";
 
 // Re-exported so existing imports from this data module keep working; the actual
-// implementations live in a Prisma-free module shared with client components.
+// implementations live in Prisma-free modules shared with client components.
 export { formatDateFr, getActorDisplayName };
+export { normalizeForSearch, parseSearchQuery, FACET_KEYS };
+export type { ParsedSearch, FacetKey } from "@/app/lib/case-file-search";
 
 type CaseFileWithRelations = Prisma.CaseFileGetPayload<{
   include: {
@@ -46,33 +54,77 @@ function buildOrderBy(
   return { [sortBy]: direction };
 }
 
-// Normalization on the JS side to match the Postgres column `displayNameNormalized`
-// (= lower(f_unaccent(displayName))). NFD + diacritics removal +
-// lowercase — equivalent to unaccent for the common latin diacritics
-// (é, è, ç, à, ï, ô, û, ñ, …) that cover the French-speaking need.
-export function normalizeForSearch(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase();
+// Faceted-search builders: a facet `key:value` in the search box restricts the
+// match to a single displayed column instead of the global OR. Keys map to the
+// column names (normalized: lowercase + accents removed), so `requerant:`,
+// `Requérant:` and `REQUERANT:` are all accepted. The value is matched
+// case-insensitively and accent-insensitively (same rules as the free search).
+// Multi-word values match when every word is found, in any order.
+function facetSearchWords(value: string): string[] {
+  return value.trim().split(/\s+/).filter(Boolean);
 }
 
-// Build the Prisma filter combining the text search (case-insensitive and accent-insensitive) and the status label filter.
-// All criteria are combined with AND; each criterion absent (null) is ignored.
+function buildWordAndFilter(
+  words: string[],
+  buildContains: (word: string) => Prisma.CaseFileWhereInput,
+): Prisma.CaseFileWhereInput {
+  if (words.length <= 1) {
+    return buildContains(words[0] ?? "");
+  }
+  return { AND: words.map(buildContains) };
+}
+
+const FACET_BUILDERS: Record<
+  FacetKey,
+  (normalizedValue: string, rawValue: string) => Prisma.CaseFileWhereInput
+> = {
+  dossier: (_normalized, raw) =>
+    buildWordAndFilter(facetSearchWords(raw), (word) => ({
+      caseFileNumber: { contains: word, mode: "insensitive" },
+    })),
+  requerant: (normalized) =>
+    buildWordAndFilter(facetSearchWords(normalized), (word) => ({
+      mainClaimant: { displayNameNormalized: { contains: word } },
+    })),
+  defendeur: (normalized) =>
+    buildWordAndFilter(facetSearchWords(normalized), (word) => ({
+      mainDefender: { displayNameNormalized: { contains: word } },
+    })),
+  statut: (normalized) =>
+    buildWordAndFilter(facetSearchWords(normalized), (word) => ({
+      lastStatus: { labelNormalized: { contains: word } } as unknown as Prisma.StatusWhereInput,
+    })),
+};
+
+// Build the Prisma filter combining the search box (free text + facets) and the
+// status label filter. All criteria are combined with AND; each criterion
+// absent (null) is ignored.
 function buildWhere(query: string | null, statusLabel: string | null): Prisma.CaseFileWhereInput {
   // Soft-deleted case files (absent from the latest Telerecours scrape within
   // their perimeter) are always hidden from the UI.
-  const conditions: Prisma.CaseFileWhereInput[] = [{ isDeleted: false }];
+  const conditions: Prisma.CaseFileWhereInput[] = [
+    { isDeleted: false } as Prisma.CaseFileWhereInput,
+  ];
 
   if (query) {
-    const normalized = normalizeForSearch(query);
-    conditions.push({
-      OR: [
-        { caseFileNumber: { contains: query, mode: "insensitive" } },
-        { mainClaimant: { displayNameNormalized: { contains: normalized } } },
-        { mainDefender: { displayNameNormalized: { contains: normalized } } },
-      ],
-    });
+    const { freeText, facets } = parseSearchQuery(query);
+
+    // Free text: global OR across the case-file number and both actors.
+    if (freeText) {
+      const normalized = normalizeForSearch(freeText);
+      conditions.push({
+        OR: [
+          { caseFileNumber: { contains: freeText, mode: "insensitive" } },
+          { mainClaimant: { displayNameNormalized: { contains: normalized } } },
+          { mainDefender: { displayNameNormalized: { contains: normalized } } },
+        ],
+      });
+    }
+
+    // Facets: each one restricts a single column; combined with AND.
+    for (const facet of facets) {
+      conditions.push(FACET_BUILDERS[facet.key](normalizeForSearch(facet.value), facet.value));
+    }
   }
 
   if (statusLabel) {
@@ -120,7 +172,7 @@ async function fetchCaseFilesCount(
 // Sometimes several `Status` lines share the same `label` (cf. Telerecours catalogue): we deduplicate on the label.
 export async function fetchUsedStatusLabels(): Promise<string[]> {
   const statuses = await prisma.status.findMany({
-    where: { caseFiles: { some: { isDeleted: false } } },
+    where: { caseFiles: { some: { isDeleted: false } as Prisma.CaseFileWhereInput } },
     select: { label: true },
     distinct: ["label"],
     orderBy: { label: "asc" },

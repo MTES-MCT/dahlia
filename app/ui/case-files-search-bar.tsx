@@ -1,36 +1,29 @@
-"use client";
+import { fr } from "@codegouvfr/react-dsfr";
+import clsx from "clsx";
 
-import { useRouter, useSearchParams } from "next/navigation";
-import { SearchBar } from "@codegouvfr/react-dsfr/SearchBar";
+type Props = {
+  // Current search query, used as the input default value.
+  currentQuery: string;
+  className?: string;
+};
 
-export function CaseFilesSearchBar({ className }: { className?: string }) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const currentQuery = searchParams.get("q") ?? "";
-
-  function handleSearch(text: string) {
-    const params = new URLSearchParams(searchParams.toString());
-    const trimmed = text.trim();
-    if (trimmed) {
-      params.set("q", trimmed);
-    } else {
-      params.delete("q");
-    }
-    params.delete("page");
-    const qs = params.toString();
-    router.push(qs ? `?${qs}` : "?");
-  }
-
+// Text search field (label + input) meant to be rendered inside the shared
+// `CaseFilesSearch` form. It owns no form/submit button: the parent form submits
+// the `dahliaq` value, which lets the browser offer previous searches on focus.
+export function CaseFilesSearchBar({ currentQuery, className }: Props) {
   return (
-    <SearchBar
-      // Force le remount quand l'URL change pour rafraîchir defaultValue
-      // (la SearchBar DSFR est non-contrôlée).
-      key={currentQuery}
-      defaultValue={currentQuery}
-      label="Rechercher un dossier, un requérant ou un défendeur"
-      allowEmptySearch
-      onButtonClick={handleSearch}
-      className={className}
-    />
+    <div className={clsx(className)}>
+      <label className={fr.cx("fr-label")} htmlFor="case-files-search">
+        Rechercher
+      </label>
+      <input
+        className={fr.cx("fr-input")}
+        id="case-files-search"
+        type="search"
+        name="dahliaq"
+        defaultValue={currentQuery}
+        placeholder='ex. « dupont » ou « requerant:prefet defendeur:"jean dupont" »'
+      />
+    </div>
   );
 }

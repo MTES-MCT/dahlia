@@ -1,38 +1,27 @@
-"use client";
-
 import { Select } from "@codegouvfr/react-dsfr/Select";
-import { useRouter, useSearchParams } from "next/navigation";
 
 type Props = {
   options: string[];
   // Status preselected when the `statut` param is absent from the URL (matches the page default).
   defaultStatut: string;
+  // Raw `statut` param from the URL: absent → default filter; empty string → « Tous ».
+  statutParam?: string;
 };
 
-export function CaseFilesSearchByStatus({ options, defaultStatut }: Props) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  // `statut` is missing from the URL → display the default filter; otherwise the value from the URL
-  // (empty string included, which corresponds to the explicit choice « Tous »).
-  const statutParam = searchParams.get("statut");
-  const currentStatut = statutParam === null ? defaultStatut : statutParam;
-
-  function handleChange(value: string) {
-    const params = new URLSearchParams(searchParams.toString());
-    // Force `statut=` (empty) for « Tous » to distinguish it from the absence of param,
-    // which would redisplay the default filter.
-    params.set("statut", value);
-    params.delete("page");
-    const qs = params.toString();
-    router.push(qs ? `?${qs}` : "?");
-  }
+// Status filter rendered as a plain field of the shared `CaseFilesSearch` form.
+// It submits its value under `statut`; the actual filtering happens when the user
+// clicks « Rechercher ».
+export function CaseFilesSearchByStatus({ options, defaultStatut, statutParam }: Props) {
+  // `statut` missing from the URL → preselect the default filter; otherwise the value
+  // from the URL (empty string included, which corresponds to the explicit choice « Tous »).
+  const currentStatut = statutParam === undefined ? defaultStatut : statutParam;
 
   return (
     <Select
       label="Statut"
       nativeSelectProps={{
-        onChange: (event) => handleChange(event.target.value),
-        value: currentStatut,
+        name: "statut",
+        defaultValue: currentStatut,
         style: { width: "auto" },
       }}
     >
