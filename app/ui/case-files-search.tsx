@@ -1,4 +1,6 @@
 import { fr } from "@codegouvfr/react-dsfr";
+import { Button } from "@codegouvfr/react-dsfr/Button";
+import { Input } from "@codegouvfr/react-dsfr/Input";
 import clsx from "clsx";
 import Link from "next/link";
 import { CaseFilesSearchByStatus } from "@/app/ui/case-files-search-by-status";
@@ -39,6 +41,10 @@ export function CaseFilesSearch({
     >
       <div className={clsx("flex", "flex-row", "gap-2", "items-end")}>
         <CaseFilesSearchByStatus
+          // Force a remount when the status param changes so the uncontrolled
+          // <select> picks up its new defaultValue on client navigation (e.g.
+          // the reset link); without this, React keeps the stale DOM value.
+          key={`statut-${statutParam ?? "__default__"}`}
           options={statusOptions}
           defaultStatut={defaultStatut}
           statutParam={statutParam}
@@ -48,15 +54,23 @@ export function CaseFilesSearch({
 
       {/* Mirror the current sort context. Emit the sort fields only when an
           explicit sort is set, to keep page.tsx's default detection. */}
-      {sortByParam && <input type="hidden" name="sortBy" value={sortByParam} />}
+      {sortByParam && (
+        <Input
+          label="Champ de tri"
+          hideLabel
+          nativeInputProps={{ type: "hidden", name: "sortBy", value: sortByParam }}
+        />
+      )}
       {sortByParam && sortOrderParam && (
-        <input type="hidden" name="sortOrder" value={sortOrderParam} />
+        <Input
+          label="Ordre de tri"
+          hideLabel
+          nativeInputProps={{ type: "hidden", name: "sortOrder", value: sortOrderParam }}
+        />
       )}
 
       <div className={clsx("flex", "flex-row", "gap-4", "items-center")}>
-        <button className={fr.cx("fr-btn")} type="submit">
-          Rechercher
-        </button>
+        <Button type="submit">Rechercher</Button>
         <Link
           href="/case_files"
           className={fr.cx("fr-link", "fr-icon-refresh-line", "fr-link--icon-left")}

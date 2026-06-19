@@ -23,15 +23,22 @@ export type FacetKey = (typeof FACET_KEYS)[number];
 
 const FACET_KEY_SET = new Set<string>(FACET_KEYS);
 
-export function isFacetKey(key: string): key is FacetKey {
-  return FACET_KEY_SET.has(key);
+export function isFacetKey(
+  key: string,
+  validKeys: readonly string[] = FACET_KEYS,
+): key is FacetKey {
+  // The dashboard's set is precomputed; any other caller (e.g. the in-memory
+  // detail tables) passes its own column keys, validated on the fly.
+  return validKeys === FACET_KEYS ? FACET_KEY_SET.has(key) : validKeys.includes(key);
 }
 
 export type ParsedSearch = {
-  // Free text searched globally (OR across caseFileNumber + actors), or null.
+  // Free text searched globally (OR across the searchable columns), or null.
   freeText: string | null;
-  // Column-scoped filters extracted from `key:value` tokens.
-  facets: { key: FacetKey; value: string }[];
+  // Column-scoped filters extracted from `key:value` tokens. The key is a string
+  // (not the dashboard's FacetKey) so the grammar is reusable by any table that
+  // declares its own facet keys.
+  facets: { key: string; value: string }[];
 };
 
 type SearchToken = { value: string; quoted: boolean };
@@ -92,9 +99,12 @@ function unwrapQuotedValue(value: string): string {
 // recognized and its value is non-empty; otherwise it stays free text — so a
 // stray colon never silently drops a search term. Double-quoted segments are
 // kept as one token even when they contain spaces.
-export function parseSearchQuery(query: string): ParsedSearch {
+export function parseSearchQuery(
+  query: string,
+  validKeys: readonly string[] = FACET_KEYS,
+): ParsedSearch {
   const tokens = tokenizeSearchQuery(query);
-  const facets: { key: FacetKey; value: string }[] = [];
+  const facets: { key: string; value: string }[] = [];
   const freeTokens: string[] = [];
 
   for (const { value: token, quoted } of tokens) {
@@ -107,7 +117,7 @@ export function parseSearchQuery(query: string): ParsedSearch {
     if (separatorIndex > 0) {
       const normalizedKey = normalizeForSearch(token.slice(0, separatorIndex));
       const value = unwrapQuotedValue(token.slice(separatorIndex + 1));
-      if (value && isFacetKey(normalizedKey)) {
+      if (value && isFacetKey(normalizedKey, validKeys)) {
         facets.push({ key: normalizedKey, value });
         continue;
       }
@@ -138,8 +148,13 @@ export function serializeSearch({ freeText, facets }: ParsedSearch): string {
 // Return a new search string where the facet for `key` is set to `value`
 // (replacing any existing one), or removed when `value` is empty. Used by the
 // per-column filter buttons to inject a facet into the current search box.
-export function setFacet(query: string, key: FacetKey, value: string): string {
-  const parsed = parseSearchQuery(query);
+export function setFacet(
+  query: string,
+  key: string,
+  value: string,
+  validKeys: readonly string[] = FACET_KEYS,
+): string {
+  const parsed = parseSearchQuery(query, validKeys);
   const trimmed = value.trim();
   const others = parsed.facets.filter((facet) => facet.key !== key);
   const facets = trimmed ? [...others, { key, value: trimmed }] : others;
@@ -147,6 +162,27 @@ export function setFacet(query: string, key: FacetKey, value: string): string {
 }
 
 // Current value of a given facet in the search string, or "" when absent.
-export function getFacetValue(query: string, key: FacetKey): string {
-  return parseSearchQuery(query).facets.find((facet) => facet.key === key)?.value ?? "";
+export function getFacetValue(
+  query: string,
+  key: string,
+  validKeys: readonly string[] = FACET_KEYS,
+): string {
+  return parseSearchQuery(query, validKeys).facets.find((facet) => facet.key === key)?.value ?? "";
 }
+
+// URL query-param names backing a table's sort/filter/pagination state. The
+// dashboard owns the page-level params; tables sharing a single URL (the case
+// file detail tabs) pass a prefixed set so they don't collide with each other.
+export type TableParamNames = {
+  page: string;
+  sortBy: string;
+  sortOrder: string;
+  query: string;
+};
+
+export const DASHBOARD_TABLE_PARAMS: TableParamNames = {
+  page: "page",
+  sortBy: "sortBy",
+  sortOrder: "sortOrder",
+  query: "dahliaq",
+};
