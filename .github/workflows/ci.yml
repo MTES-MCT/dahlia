@@ -36,3 +36,60 @@ jobs:
 
       - name: Test
         run: pnpm test run
+
+  e2e:
+    name: 🎭 Playwright E2E
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: dahlia
+          POSTGRES_PASSWORD: dahlia # pragma: allowlist secret
+          POSTGRES_DB: dahlia_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U dahlia"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      # Test database (matches the postgres service above). The Playwright config
+      # injects the rest of the runtime config (mock ProConnect, better-auth, …).
+      DATABASE_URL: "postgresql://dahlia:dahlia@localhost:5432/dahlia_test?schema=public" # pragma: allowlist secret
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .tools-version
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Apply database migrations
+        run: pnpm db:migrate:deploy
+
+      - name: Seed test database
+        run: pnpm test:e2e:seed
+
+      - name: Run Playwright tests
+        run: pnpm test:e2e
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
