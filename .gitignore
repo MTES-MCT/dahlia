@@ -16,7 +16,14 @@
 
 # next.js
 /.next/
+/.next-e2e/
 /out/
+
+# playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/.playwright/
 
 # production
 /build
