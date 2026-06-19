@@ -108,7 +108,11 @@ export default async function Page({ searchParams }: Props) {
             claimant,
             defender,
             status,
-            <MemoryDeadlineCell key={`${caseFileNumber}-deadline`} date={convocationDate} />,
+            <MemoryDeadlineCell
+              key={`${caseFileNumber}-deadline`}
+              date={convocationDate}
+              status={status}
+            />,
           ],
         )}
         fixed

@@ -121,9 +121,12 @@ function buildWhere(query: string | null, statusLabel: string | null): Prisma.Ca
       });
     }
 
-    // Facets: each one restricts a single column; combined with AND.
+    // Facets: each one restricts a single column; combined with AND. `parseSearchQuery`
+    // validated the key against FACET_KEYS here, so the cast to FacetKey is safe.
     for (const facet of facets) {
-      conditions.push(FACET_BUILDERS[facet.key](normalizeForSearch(facet.value), facet.value));
+      conditions.push(
+        FACET_BUILDERS[facet.key as FacetKey](normalizeForSearch(facet.value), facet.value),
+      );
     }
   }
 

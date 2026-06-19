@@ -22,6 +22,10 @@ export function CaseFilesSearchByStatus({ options, defaultStatut, statutParam }:
       nativeSelectProps={{
         name: "statut",
         defaultValue: currentStatut,
+        // Disable the browser's form-field restoration on reload/bfcache, which
+        // would otherwise re-apply the previously selected value over the
+        // server-rendered default (e.g. after « Ré-initialiser la recherche »).
+        autoComplete: "off",
         style: { width: "auto" },
       }}
     >
