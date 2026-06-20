@@ -21,15 +21,11 @@ export const FACET_KEYS = ["dossier", "requerant", "defendeur", "statut"] as con
 
 export type FacetKey = (typeof FACET_KEYS)[number];
 
-const FACET_KEY_SET = new Set<string>(FACET_KEYS);
-
 export function isFacetKey(
   key: string,
   validKeys: readonly string[] = FACET_KEYS,
 ): key is FacetKey {
-  // The dashboard's set is precomputed; any other caller (e.g. the in-memory
-  // detail tables) passes its own column keys, validated on the fly.
-  return validKeys === FACET_KEYS ? FACET_KEY_SET.has(key) : validKeys.includes(key);
+  return validKeys.includes(key);
 }
 
 export type ParsedSearch = {

@@ -119,7 +119,9 @@ describe("SortableColumnHeader", () => {
 
       fireEvent.click(screen.getByRole("button"));
 
-      expect(mockPush).toHaveBeenCalledWith("?sortBy=caseFileNumber&sortOrder=ascending");
+      expect(mockPush).toHaveBeenCalledWith("?sortBy=caseFileNumber&sortOrder=ascending", {
+        scroll: false,
+      });
     });
 
     it("bascule vers descending quand la colonne est active ascending", () => {
@@ -130,7 +132,9 @@ describe("SortableColumnHeader", () => {
 
       fireEvent.click(screen.getByRole("button"));
 
-      expect(mockPush).toHaveBeenCalledWith("?sortBy=caseFileNumber&sortOrder=descending");
+      expect(mockPush).toHaveBeenCalledWith("?sortBy=caseFileNumber&sortOrder=descending", {
+        scroll: false,
+      });
     });
 
     it("bascule vers ascending quand la colonne est active descending", () => {
@@ -141,7 +145,9 @@ describe("SortableColumnHeader", () => {
 
       fireEvent.click(screen.getByRole("button"));
 
-      expect(mockPush).toHaveBeenCalledWith("?sortBy=caseFileNumber&sortOrder=ascending");
+      expect(mockPush).toHaveBeenCalledWith("?sortBy=caseFileNumber&sortOrder=ascending", {
+        scroll: false,
+      });
     });
 
     it("supprime le parametre page au clic", () => {
@@ -162,7 +168,9 @@ describe("SortableColumnHeader", () => {
 
       fireEvent.click(screen.getByRole("button"));
 
-      expect(mockPush).toHaveBeenCalledWith("?sortBy=convocationDate&sortOrder=descending");
+      expect(mockPush).toHaveBeenCalledWith("?sortBy=convocationDate&sortOrder=descending", {
+        scroll: false,
+      });
     });
 
     it("conserve les autres parametres URL existants", () => {
