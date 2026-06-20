@@ -46,7 +46,7 @@ export function SortableColumnHeader({
       isActive && effectiveOrder === "ascending" ? "descending" : "ascending",
     );
     nextParams.delete(params.page);
-    router.push(`?${nextParams.toString()}`);
+    router.push(`?${nextParams.toString()}`, { scroll: false });
   }
 
   return (
