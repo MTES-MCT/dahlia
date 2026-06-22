@@ -69,7 +69,7 @@ export default async function Page({ params, searchParams }: Props) {
         }}
       >
         <div style={{ position: "absolute", top: "5rem", right: "1rem" }}>
-          <RefreshCaseFileButton caseFileNumber={caseFile.caseFileNumber} />
+          <RefreshCaseFileButton caseFile={caseFile} />
         </div>
 
         <h2 className={fr.cx("fr-h4", "fr-mb-1v")}>

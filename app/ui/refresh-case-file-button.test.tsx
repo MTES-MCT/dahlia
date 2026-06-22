@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup, waitFor } from "@testing-library/react";
+import type { CaseFileDetail } from "@/app/lib/data/case-files";
 import { RefreshCaseFileButton } from "./refresh-case-file-button";
 
 // The button calls the `refreshCaseFile` server action and refreshes the router
@@ -16,6 +17,11 @@ vi.mock("next/navigation", () => ({
 }));
 
 describe("RefreshCaseFileButton", () => {
+  const mockCaseFile = {
+    caseFileNumber: "TA069-2026-001",
+    updatedAt: new Date("2024-06-01"),
+  } as NonNullable<CaseFileDetail>;
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -25,14 +31,14 @@ describe("RefreshCaseFileButton", () => {
   });
 
   it("affiche le bouton « Rafraîchir » à l'état initial", () => {
-    render(<RefreshCaseFileButton caseFileNumber="TA069-2026-001" />);
+    render(<RefreshCaseFileButton caseFile={mockCaseFile} />);
 
     expect(screen.getByRole("button", { name: "Rafraîchir" })).toBeTruthy();
   });
 
   it("appelle l'action avec le numéro de dossier et rafraîchit le router en cas de succès", async () => {
     mockRefreshCaseFile.mockResolvedValue({ ok: true });
-    render(<RefreshCaseFileButton caseFileNumber="TA069-2026-001" />);
+    render(<RefreshCaseFileButton caseFile={mockCaseFile} />);
 
     fireEvent.click(screen.getByRole("button"));
 
@@ -45,7 +51,7 @@ describe("RefreshCaseFileButton", () => {
 
   it("affiche une alerte d'erreur et ne rafraîchit pas le router en cas d'échec", async () => {
     mockRefreshCaseFile.mockResolvedValue({ ok: false, error: "Timeout Télérecours" });
-    render(<RefreshCaseFileButton caseFileNumber="TA069-2026-001" />);
+    render(<RefreshCaseFileButton caseFile={mockCaseFile} />);
 
     fireEvent.click(screen.getByRole("button"));
 

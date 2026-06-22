@@ -99,12 +99,14 @@ const mockCaseFile = {
   chamberId: null,
   mainClaimantId: 1,
   mainDefenderId: 1,
+  lastProducerId: 1,
   isDeleted: false,
   deletedAt: null,
   createdAt: new Date("2024-01-01"),
   updatedAt: new Date("2024-01-01"),
   mainClaimant: mockActor,
   mainDefender: mockActor,
+  lastProducer: mockActor,
   urgency: mockUrgency,
   lastStatus: mockStatus,
   lastHearing: null,
@@ -271,20 +273,22 @@ describe("case-files", () => {
     it("formats case files to table rows", () => {
       const result = formatForTable([mockCaseFile]);
 
-      expect(result).toEqual([["CF-2024-001", "", "Dupont Jean", "Dupont Jean", "En cours", null]]);
+      expect(result).toEqual([
+        ["CF-2024-001", "", "Dupont Jean", "Dupont Jean", "Dupont Jean", "En cours", null],
+      ]);
     });
 
     it("exposes the raw lastHearing convocationDate as the last column", () => {
       const caseFile = { ...mockCaseFile, lastHearing: mockHearing };
       const result = formatForTable([caseFile]);
 
-      expect(result[0][5]).toEqual(mockHearing.convocationDate);
+      expect(result[0][6]).toEqual(mockHearing.convocationDate);
     });
 
     it("exposes a null memory deadline when lastHearing is absent", () => {
       const result = formatForTable([mockCaseFile]);
 
-      expect(result[0][5]).toBeNull();
+      expect(result[0][6]).toBeNull();
     });
 
     it("formats depositDate as dd/mm/yyyy", () => {
@@ -327,7 +331,7 @@ describe("case-files", () => {
       const result = await fetchCaseFilesTableData(1, 10, "caseFileNumber", "descending");
 
       expect(result).toEqual({
-        rows: [["CF-2024-001", "", "Dupont Jean", "Dupont Jean", "En cours", null]],
+        rows: [["CF-2024-001", "", "Dupont Jean", "Dupont Jean", "Dupont Jean", "En cours", null]],
         totalPages: 3,
         totalCount: 25,
       });
@@ -335,6 +339,7 @@ describe("case-files", () => {
         include: {
           mainClaimant: true,
           mainDefender: true,
+          lastProducer: true,
           urgency: true,
           lastStatus: true,
           lastHearing: true,
@@ -474,6 +479,7 @@ describe("case-files", () => {
               { caseFileNumber: { contains: "Dupont", mode: "insensitive" } },
               { mainClaimant: { displayNameNormalized: { contains: "dupont" } } },
               { mainDefender: { displayNameNormalized: { contains: "dupont" } } },
+              { lastProducer: { displayNameNormalized: { contains: "dupont" } } },
             ],
           },
         ],
@@ -499,6 +505,7 @@ describe("case-files", () => {
               { caseFileNumber: { contains: "Frànçois", mode: "insensitive" } },
               { mainClaimant: { displayNameNormalized: { contains: "francois" } } },
               { mainDefender: { displayNameNormalized: { contains: "francois" } } },
+              { lastProducer: { displayNameNormalized: { contains: "francois" } } },
             ],
           },
         ],
@@ -607,6 +614,7 @@ describe("case-files", () => {
               { caseFileNumber: { contains: "dupont", mode: "insensitive" } },
               { mainClaimant: { displayNameNormalized: { contains: "dupont" } } },
               { mainDefender: { displayNameNormalized: { contains: "dupont" } } },
+              { lastProducer: { displayNameNormalized: { contains: "dupont" } } },
             ],
           },
           { mainClaimant: { displayNameNormalized: { contains: "prefet" } } },

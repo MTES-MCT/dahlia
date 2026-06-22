@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { fr } from "@codegouvfr/react-dsfr";
 import { Tabs } from "@codegouvfr/react-dsfr/Tabs";
-import { formatDateFr } from "@/app/lib/case-file-format";
+import { formatDateFr, getActorDisplayName } from "@/app/lib/case-file-format";
 import { type TableParamNames } from "@/app/lib/case-file-search";
 import { ClientTable, type ClientTableColumn } from "@/app/ui/client-table";
 import type { CaseFileDetail } from "@/app/lib/data/case-files";
@@ -94,6 +94,16 @@ const HISTORIQUE_COLUMNS: ClientTableColumn<CaseEvent>[] = [
     label: "Événement",
     text: (event) => event.measure.label,
     sortValue: (event) => event.measure.label,
+    searchable: true,
+    facet: true,
+    sortable: true,
+  },
+  {
+    key: "producteur",
+    label: "Producteur",
+    text: (event) => (event.actor ? getActorDisplayName(event.actor) : ""),
+    sortValue: (event) => (event.actor ? getActorDisplayName(event.actor) : ""),
+    render: (event) => (event.actor ? getActorDisplayName(event.actor) : "—"),
     searchable: true,
     facet: true,
     sortable: true,

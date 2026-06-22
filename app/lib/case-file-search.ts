@@ -17,7 +17,7 @@ export function normalizeForSearch(value: string): string {
 // Facet keys recognized in the search box. They map to the displayed table
 // columns; a `key:value` token restricts the match to that single column
 // instead of the global free-text OR.
-export const FACET_KEYS = ["dossier", "requerant", "defendeur", "statut"] as const;
+export const FACET_KEYS = ["dossier", "requerant", "defendeur", "producteur", "statut"] as const;
 
 export type FacetKey = (typeof FACET_KEYS)[number];
 
