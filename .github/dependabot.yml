@@ -8,5 +8,26 @@ updates:
       interval: "weekly"
       day: "thursday"
       time: "06:00" # UTC
+    allow:
+      - dependency-type: "all"
+    groups:
+      # Named groups (specific packages get their own PRs)
+      nextjs:
+        patterns:
+          - "next/*"
+      react:
+        patterns:
+          - "react/*"
+          - "react-dom/*"
+      prisma:
+        patterns:
+          - "@prisma/*"
+          - "prisma/*"
+      types:
+        patterns:
+          - "@types/*"
+      testing-library:
+        patterns:
+          - "@testing-library/*"
     cooldown:
       default-days: 7
