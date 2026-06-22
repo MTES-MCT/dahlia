@@ -24,7 +24,7 @@
     "test": "vitest"
   },
   "dependencies": {
-    "@codegouvfr/react-dsfr": "^1.32.1",
+    "@codegouvfr/react-dsfr": "^1.32.4",
     "@faker-js/faker": "^10.4.0",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
