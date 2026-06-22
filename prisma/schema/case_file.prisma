@@ -50,6 +50,11 @@ model CaseFile {
   mainDefenderId Int?
   mainDefender   Actor? @relation("CaseFileMainDefender", fields: [mainDefenderId], references: [id])
 
+  // Actor of the most recent "reception…" event (see findLastProducerId in the
+  // scraper, computed during the enrichment phase).
+  lastProducerId Int?
+  lastProducer   Actor? @relation("CaseFileLastProducer", fields: [lastProducerId], references: [id])
+
   events         CaseFileEvent[]
   attachedFiles  AttachedFile[]
   relatedSources RelatedCaseFile[] @relation("RelatedCaseFileSource")
