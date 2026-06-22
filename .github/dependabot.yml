@@ -15,10 +15,12 @@ updates:
       nextjs:
         patterns:
           - "next/*"
+      eslint:
+        patterns:
+          - "eslint*"
       react:
         patterns:
-          - "react/*"
-          - "react-dom/*"
+          - "react*"
       prisma:
         patterns:
           - "@prisma/*"
