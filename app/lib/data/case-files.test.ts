@@ -100,6 +100,7 @@ const mockCaseFile = {
   mainClaimantId: 1,
   mainDefenderId: 1,
   isDeleted: false,
+  deletedAt: null,
   createdAt: new Date("2024-01-01"),
   updatedAt: new Date("2024-01-01"),
   mainClaimant: mockActor,
