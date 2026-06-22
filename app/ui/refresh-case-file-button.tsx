@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import clsx from "clsx";
 import { fr } from "@codegouvfr/react-dsfr";
 import { Button } from "@codegouvfr/react-dsfr/Button";
 import { Alert } from "@codegouvfr/react-dsfr/Alert";
@@ -34,7 +35,7 @@ export function RefreshCaseFileButton({ caseFileNumber }: Props) {
   }
 
   return (
-    <div className={fr.cx("fr-mb-2w")}>
+    <div className={clsx(fr.cx("fr-mb-2w"), "flex", "flex-col", "items-end")}>
       <Button
         iconId="fr-icon-refresh-line"
         onClick={handleRefresh}
@@ -47,11 +48,7 @@ export function RefreshCaseFileButton({ caseFileNumber }: Props) {
       {result && (
         <div className={fr.cx("fr-mt-2w")}>
           {result.ok ? (
-            <Alert
-              severity="success"
-              small
-              description="Dossier rafraîchi avec succès depuis Télérecours."
-            />
+            <Alert severity="success" small description="Dossier rafraîchi avec succès" />
           ) : (
             <Alert
               severity="error"

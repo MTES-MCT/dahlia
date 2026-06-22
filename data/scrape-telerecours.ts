@@ -266,7 +266,7 @@ async function reconcileDeleted(args: Args, seen: string[]): Promise<number> {
       caseFileNumber: { notIn: seen },
       isDeleted: false,
     },
-    data: { isDeleted: true },
+    data: { isDeleted: true, deletedAt: new Date() },
   });
 
   console.log(`✓ Phase A.5 : ${result.count} dossier(s) marqué(s) supprimé(s).`);

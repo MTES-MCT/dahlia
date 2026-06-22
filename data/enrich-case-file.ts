@@ -200,6 +200,7 @@ export async function upsertCaseFile(
       // The case file was returned by Telerecours, so it is not deleted: clear
       // any previous soft-delete flag (a case file that reappears comes back).
       isDeleted: false,
+      deletedAt: null,
       procedureState: caseFile.procedureState,
       assignedToLegalEntityDivisionId: caseFile.assignedToLegalEntityDivision.id,
       urgencyId: caseFile.urgency?.id,
