@@ -39,6 +39,9 @@ Il existe déjà une API utilisée par l'interface
     - AttachedFile (avec FileFamilyType)
     - RelatedCaseFile
   - Permettre de filtrer sur la date du dernier événement de l'historique
+- Gestion des utilisateurs et des habilitations
+  - Gestion des utilisateurs : est-ce possible de récupérer les autorisations assignées aux utilisateurs ?
+  - entity -> pas toujours renvoyé lors de la récupération de la liste des case-files
 
 Note : une API en lecture seule est suffisante pour les besoins de notre première itération. Selon la trajectoire de DAHL'ia, nous aurons peut-être un jour besoin de déposer des pièces dans un dossier
 
