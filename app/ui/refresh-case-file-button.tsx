@@ -10,14 +10,16 @@ import {
   refreshCaseFile,
   type RefreshCaseFileResult,
 } from "@/app/(protected)/case_files/[caseFileNumber]/actions";
+import type { CaseFileDetail } from "@/app/lib/data/case-files";
+import { formatDateFr } from "@/app/lib/case-file-format";
 
 type Props = {
-  caseFileNumber: string;
+  caseFile: NonNullable<CaseFileDetail>;
 };
 
 // Button that re-fetches the current case file from Télérecours via the
 // `refreshCaseFile` server action, then displays a success or error alert.
-export function RefreshCaseFileButton({ caseFileNumber }: Props) {
+export function RefreshCaseFileButton({ caseFile }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [result, setResult] = useState<RefreshCaseFileResult | null>(null);
@@ -25,7 +27,7 @@ export function RefreshCaseFileButton({ caseFileNumber }: Props) {
   function handleRefresh() {
     setResult(null);
     startTransition(async () => {
-      const res = await refreshCaseFile(caseFileNumber);
+      const res = await refreshCaseFile(caseFile.caseFileNumber);
       setResult(res);
       // On success, refresh the server component so the new data is displayed.
       if (res.ok) {
@@ -44,6 +46,9 @@ export function RefreshCaseFileButton({ caseFileNumber }: Props) {
       >
         {isPending ? "Rafraîchissement…" : "Rafraîchir"}
       </Button>
+      <span className={clsx(fr.cx("fr-text--sm", "fr-mb-0"), "text-grey", "italic")}>
+        Mise à jour le {formatDateFr(caseFile.updatedAt)}
+      </span>
 
       {result && (
         <div className={fr.cx("fr-mt-2w")}>

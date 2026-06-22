@@ -162,6 +162,7 @@ erDiagram
         int chamberId FK "nullable"
         int mainClaimantId FK
         int mainDefenderId FK "nullable"
+        int lastProducerId FK "nullable"
         DateTime createdAt
         DateTime updatedAt
     }
@@ -305,6 +306,7 @@ erDiagram
     CaseFile            ||--o{ Hearing  : "hearings"
     Actor               ||--o{ CaseFile : "mainClaimant"
     Actor               ||--o{ CaseFile : "mainDefender"
+    Actor               |o--o{ CaseFile : "lastProducer"
     Hearing             |o--o| Conclusion : "lastConclusion"
     ConclusionOperativePart |o--o{ Conclusion : "operativePart"
     Quality             ||--o{ Actor    : "has quality"

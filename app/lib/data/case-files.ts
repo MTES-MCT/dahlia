@@ -18,6 +18,7 @@ type CaseFileWithRelations = Prisma.CaseFileGetPayload<{
   include: {
     mainClaimant: true;
     mainDefender: true;
+    lastProducer: true;
     urgency: true;
     lastStatus: true;
     lastHearing: true;
@@ -26,9 +27,9 @@ type CaseFileWithRelations = Prisma.CaseFileGetPayload<{
 
 // The last element is the raw hearing convocation date (or null): the UI cell
 // formats it and derives a status badge from it (see MemoryDeadlineCell).
-export type CaseFileRow = [string, string, string, string, string, Date | null];
+export type CaseFileRow = [string, string, string, string, string, string, Date | null];
 
-const ACTOR_SORT_KEYS = ["mainClaimant", "mainDefender"] as const;
+const ACTOR_SORT_KEYS = ["mainClaimant", "mainDefender", "lastProducer"] as const;
 
 // Sort key for the memory-production deadline column: the convocation date of
 // the last hearing. It lives on the `lastHearing` relation, so it needs a
@@ -90,6 +91,10 @@ const FACET_BUILDERS: Record<
     buildWordAndFilter(facetSearchWords(normalized), (word) => ({
       mainDefender: { displayNameNormalized: { contains: word } },
     })),
+  producteur: (normalized) =>
+    buildWordAndFilter(facetSearchWords(normalized), (word) => ({
+      lastProducer: { displayNameNormalized: { contains: word } },
+    })),
   statut: (normalized) =>
     buildWordAndFilter(facetSearchWords(normalized), (word) => ({
       lastStatus: { labelNormalized: { contains: word } } as unknown as Prisma.StatusWhereInput,
@@ -117,6 +122,7 @@ function buildWhere(query: string | null, statusLabel: string | null): Prisma.Ca
           { caseFileNumber: { contains: freeText, mode: "insensitive" } },
           { mainClaimant: { displayNameNormalized: { contains: normalized } } },
           { mainDefender: { displayNameNormalized: { contains: normalized } } },
+          { lastProducer: { displayNameNormalized: { contains: normalized } } },
         ],
       });
     }
@@ -152,6 +158,7 @@ async function fetchCaseFiles(
     include: {
       mainClaimant: true,
       mainDefender: true,
+      lastProducer: true,
       urgency: true,
       lastStatus: true,
       lastHearing: true,
@@ -189,6 +196,7 @@ export function formatForTable(caseFiles: CaseFileWithRelations[]): CaseFileRow[
     formatDateFr(caseFile.depositDate),
     getActorDisplayName(caseFile.mainClaimant),
     getActorDisplayName(caseFile.mainDefender),
+    getActorDisplayName(caseFile.lastProducer),
     caseFile.lastStatus.label,
     caseFile.lastHearing?.convocationDate ?? null,
   ]);

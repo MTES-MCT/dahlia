@@ -30,6 +30,7 @@ model Actor {
 
   caseFilesAsMainClaimant CaseFile[] @relation("CaseFileMainClaimant")
   caseFilesAsMainDefender CaseFile[] @relation("CaseFileMainDefender")
+  caseFilesAsLastProducer CaseFile[] @relation("CaseFileLastProducer")
 
   caseFileEvents CaseFileEvent[] @relation("CaseFileEventActor")
 

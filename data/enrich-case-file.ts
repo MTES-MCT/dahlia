@@ -20,6 +20,28 @@ function parseDate(value: string | null | undefined): Date | undefined {
   return value ? new Date(value) : undefined;
 }
 
+// Normalize a string for case- and accent-insensitive comparison.
+function normalizeLabel(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
+}
+
+// The "last producer" is the actor of the most recent event whose measure label
+// starts with "reception" (case- and accent-insensitive). Returns its actorId,
+// or null when no such event exists.
+export function findLastProducerId(events: CaseFileEvent[]): number | null {
+  let latest: CaseFileEvent | null = null;
+  for (const event of events) {
+    if (!normalizeLabel(event.measure.label).startsWith("reception")) continue;
+    if (!latest || new Date(event.eventDate) > new Date(latest.eventDate)) {
+      latest = event;
+    }
+  }
+  return latest?.actor?.id ?? null;
+}
+
 async function upsertActor(
   prisma: PrismaClient,
   actor: Actor,
@@ -471,6 +493,7 @@ export async function enrichCaseFile(
 
   // 3. All events (measures)
   let eventsCount = 0;
+  const events: CaseFileEvent[] = [];
   for await (const event of paginate<CaseFileEvent>(async (page) => {
     return (await client.getCaseFileMeasures(
       caseFileNumber,
@@ -479,8 +502,16 @@ export async function enrichCaseFile(
     )) as unknown as PagedResponse<CaseFileEvent>;
   })) {
     await upsertCaseFileEvent(prisma, caseFileNumber, event, anonymize);
+    events.push(event);
     eventsCount++;
   }
+
+  // Derive the last producer (actor of the most recent "reception…" event)
+  // from the freshly upserted events.
+  await prisma.caseFile.update({
+    where: { caseFileNumber },
+    data: { lastProducerId: findLastProducerId(events) },
+  });
 
   // 4. All attached files
   let filesCount = 0;

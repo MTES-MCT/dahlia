@@ -97,7 +97,15 @@ export default async function Page({ searchParams }: Props) {
       <Table
         caption={`${totalCount} dossier${totalCount > 1 ? "s" : ""}`}
         data={rows.map(
-          ([caseFileNumber, depositDate, claimant, defender, status, convocationDate]) => [
+          ([
+            caseFileNumber,
+            depositDate,
+            claimant,
+            defender,
+            producer,
+            status,
+            convocationDate,
+          ]) => [
             <Link
               key={caseFileNumber}
               href={`/case_files/${encodeURIComponent(caseFileNumber)}${currentQueryString ? `?${currentQueryString}` : ""}`}
@@ -107,6 +115,7 @@ export default async function Page({ searchParams }: Props) {
             depositDate,
             claimant,
             defender,
+            producer,
             status,
             <MemoryDeadlineCell
               key={`${caseFileNumber}-deadline`}
@@ -135,6 +144,12 @@ export default async function Page({ searchParams }: Props) {
             label="Défendeur"
             sortKey="mainDefender"
             facetKey="defendeur"
+          />,
+          <ColumnHeader
+            key="lastProducer"
+            label="Dernier producteur"
+            sortKey="lastProducer"
+            facetKey="producteur"
           />,
           <ColumnHeader key="status" label="Statut" facetKey="statut" />,
           <ColumnHeader
