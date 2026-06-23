@@ -16,7 +16,7 @@ describe("HeaderDahlia", () => {
     expect(screen.getByText("Beta")).toBeTruthy();
     expect(
       screen.getByText(
-        "Aide au traitement des contentieux du droit au logement et à l'hébergement",
+        "Aide au traitement des contentieux du droit au logement et à l'hébergement opposable",
       ),
     ).toBeTruthy();
   });
