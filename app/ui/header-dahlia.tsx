@@ -48,7 +48,7 @@ export function HeaderDahlia({ user }: { user?: HeaderDahliaUser | null }) {
         title: "Accueil - DAHL'ia (Ministères du logement)",
       }}
       id="fr-header-simple-header-with-service-title-and-tagline"
-      serviceTagline="Aide au traitement des contentieux du droit au logement et à l'hébergement"
+      serviceTagline="Aide au traitement des contentieux du droit au logement et à l'hébergement opposable"
       serviceTitle={
         <>
           DAHLIA{" "}

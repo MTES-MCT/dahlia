@@ -13,7 +13,8 @@ import { HeaderDahlia } from "@/app/ui/header-dahlia";
 
 export const metadata: Metadata = {
   title: "DAHL'ia (Ministères du logement)",
-  description: "Aide au traitement des contentieux du droit au logement et à l'hébergement",
+  description:
+    "Aide au traitement des contentieux du droit au logement et à l'hébergement opposable",
 };
 
 import { fr } from "@codegouvfr/react-dsfr";
