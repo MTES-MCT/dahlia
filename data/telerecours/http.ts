@@ -4,9 +4,41 @@
 // pure helpers reused) without instantiating the whole client.
 
 export const API_HOST = "https://administrations.telerecours.fr";
+export const ALLOWED_API_HOSTNAME = new URL(API_HOST).hostname;
 export const USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:150.0) " + "Gecko/20100101 Firefox/150.0";
 export const PAGINATION_PAGE_SIZE = 30;
+
+/**
+ * Ensure a URL targets only the Télérecours API host over HTTPS. Rejects any
+ * other scheme or hostname to prevent SSRF when path segments come from callers.
+ */
+export function assertTelerecoursApiUrl(url: string): URL {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new Error(`Invalid Télérecours API URL: ${url}`);
+  }
+
+  if (parsed.protocol !== "https:" || parsed.hostname !== ALLOWED_API_HOSTNAME) {
+    throw new Error(
+      `Disallowed Télérecours API host: ${parsed.hostname} (expected ${ALLOWED_API_HOSTNAME})`,
+    );
+  }
+
+  return parsed;
+}
+
+/** Build an absolute Télérecours API URL from a relative path (`/api/...`). */
+export function telerecoursApiUrl(path: string): string {
+  if (path.startsWith("http://") || path.startsWith("https://")) {
+    throw new Error("Pass a relative API path, not an absolute URL");
+  }
+
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  return assertTelerecoursApiUrl(new URL(normalizedPath, API_HOST).href).href;
+}
 
 const MAX_FETCH_ATTEMPTS = 4;
 const INITIAL_RETRY_DELAY_MS = 1000;
@@ -61,11 +93,12 @@ export class AuthenticationError extends Error {
  * 401/403 to trigger a re-login upstream.
  */
 export async function fetchWithRetry(
-  url: string,
+  path: string,
   accessToken: string,
   jurisdiction: string,
   accept = "application/json",
 ): Promise<Response> {
+  const url = telerecoursApiUrl(path);
   let attempt = 0;
   let lastError: unknown;
 

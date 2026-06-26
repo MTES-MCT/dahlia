@@ -1,6 +1,5 @@
 import { login } from "./auth";
 import {
-  API_HOST,
   AuthenticationError,
   PAGINATION_PAGE_SIZE,
   fetchWithRetry,
@@ -88,14 +87,10 @@ class TelerecoursCaseFileClient implements TelerecoursClient {
     }
   }
 
-  /**
-   * Authenticated GET returning parsed JSON typed as `T`. The path may be a
-   * bare path (`/api/...`) or an absolute URL.
-   */
+  /** Authenticated GET returning parsed JSON typed as `T`. */
   private async get<T>(path: string, jurisdiction: string): Promise<T> {
-    const url = path.startsWith("http") ? path : `${API_HOST}${path}`;
     return this.withReauth(async () => {
-      const response = await fetchWithRetry(url, this.accessToken!, jurisdiction);
+      const response = await fetchWithRetry(path, this.accessToken!, jurisdiction);
       return (await response.json()) as T;
     });
   }
@@ -109,10 +104,9 @@ class TelerecoursCaseFileClient implements TelerecoursClient {
     encodedFileId: string,
     jurisdiction: string,
   ): Promise<{ data: Buffer; fileName?: string; mimeType?: string }> {
-    const url = `${API_HOST}/api/file-api/${encodedFileId}/data`;
     return this.withReauth(async () => {
       const response = await fetchWithRetry(
-        url,
+        `/api/file-api/${encodedFileId}/data`,
         this.accessToken!,
         jurisdiction,
         "application/json, text/plain, */*",

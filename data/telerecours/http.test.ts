@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { describeError, fetchWithRetry, parseContentDispositionFileName } from "./http";
+import {
+  API_HOST,
+  assertTelerecoursApiUrl,
+  describeError,
+  fetchWithRetry,
+  parseContentDispositionFileName,
+  telerecoursApiUrl,
+} from "./http";
 
 describe("describeError", () => {
   it("flattens a nested cause chain", () => {
@@ -30,19 +37,47 @@ describe("parseContentDispositionFileName", () => {
   });
 });
 
+describe("telerecoursApiUrl", () => {
+  it("builds an absolute URL from a relative path", () => {
+    expect(telerecoursApiUrl("/api/case-file")).toBe(`${API_HOST}/api/case-file`);
+  });
+
+  it("rejects absolute URLs passed as paths", () => {
+    expect(() => telerecoursApiUrl("https://evil.example/api")).toThrow(/relative API path/);
+  });
+});
+
+describe("assertTelerecoursApiUrl", () => {
+  it("accepts the Télérecours API host", () => {
+    expect(assertTelerecoursApiUrl(`${API_HOST}/api/case-file`).href).toBe(
+      `${API_HOST}/api/case-file`,
+    );
+  });
+
+  it("rejects other hosts", () => {
+    expect(() => assertTelerecoursApiUrl("https://evil.example/api")).toThrow(/Disallowed/);
+  });
+
+  it("rejects non-HTTPS schemes", () => {
+    expect(() => assertTelerecoursApiUrl("http://administrations.telerecours.fr/api")).toThrow(
+      /Disallowed/,
+    );
+  });
+});
+
 describe("fetchWithRetry", () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it("returns the response on success", async () => {
     const ok = new Response("ok", { status: 200 });
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(ok));
-    const res = await fetchWithRetry("https://x/api", "token", "TA069");
+    const res = await fetchWithRetry("/api/case-file", "token", "TA069");
     expect(res.status).toBe(200);
   });
 
   it("throws AuthenticationError on 401 (to trigger re-login upstream)", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("no", { status: 401 })));
-    await expect(fetchWithRetry("https://x/api", "token", "TA069")).rejects.toMatchObject({
+    await expect(fetchWithRetry("/api/case-file", "token", "TA069")).rejects.toMatchObject({
       name: "AuthenticationError",
     });
   });
@@ -55,9 +90,19 @@ describe("fetchWithRetry", () => {
     vi.stubGlobal("fetch", fetchMock);
     vi.spyOn(console, "warn").mockImplementation(() => {});
 
-    const res = await fetchWithRetry("https://x/api", "token", "TA069");
+    const res = await fetchWithRetry("/api/case-file", "token", "TA069");
 
     expect(res.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledTimes(2);
   }, 15000);
+
+  it("rejects forged absolute URLs before calling fetch", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchWithRetry("https://evil.example/api", "token", "TA069")).rejects.toThrow(
+      /relative API path/,
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 });
