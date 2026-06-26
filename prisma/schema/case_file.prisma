@@ -10,7 +10,6 @@ model CaseFile {
   estimatedHearingDate           DateTime?
   estimatedHearingPeriod         String?
   earliestInstructionClosingDate DateTime?
-  lastDecisionReading            DateTime?
   directoryReference             String?
   directoryComplementaryEmails   String[]  @default([])
   keywords                       String[]  @default([])
@@ -54,6 +53,8 @@ model CaseFile {
   // scraper, computed during the enrichment phase).
   lastProducerId Int?
   lastProducer   Actor? @relation("CaseFileLastProducer", fields: [lastProducerId], references: [id])
+
+  lastDecisionReading LastDecisionReading?
 
   events         CaseFileEvent[]
   attachedFiles  AttachedFile[]

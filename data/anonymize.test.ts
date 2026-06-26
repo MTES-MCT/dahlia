@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { anonymizeActor } from "./anonymize";
-import { Actor } from "./interfaces";
+import { Actor } from "./telerecours/types";
 
 describe("anonymizeActor", () => {
   it("remplace les noms d'une personne physique par des valeurs aléatoires non nulles", () => {

@@ -1,4 +1,5 @@
-import { describeError, getTelerecoursCaseFileClient } from "./telerecours-client";
+import { getTelerecoursCaseFileClient } from "./telerecours/client";
+import { describeError } from "./telerecours/http";
 import "dotenv/config";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
