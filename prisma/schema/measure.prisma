@@ -25,7 +25,7 @@ model CaseFileEvent {
   hasAttachment          Boolean   @default(false)
   generateAR             Boolean   @default(false)
   nbEventFile            Int       @default(0)
-  piecesNonDownloadable  String?
+  piecesNonDownloadable  Boolean?
   relatedEventCount      Int       @default(0)
 
   caseFileNumber String

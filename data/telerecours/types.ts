@@ -45,6 +45,13 @@ export interface CaseFile {
 
 // Réponse enrichie de /api/case-file/<id> (un seul dossier, pas paginé).
 // Hérite de CaseFile + champs détail.
+export interface LastDecisionReading {
+  readingDate: string;
+  notificationDate?: string | null;
+  nature?: string | null;
+  operativePart?: string | null;
+}
+
 export interface CaseFileDetail extends CaseFile {
   title?: string | null;
   creationDate?: string | null;
@@ -54,7 +61,7 @@ export interface CaseFileDetail extends CaseFile {
   estimatedHearingPeriod?: string | null;
   earliestInstructionClosingDate?: string | null;
   chamber?: { id: number; name: string } | null;
-  lastDecisionReading?: string | null;
+  lastDecisionReading?: LastDecisionReading | null;
   directory?: {
     reference?: string | null;
     complementaryRecipientEmails?: string[] | null;
@@ -95,7 +102,7 @@ export interface CaseFileEvent {
   hasAttachment: boolean;
   generateAR: boolean;
   nbEventFile: number;
-  piecesNonDownloadable: string | null;
+  piecesNonDownloadable: boolean | null;
   relatedEventCount: number;
 }
 

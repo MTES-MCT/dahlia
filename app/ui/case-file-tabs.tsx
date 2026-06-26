@@ -1,11 +1,14 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { fr } from "@codegouvfr/react-dsfr";
 import { Tabs } from "@codegouvfr/react-dsfr/Tabs";
 import { formatDateFr, getActorDisplayName } from "@/app/lib/case-file-format";
 import { type TableParamNames } from "@/app/lib/case-file-search";
 import { ClientTable, type ClientTableColumn } from "@/app/ui/client-table";
+import { type SortOrder } from "@/app/lib/table-query";
+import { PIECES_PARAMS, piecesQueryColumns } from "@/app/lib/pieces-table";
 import type { CaseFileDetail } from "@/app/lib/data/case-files";
 
 type CaseFile = NonNullable<CaseFileDetail>;
@@ -26,12 +29,7 @@ const PAGE_SIZE = 10;
 
 // Prefixed URL params so the two tables (and the tab selection) coexist in a
 // single query string without colliding, and survive tab switches / refresh.
-const PIECES_PARAMS: TableParamNames = {
-  page: "pcPage",
-  sortBy: "pcSort",
-  sortOrder: "pcOrder",
-  query: "pcq",
-};
+// The pièces params are shared with the pièce edition page via `pieces-table.ts`.
 const HISTORIQUE_PARAMS: TableParamNames = {
   page: "hiPage",
   sortBy: "hiSort",
@@ -39,44 +37,41 @@ const HISTORIQUE_PARAMS: TableParamNames = {
   query: "hiq",
 };
 
+// Display concerns layered on top of the shared `piecesQueryColumns` query
+// config (matched by key): header label, sort control, and cell rendering.
+const PIECES_COLUMN_DISPLAY: Record<
+  string,
+  { label: string; defaultOrder?: SortOrder; render?: (piece: Piece) => React.ReactNode }
+> = {
+  nom: { label: "Nom" },
+  type: { label: "Type" },
+  date: { label: "Date", defaultOrder: "descending" },
+  format: { label: "Format" },
+};
+
 // Attached files: free text searches Nom + Type; Nom/Type/Format are filterable
-// facets; default sort by date, most recent first.
-const PIECES_COLUMNS: ClientTableColumn<Piece>[] = [
-  {
-    key: "nom",
-    label: "Nom",
-    text: (file) => file.originalFileName,
-    sortValue: (file) => file.originalFileName,
-    searchable: true,
-    facet: true,
-    sortable: true,
-  },
-  {
-    key: "type",
-    label: "Type",
-    text: (file) => file.fileTypeLabel,
-    sortValue: (file) => file.fileTypeLabel,
-    searchable: true,
-    facet: true,
-    sortable: true,
-  },
-  {
-    key: "date",
-    label: "Date",
-    text: (file) => formatDateFr(file.eventCreationDate),
-    sortValue: (file) => file.eventCreationDate,
-    sortable: true,
-    defaultOrder: "descending",
-  },
-  {
-    key: "format",
-    label: "Format",
-    text: (file) => file.mimeType,
-    sortValue: (file) => file.mimeType,
-    facet: true,
-    sortable: true,
-  },
-];
+// facets; default sort by date, most recent first. Built from the shared query
+// columns so the pièce edition page rebuilds the exact same ordered list.
+function createPiecesColumns(pieceHref: (piece: Piece) => string): ClientTableColumn<Piece>[] {
+  return piecesQueryColumns.map((column) => {
+    const display = PIECES_COLUMN_DISPLAY[column.key];
+    const render =
+      column.key === "nom"
+        ? (file: Piece) => (
+            <Link href={pieceHref(file)} className={fr.cx("fr-link")}>
+              {file.originalFileName}
+            </Link>
+          )
+        : display.render;
+    return {
+      ...column,
+      label: display.label,
+      sortable: true,
+      defaultOrder: display.defaultOrder,
+      render,
+    } satisfies ClientTableColumn<Piece>;
+  });
+}
 
 // History events: free text searches Événement + Commentaire; those plus
 // Échéance are filterable; default sort by date, most recent first.
@@ -147,6 +142,13 @@ export function CaseFileTabs({ caseFile }: Props) {
     router.push(`?${params.toString()}`, { scroll: false });
   }
 
+  // Link a pièce row to its edition page, carrying the current query string so
+  // the breadcrumb can restore the dashboard and the case file as they are now.
+  const currentQuery = searchParams.toString();
+  const pieceHref = (piece: Piece) =>
+    `/case_files/${encodeURIComponent(caseFile.caseFileNumber)}/pieces/` +
+    `${encodeURIComponent(piece.encodedFileId)}${currentQuery ? `?${currentQuery}` : ""}`;
+
   return (
     <Tabs
       selectedTabId={selectedTabId}
@@ -161,7 +163,7 @@ export function CaseFileTabs({ caseFile }: Props) {
       {selectedTabId === "pieces" && (
         <ClientTable
           rows={caseFile.attachedFiles}
-          columns={PIECES_COLUMNS}
+          columns={createPiecesColumns(pieceHref)}
           params={PIECES_PARAMS}
           pageSize={PAGE_SIZE}
           caption={(count) => `${count} pièce${count > 1 ? "s" : ""}`}

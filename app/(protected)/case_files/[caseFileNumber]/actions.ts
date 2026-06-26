@@ -2,11 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/app/lib/prisma";
-import { describeError, getTelerecoursCaseFileClient } from "@/data/telerecours-client";
-import { enrichCaseFile } from "@/data/enrich-case-file";
-
-// Default jurisdiction used when refreshing a case file from the UI.
-const DEFAULT_JURISDICTION = "TA069";
+import { describeError } from "@/data/telerecours/http";
+import { getTelerecoursClient } from "@/app/lib/telerecours";
+import { enrichCaseFile } from "@/data/persistence/enrich-case-file";
 
 export type RefreshCaseFileResult = { ok: true } | { ok: false; error: string };
 
@@ -15,17 +13,7 @@ export type RefreshCaseFileResult = { ok: true } | { ok: false; error: string };
 // client is a singleton per jurisdiction (see getTelerecoursCaseFileClient).
 export async function refreshCaseFile(caseFileNumber: string): Promise<RefreshCaseFileResult> {
   try {
-    const jurisdiction = DEFAULT_JURISDICTION;
-    const username = process.env[`${jurisdiction}_TELERECOURS_USERNAME`];
-    const password = process.env[`${jurisdiction}_TELERECOURS_PASSWORD`];
-    if (!username || !password) {
-      throw new Error(
-        `Identifiants Télérecours manquants pour ${jurisdiction} ` +
-          `(${jurisdiction}_TELERECOURS_USERNAME / _PASSWORD).`,
-      );
-    }
-
-    const client = getTelerecoursCaseFileClient({ username, password });
+    const { client, jurisdiction } = getTelerecoursClient();
 
     // Anonymize everywhere except in production, mirroring the scraping script.
     const anonymize = process.env.ENVIRONMENT !== "production";
