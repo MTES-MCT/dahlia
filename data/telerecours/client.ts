@@ -54,6 +54,17 @@ class TelerecoursCaseFileClient implements TelerecoursClient {
     this.credentials = credentials;
   }
 
+  private sanitizeCaseFileNumberPathSegment(caseFileNumber: string): string {
+    const trimmed = caseFileNumber.trim();
+    if (!trimmed) {
+      throw new Error("Invalid case file number: empty value");
+    }
+    if (!/^[A-Za-z0-9._-]+$/.test(trimmed)) {
+      throw new Error("Invalid case file number format");
+    }
+    return encodeURIComponent(trimmed);
+  }
+
   private async ensureAuthenticated(): Promise<void> {
     if (this.accessToken) {
       return;
@@ -195,7 +206,8 @@ class TelerecoursCaseFileClient implements TelerecoursClient {
   }
 
   getCaseFileDetail(caseFileNumber: string, jurisdiction: string): Promise<CaseFileDetail> {
-    return this.get(`/api/case-file/${caseFileNumber}`, jurisdiction);
+    const safeCaseFileNumber = this.sanitizeCaseFileNumberPathSegment(caseFileNumber);
+    return this.get(`/api/case-file/${safeCaseFileNumber}`, jurisdiction);
   }
 
   getCaseFileHearings(
@@ -204,8 +216,9 @@ class TelerecoursCaseFileClient implements TelerecoursClient {
     page = 0,
     size = PAGINATION_PAGE_SIZE,
   ): Promise<PagedResponse<Hearing>> {
+    const safeCaseFileNumber = this.sanitizeCaseFileNumberPathSegment(caseFileNumber);
     return this.get(
-      `/api/case-file/${caseFileNumber}/hearings?page=${page}&size=${size}`,
+      `/api/case-file/${safeCaseFileNumber}/hearings?page=${page}&size=${size}`,
       jurisdiction,
     );
   }
