@@ -9,6 +9,12 @@ export const USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:150.0) " + "Gecko/20100101 Firefox/150.0";
 export const PAGINATION_PAGE_SIZE = 30;
 
+const ALLOWED_API_PATH_PREFIXES = [
+  "/api/case-file",
+  "/api/parametres",
+  "/api/file-api",
+] as const;
+
 /**
  * Ensure a URL targets only the Télérecours API host over HTTPS. Rejects any
  * other scheme or hostname to prevent SSRF when path segments come from callers.
@@ -30,14 +36,67 @@ export function assertTelerecoursApiUrl(url: string): URL {
   return parsed;
 }
 
-/** Build an absolute Télérecours API URL from a relative path (`/api/...`). */
-export function telerecoursApiUrl(path: string): string {
+function assertAllowedApiPath(normalizedPath: string): void {
+  if (normalizedPath.includes("..")) {
+    throw new Error("Invalid API path: path traversal is not allowed");
+  }
+
+  const pathname = normalizedPath.split("?")[0] ?? normalizedPath;
+  const allowed = ALLOWED_API_PATH_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+  if (!allowed) {
+    throw new Error(`Disallowed Télérecours API path: ${normalizedPath}`);
+  }
+}
+
+/** Encode a single path segment so it cannot alter the request host or path. */
+export function encodeApiPathSegment(segment: string): string {
+  const trimmed = segment.trim();
+  if (!trimmed) {
+    throw new Error("Invalid API path segment: empty value");
+  }
+  if (trimmed.includes("/") || trimmed.includes("\\") || trimmed.includes("..")) {
+    throw new Error("Invalid API path segment: path separators are not allowed");
+  }
+  return encodeURIComponent(trimmed);
+}
+
+/** Encode a case file number for use in a Télérecours API path segment. */
+export function encodeCaseFileNumberSegment(caseFileNumber: string): string {
+  const trimmed = caseFileNumber.trim();
+  if (!trimmed || !/^[A-Za-z0-9._-]+$/.test(trimmed)) {
+    throw new Error("Invalid case file number format");
+  }
+  return encodeApiPathSegment(trimmed);
+}
+
+/** Encode an attached-file id for use in a Télérecours API path segment. */
+export function encodeFileIdSegment(encodedFileId: string): string {
+  const trimmed = encodedFileId.trim();
+  if (!trimmed || !/^[A-Za-z0-9._%-]+$/.test(trimmed)) {
+    throw new Error("Invalid encoded file id format");
+  }
+  return encodeApiPathSegment(trimmed);
+}
+
+/**
+ * Build a validated Télérecours request URL from a relative path (`/api/...`).
+ * The returned URL is safe to pass to `fetch` (host/path prefix checks).
+ */
+export function buildTelerecoursRequestUrl(path: string): URL {
   if (path.startsWith("http://") || path.startsWith("https://")) {
     throw new Error("Pass a relative API path, not an absolute URL");
   }
 
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-  return assertTelerecoursApiUrl(new URL(normalizedPath, API_HOST).href).href;
+  assertAllowedApiPath(normalizedPath);
+  return assertTelerecoursApiUrl(new URL(normalizedPath, API_HOST).href);
+}
+
+/** Build an absolute Télérecours API URL string from a relative path (`/api/...`). */
+export function telerecoursApiUrl(path: string): string {
+  return buildTelerecoursRequestUrl(path).href;
 }
 
 const MAX_FETCH_ATTEMPTS = 4;
@@ -98,14 +157,15 @@ export async function fetchWithRetry(
   jurisdiction: string,
   accept = "application/json",
 ): Promise<Response> {
-  const url = telerecoursApiUrl(path);
+  const requestUrl = buildTelerecoursRequestUrl(path);
+  const url = requestUrl.href;
   let attempt = 0;
   let lastError: unknown;
 
   while (attempt < MAX_FETCH_ATTEMPTS) {
     attempt++;
     try {
-      const response = await fetch(url, {
+      const response = await fetch(requestUrl, {
         method: "GET",
         headers: {
           "User-Agent": USER_AGENT,

@@ -2,7 +2,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   API_HOST,
   assertTelerecoursApiUrl,
+  buildTelerecoursRequestUrl,
   describeError,
+  encodeApiPathSegment,
   fetchWithRetry,
   parseContentDispositionFileName,
   telerecoursApiUrl,
@@ -44,6 +46,25 @@ describe("telerecoursApiUrl", () => {
 
   it("rejects absolute URLs passed as paths", () => {
     expect(() => telerecoursApiUrl("https://evil.example/api")).toThrow(/relative API path/);
+  });
+
+  it("rejects disallowed path prefixes", () => {
+    expect(() => telerecoursApiUrl("/api/admin/users")).toThrow(/Disallowed Télérecours API path/);
+  });
+});
+
+describe("buildTelerecoursRequestUrl", () => {
+  it("returns a URL object for the Télérecours host", () => {
+    const url = buildTelerecoursRequestUrl("/api/case-file/ABC123");
+    expect(url.hostname).toBe("administrations.telerecours.fr");
+    expect(url.pathname).toBe("/api/case-file/ABC123");
+  });
+});
+
+describe("encodeApiPathSegment", () => {
+  it("rejects path separators and encodes safe values", () => {
+    expect(() => encodeApiPathSegment("a/b")).toThrow(/path separators/);
+    expect(encodeApiPathSegment("abc")).toBe("abc");
   });
 });
 

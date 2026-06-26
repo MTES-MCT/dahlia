@@ -2,6 +2,8 @@ import { login } from "./auth";
 import {
   AuthenticationError,
   PAGINATION_PAGE_SIZE,
+  encodeCaseFileNumberSegment,
+  encodeFileIdSegment,
   fetchWithRetry,
   parseContentDispositionFileName,
 } from "./http";
@@ -52,17 +54,6 @@ class TelerecoursCaseFileClient implements TelerecoursClient {
 
   constructor(credentials: ClientCredentials) {
     this.credentials = credentials;
-  }
-
-  private sanitizeCaseFileNumberPathSegment(caseFileNumber: string): string {
-    const trimmed = caseFileNumber.trim();
-    if (!trimmed) {
-      throw new Error("Invalid case file number: empty value");
-    }
-    if (!/^[A-Za-z0-9._-]+$/.test(trimmed)) {
-      throw new Error("Invalid case file number format");
-    }
-    return encodeURIComponent(trimmed);
   }
 
   private async ensureAuthenticated(): Promise<void> {
@@ -117,7 +108,7 @@ class TelerecoursCaseFileClient implements TelerecoursClient {
   ): Promise<{ data: Buffer; fileName?: string; mimeType?: string }> {
     return this.withReauth(async () => {
       const response = await fetchWithRetry(
-        `/api/file-api/${encodedFileId}/data`,
+        `/api/file-api/${encodeFileIdSegment(encodedFileId)}/data`,
         this.accessToken!,
         jurisdiction,
         "application/json, text/plain, */*",
@@ -206,8 +197,10 @@ class TelerecoursCaseFileClient implements TelerecoursClient {
   }
 
   getCaseFileDetail(caseFileNumber: string, jurisdiction: string): Promise<CaseFileDetail> {
-    const safeCaseFileNumber = this.sanitizeCaseFileNumberPathSegment(caseFileNumber);
-    return this.get(`/api/case-file/${safeCaseFileNumber}`, jurisdiction);
+    return this.get(
+      `/api/case-file/${encodeCaseFileNumberSegment(caseFileNumber)}`,
+      jurisdiction,
+    );
   }
 
   getCaseFileHearings(
@@ -216,9 +209,8 @@ class TelerecoursCaseFileClient implements TelerecoursClient {
     page = 0,
     size = PAGINATION_PAGE_SIZE,
   ): Promise<PagedResponse<Hearing>> {
-    const safeCaseFileNumber = this.sanitizeCaseFileNumberPathSegment(caseFileNumber);
     return this.get(
-      `/api/case-file/${safeCaseFileNumber}/hearings?page=${page}&size=${size}`,
+      `/api/case-file/${encodeCaseFileNumberSegment(caseFileNumber)}/hearings?page=${page}&size=${size}`,
       jurisdiction,
     );
   }
@@ -230,7 +222,7 @@ class TelerecoursCaseFileClient implements TelerecoursClient {
     size = PAGINATION_PAGE_SIZE,
   ): Promise<PagedResponse<CaseFileEvent>> {
     return this.get(
-      `/api/case-file/${caseFileNumber}/measures?page=${page}&size=${size}`,
+      `/api/case-file/${encodeCaseFileNumberSegment(caseFileNumber)}/measures?page=${page}&size=${size}`,
       jurisdiction,
     );
   }
@@ -239,7 +231,10 @@ class TelerecoursCaseFileClient implements TelerecoursClient {
     caseFileNumber: string,
     jurisdiction: string,
   ): Promise<{ accessibleCaseFiles?: RelatedCaseFileSummary[] }> {
-    return this.get(`/api/case-file/${caseFileNumber}/related-case-files-report`, jurisdiction);
+    return this.get(
+      `/api/case-file/${encodeCaseFileNumberSegment(caseFileNumber)}/related-case-files-report`,
+      jurisdiction,
+    );
   }
 
   getCaseFileAttachedFiles(
@@ -248,7 +243,10 @@ class TelerecoursCaseFileClient implements TelerecoursClient {
     page = 0,
     size = PAGINATION_PAGE_SIZE,
   ): Promise<PagedResponse<AttachedFile>> {
-    return this.get(`/api/file-api/${caseFileNumber}?page=${page}&size=${size}`, jurisdiction);
+    return this.get(
+      `/api/file-api/${encodeCaseFileNumberSegment(caseFileNumber)}?page=${page}&size=${size}`,
+      jurisdiction,
+    );
   }
 }
 
