@@ -16,6 +16,14 @@ function parseDate(value: string | null | undefined): Date | undefined {
   return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
+// Extract the leading digit sequence of a file name, kept as a string so any
+// leading zeros are preserved (e.g. "002_facture.pdf" → "002"). Returns null
+// when the name does not start with a digit.
+export function leadingNumber(fileName: string): string | null {
+  const match = fileName.match(/^\d+/);
+  return match ? match[0] : null;
+}
+
 // Normalize a string for case- and accent-insensitive comparison.
 function normalizeLabel(value: string): string {
   return value
@@ -264,8 +272,15 @@ async function upsertAttachedFile(
   };
   await prisma.attachedFile.upsert({
     where: { encodedFileId: file.encodedFileId },
-    update: data,
-    create: { encodedFileId: file.encodedFileId, ...data },
+    // `update` leaves user-editable fields (dahliaName, number, comment)
+    // untouched so manual edits survive a re-scrape. The number derived from
+    // the file name is only seeded on first import (create).
+    update: { ...data, number: leadingNumber(file.originalFileName) },
+    create: {
+      encodedFileId: file.encodedFileId,
+      ...data,
+      number: leadingNumber(file.originalFileName),
+    },
   });
   return { upserted: true };
 }
