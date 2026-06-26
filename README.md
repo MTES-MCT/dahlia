@@ -72,8 +72,8 @@ sont montées sur `/api/auth/*`.
 
 ## Import des données (scraping Télérecours)
 
-Le script [data/scrape-telerecours.ts](data/scrape-telerecours.ts) interroge l'API
-Télérecours et **upsert** les dossiers en base. Il se lance via :
+Le script [data/cli/scrape-telerecours.ts](data/cli/scrape-telerecours.ts) interroge
+l'API Télérecours et **upsert** les dossiers en base. Il se lance via :
 
 ```sh
 pnpm scrape:dev -- [options]
@@ -130,6 +130,79 @@ pnpm scrape:dev -- --all
 # Tester rapidement la seule Phase A, anonymisée, sur une page
 pnpm scrape:dev -- --page 0 --size 30 --skipEnrichment --anonymize
 ```
+
+### Architecture du code
+
+Le code de scraping est organisé par responsabilité sous `data/`, depuis
+l'entrypoint CLI jusqu'à la couche de persistance :
+
+```text
+data/
+  cli/
+    scrape-telerecours.ts      # entrypoint mince : wiring Prisma + client → runScrape → exit
+    parse-args.ts              # parseArgs / getEnv / parseDivisionIds (fonctions pures)
+  telerecours/
+    client.ts                  # TelerecoursClient — méthodes typées (renvoient les DTO)
+    client.interface.ts        # interface TelerecoursClient = le « seam » que les tests mockent
+    http.ts                    # fetchWithRetry, backoff, describeError, content-disposition
+    auth.ts                    # flux d'authentification OIDC / PKCE
+    types.ts                   # DTO de l'API Télérecours
+  persistence/
+    upsert-case-file.ts        # upsertCaseFile + upsertActor (vue liste)
+    enrich-case-file.ts        # enrichCaseFile + upserts détail / audiences / events / pièces
+    paginate.ts                # helper de pagination des endpoints Télérecours
+  scrape/
+    pipeline.ts                # Args, ScrapeDeps, runScrape (orchestration A → A.5 → B → C)
+    phase-a-list.ts            # phaseA + reconcileDeleted (Phase A.5, soft-delete)
+    phase-b-enrich.ts          # phaseB
+    phase-c-related.ts         # phaseC + linkRelatedCaseFiles
+    where.ts                   # divisionWhere / enrichmentTargetsWhere (fragments Prisma, purs)
+  anonymize.ts                 # anonymisation des acteurs
+  telecharge-fichier.ts        # script standalone de téléchargement de pièce (pnpm download:dev)
+```
+
+Trois principes guident cette organisation :
+
+1. **Injection de dépendances (`ScrapeDeps`)** — la pipeline et les phases
+   reçoivent `{ prisma, client, rateLimitMs }` au lieu d'instancier Prisma et le
+   client eux-mêmes ou de lire un singleton global. C'est ce qui rend chaque
+   phase testable avec un faux client et un Prisma mocké.
+2. **Client typé (`TelerecoursClient`)** — les méthodes du client renvoient
+   directement les DTO (`PagedResponse<CaseFile>`, `CaseFileDetail`…). L'interface
+   `client.interface.ts` est le contrat partagé entre l'implémentation réelle
+   (`client.ts`) et le faux client des tests : un fixture qui dévie de la forme
+   attendue échoue à la compilation.
+3. **Phases A.5 (réconciliation)** — après la Phase A, tout dossier présent en
+   base dans le périmètre scrapé mais **absent** de la liste renvoyée par
+   Télérecours est marqué supprimé (soft-delete `isDeleted`/`deletedAt`). Le
+   périmètre reflète le scope du scrape (divisions ciblées, et hors « Terminé »
+   sans `--all`).
+
+La webapp réutilise une partie de ce code : `enrichCaseFile`
+(`data/persistence/enrich-case-file.ts`), `getTelerecoursCaseFileClient` et
+`describeError` (`data/telerecours/`) servent au rafraîchissement d'un dossier et
+au téléchargement de pièces depuis l'UI.
+
+### Tests
+
+La suite est lancée avec `pnpm test` (Vitest). Le scraping est testé **sans
+réseau ni base réelle**, en mockant l'API Télérecours à deux niveaux :
+
+- **Niveau pipeline / mapping** (la majorité des tests) — un faux client
+  implémentant `TelerecoursClient` (`data/test-support/fake-client.ts`) renvoie
+  des fixtures typées (`data/test-support/fixtures.ts`), et Prisma est mocké via
+  `mockDeep<PrismaClient>()` (`vitest-mock-extended`). On vérifie ainsi
+  l'orchestration des phases, la pagination, la réconciliation (soft-delete), le
+  mapping DTO → Prisma et la dérivation du `lastProducer`.
+- **Niveau client HTTP** — quelques tests stubbent `fetch`
+  (`vi.stubGlobal("fetch", …)`) pour couvrir ce que le mock d'interface ne voit
+  pas : retry sur 429/5xx, `AuthenticationError` sur 401 (déclenchant la
+  reconnexion en amont), et le parsing de l'en-tête `Content-Disposition`.
+
+Les fonctions pures (`parseArgs`, `divisionWhere`/`enrichmentTargetsWhere`,
+`describeError`, `findLastProducerId`) ont des tests unitaires directs. Le délai
+de rate-limiting (`rateLimitMs`) est injectable et fixé à `0` dans les tests pour
+ne pas attendre réellement.
 
 ## Schéma de base de données
 

@@ -1,6 +1,6 @@
 import { fakerFR } from "@faker-js/faker";
 import { createHash } from "node:crypto";
-import { Actor } from "./interfaces";
+import { Actor } from "./telerecours/types";
 
 function seedFor(value: string): number {
   return createHash("sha256").update(value).digest().readUInt32BE(0);
