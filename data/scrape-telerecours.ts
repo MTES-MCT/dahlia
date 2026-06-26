@@ -5,7 +5,7 @@ import "dotenv/config";
 import { CaseFile, RelatedCaseFileSummary } from "./interfaces";
 import { enrichCaseFile, upsertCaseFile } from "./enrich-case-file";
 
-const TARGET_STATUS_LABEL = "Inscrit au rôle d'une audience";
+const EXCLUDED_ENRICHMENT_STATUS_LABELS = ["Terminé"] as const;
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
@@ -156,6 +156,14 @@ function divisionWhere(args: Args): { assignedToLegalEntityDivisionId?: { in: nu
     : {};
 }
 
+function enrichmentTargetsWhere(args: Args) {
+  return {
+    lastStatus: { label: { notIn: [...EXCLUDED_ENRICHMENT_STATUS_LABELS] } },
+    ...divisionWhere(args),
+    isDeleted: false,
+  };
+}
+
 // ───── Main ─────
 
 async function phaseA(
@@ -163,6 +171,10 @@ async function phaseA(
   args: Args,
 ): Promise<{ processed: number; upserted: number; seen: string[] }> {
   console.log(`\n══ Phase A — scrape liste /api/case-file (${args.jurisdiction}) ══`);
+
+  const statusGroupIds = args.all
+    ? undefined
+    : await client.getInProgressStatusGroupIds(args.jurisdiction);
 
   let pageIndex = args.page;
   let totalPages: number | null = null;
@@ -186,7 +198,7 @@ async function phaseA(
       pageIndex,
       args.size,
       args.sort,
-      !args.all,
+      statusGroupIds,
       args.legalEntityDivisionIds,
     )) as CaseFileApiResponse;
 
@@ -252,19 +264,15 @@ async function phaseA(
 //   - restricted to the scraped legalEntityDivisionIds when configured (CLI
 //     arg or env var); otherwise the filter is omitted and all divisions of
 //     the jurisdiction are considered;
-//   - without --all the list is fetched with onlyEnrolled=true, which maps to
-//     the "Inscrit au rôle d'une audience" status, so the perimeter is also
-//     restricted to that status (a case file that has since left that status is
-//     no longer enrolled and is legitimately treated as out of scope).
+//   - without --all the perimeter is restricted to active dossiers (status
+//     groups INPROGRESS from Télérecours, excluding "Terminé").
 async function reconcileDeleted(args: Args, seen: string[]): Promise<number> {
   console.log(`\n══ Phase A.5 — réconciliation (dossiers absents marqués supprimés) ══`);
 
   const result = await prisma.caseFile.updateMany({
     where: {
-      ...divisionWhere(args),
-      ...(args.all ? {} : { lastStatus: { label: TARGET_STATUS_LABEL } }),
+      ...(args.all ? { ...divisionWhere(args), isDeleted: false } : enrichmentTargetsWhere(args)),
       caseFileNumber: { notIn: seen },
-      isDeleted: false,
     },
     data: { isDeleted: true, deletedAt: new Date() },
   });
@@ -277,14 +285,12 @@ async function phaseB(
   client: Client,
   args: Args,
 ): Promise<{ enriched: number; failed: number; targetCount: number }> {
-  console.log(`\n══ Phase B — enrichissement des dossiers "${TARGET_STATUS_LABEL}" ══`);
+  console.log(
+    `\n══ Phase B — enrichissement des dossiers actifs (hors ${EXCLUDED_ENRICHMENT_STATUS_LABELS.map((l) => `"${l}"`).join(" et ")}) ══`,
+  );
 
   const targets = await prisma.caseFile.findMany({
-    where: {
-      lastStatus: { label: TARGET_STATUS_LABEL },
-      ...divisionWhere(args),
-      isDeleted: false,
-    },
+    where: enrichmentTargetsWhere(args),
     select: { caseFileNumber: true },
     orderBy: { lastStatusDate: "desc" },
   });
@@ -316,11 +322,7 @@ async function phaseC(
   console.log(`\n══ Phase C — liens entre dossiers (related-case-files) ══`);
 
   const targets = await prisma.caseFile.findMany({
-    where: {
-      lastStatus: { label: TARGET_STATUS_LABEL },
-      ...divisionWhere(args),
-      isDeleted: false,
-    },
+    where: enrichmentTargetsWhere(args),
     select: { caseFileNumber: true },
   });
 

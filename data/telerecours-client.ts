@@ -50,10 +50,32 @@ interface CaseFileResponse {
   [key: string]: unknown;
 }
 
+interface StatusGroup {
+  id: number;
+  statusList?: number[];
+  label?: string;
+  category?: string;
+}
+
+function parseStatusGroupsResponse(data: unknown): StatusGroup[] {
+  if (Array.isArray(data)) {
+    return data as StatusGroup[];
+  }
+  if (
+    data &&
+    typeof data === "object" &&
+    Array.isArray((data as { statuses?: unknown }).statuses)
+  ) {
+    return (data as { statuses: StatusGroup[] }).statuses;
+  }
+  throw new Error("Unexpected statusGroups response shape");
+}
+
 class TelerecoursCaseFileClient {
   private accessToken: string | null = null;
   private credentials: ClientCredentials;
   private isLoggingIn = false;
+  private inProgressStatusGroupIds: number[] | null = null;
 
   constructor(credentials: ClientCredentials) {
     this.credentials = credentials;
@@ -150,12 +172,34 @@ class TelerecoursCaseFileClient {
     }
   }
 
+  /**
+   * Fetch status group IDs for in-progress dossiers (statusType=INPROGRESS).
+   * The result is cached for the lifetime of this client instance.
+   */
+  async getInProgressStatusGroupIds(jurisdiction: string): Promise<number[]> {
+    if (this.inProgressStatusGroupIds) {
+      return this.inProgressStatusGroupIds;
+    }
+
+    const data = await this.get<unknown>(
+      "/api/parametres/statusGroups?statusType=INPROGRESS",
+      jurisdiction,
+    );
+    const groups = parseStatusGroupsResponse(data);
+    this.inProgressStatusGroupIds = groups.map((group) => group.id);
+    console.log(
+      `✓ ${this.inProgressStatusGroupIds.length} groupes de statut INPROGRESS : ` +
+        groups.map((group) => group.label ?? group.id).join(", "),
+    );
+    return this.inProgressStatusGroupIds;
+  }
+
   async getCaseFiles(
     jurisdiction: string,
     page: number,
     size: number,
     sort?: string,
-    onlyEnrolled = true,
+    statusGroupIds?: number[],
     legalEntityDivisionIds: number[] = [],
   ): Promise<CaseFileResponse> {
     const params = new URLSearchParams({
@@ -166,8 +210,8 @@ class TelerecoursCaseFileClient {
     if (sort) {
       params.append("sort", sort);
     }
-    if (onlyEnrolled) {
-      params.append("onlyEnrolled", "true");
+    if (statusGroupIds && statusGroupIds.length > 0) {
+      params.append("statusIds", statusGroupIds.join(","));
     }
     if (legalEntityDivisionIds.length > 0) {
       params.append("legalEntityDivisionIds", legalEntityDivisionIds.join(","));

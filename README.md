@@ -99,7 +99,7 @@ ciblé (`<JURIDICTION>_…`) :
 | `--page <n>`                     | `0`                       | Page de départ (0-based) pour la liste des dossiers (Phase A). Le script continue ensuite jusqu'à la dernière page.                                                            |
 | `--size <n>`                     | `30`                      | Nombre de dossiers par page lors de l'appel à `/api/case-file`.                                                                                                                |
 | `--sort <champ>`                 | _(aucun)_                 | Critère de tri transmis tel quel à l'API (paramètre `sort`).                                                                                                                   |
-| `--all`                          | `false`                   | Récupère **tous** les dossiers. Sans ce flag, seuls les dossiers « inscrits au rôle » sont demandés (`onlyEnrolled=true`).                                                     |
+| `--all`                          | `false`                   | Récupère **tous** les dossiers sans filtre de statut. Sans ce flag, seuls les dossiers « en cours » sont demandés (groupes INPROGRESS de l'API Télérecours, hors « Terminé »). |
 | `--legalEntityDivisionIds <ids>` | env `…_DIVISIONS`         | Liste d'IDs de divisions à filtrer, séparés par des virgules (ex. `2488,1234`). Surcharge la variable d'env. Sert aussi à cibler les dossiers à enrichir (Phases B/C).         |
 | `--anonymize`                    | `true` sauf si `ENV=prod` | Anonymise les acteurs (requérants/défendeurs) avant insertion en base. Le défaut dépend de la variable d'env `ENV` : anonymisation activée en dev/preprod, désactivée en prod. |
 | `--skipEnrichment`               | `false`                   | N'exécute que la Phase A (liste des dossiers) et saute les Phases B et C (détails, audiences, mesures, pièces jointes, dossiers liés).                                         |
@@ -108,8 +108,8 @@ ciblé (`<JURIDICTION>_…`) :
 
 1. **Phase A** — scrape la liste `/api/case-file` (paginée) et upsert chaque dossier
    avec ses entités de base (acteurs, statut, urgence, division, dernière audience…).
-2. **Phase B** _(sautée si `--skipEnrichment`)_ — pour chaque dossier en base au
-   statut « Inscrit au rôle d'une audience » et dans les divisions ciblées, récupère
+2. **Phase B** _(sautée si `--skipEnrichment`)_ — pour chaque dossier actif en base
+   (hors « Terminé ») et dans les divisions ciblées, récupère
    le détail enrichi, **toutes** les audiences, les mesures (events) et les pièces
    jointes.
 3. **Phase C** _(sautée si `--skipEnrichment`)_ — crée les liens entre dossiers liés
@@ -124,7 +124,7 @@ pnpm scrape:dev
 # Cibler une juridiction et des divisions précises
 pnpm scrape:dev -- --jurisdiction TA069 --legalEntityDivisionIds 2488
 
-# Récupérer tous les dossiers (pas seulement les « inscrits au rôle »)
+# Récupérer tous les dossiers quelques soit leur statut
 pnpm scrape:dev -- --all
 
 # Tester rapidement la seule Phase A, anonymisée, sur une page
@@ -148,7 +148,6 @@ erDiagram
         DateTime estimatedHearingDate "nullable"
         string estimatedHearingPeriod "nullable"
         DateTime earliestInstructionClosingDate "nullable"
-        DateTime lastDecisionReading "nullable"
         string directoryReference "nullable"
         string directoryComplementaryEmails "array"
         string keywords "array"
@@ -252,7 +251,7 @@ erDiagram
         bool hasAttachment
         bool generateAR
         int nbEventFile
-        string piecesNonDownloadable "nullable"
+        bool piecesNonDownloadable "nullable"
         int relatedEventCount
         string caseFileNumber FK
         string measureCode FK
@@ -283,6 +282,14 @@ erDiagram
     RelatedCaseFile {
         string caseFileNumber PK_FK
         string relatedCaseFileNumber PK_FK
+    }
+
+    LastDecisionReading {
+        string caseFileNumber PK_FK
+        DateTime readingDate
+        DateTime notificationDate "nullable"
+        string nature "nullable"
+        string operativePart "nullable"
     }
 
     User {
@@ -318,6 +325,7 @@ erDiagram
     FileFamilyType      ||--o{ AttachedFile : "family"
     CaseFile            ||--o{ RelatedCaseFile : "source"
     CaseFile            ||--o{ RelatedCaseFile : "target"
+    CaseFile            |o--o| LastDecisionReading : "lastDecisionReading"
 ```
 
 ## Questions Ouvertes

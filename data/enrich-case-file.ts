@@ -7,6 +7,7 @@ import {
   CaseFileDetail,
   CaseFileEvent,
   Hearing,
+  LastDecisionReading,
   PagedResponse,
 } from "./interfaces";
 import { anonymizeActor } from "./anonymize";
@@ -17,7 +18,9 @@ import { anonymizeActor } from "./anonymize";
 type Client = ReturnType<typeof getTelerecoursCaseFileClient>;
 
 function parseDate(value: string | null | undefined): Date | undefined {
-  return value ? new Date(value) : undefined;
+  if (!value) return undefined;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
 // Normalize a string for case- and accent-insensitive comparison.
@@ -265,6 +268,43 @@ async function* paginate<T>(
   }
 }
 
+async function upsertLastDecisionReading(
+  prisma: PrismaClient,
+  caseFileNumber: string,
+  lastDecisionReading: LastDecisionReading | null | undefined,
+): Promise<void> {
+  if (!lastDecisionReading) {
+    await prisma.lastDecisionReading.deleteMany({ where: { caseFileNumber } });
+    return;
+  }
+
+  const readingDate = parseDate(lastDecisionReading.readingDate);
+  if (!readingDate) {
+    console.warn(
+      `⚠ Skipping lastDecisionReading for ${caseFileNumber}: invalid readingDate "${lastDecisionReading.readingDate}"`,
+    );
+    await prisma.lastDecisionReading.deleteMany({ where: { caseFileNumber } });
+    return;
+  }
+
+  await prisma.lastDecisionReading.upsert({
+    where: { caseFileNumber },
+    update: {
+      readingDate,
+      notificationDate: parseDate(lastDecisionReading.notificationDate),
+      nature: lastDecisionReading.nature ?? null,
+      operativePart: lastDecisionReading.operativePart ?? null,
+    },
+    create: {
+      caseFileNumber,
+      readingDate,
+      notificationDate: parseDate(lastDecisionReading.notificationDate),
+      nature: lastDecisionReading.nature ?? null,
+      operativePart: lastDecisionReading.operativePart ?? null,
+    },
+  });
+}
+
 async function upsertCaseFileDetail(prisma: PrismaClient, detail: CaseFileDetail): Promise<void> {
   if (detail.chamber) {
     await prisma.chamber.upsert({
@@ -284,7 +324,6 @@ async function upsertCaseFileDetail(prisma: PrismaClient, detail: CaseFileDetail
       estimatedHearingDate: parseDate(detail.estimatedHearingDate),
       estimatedHearingPeriod: detail.estimatedHearingPeriod ?? null,
       earliestInstructionClosingDate: parseDate(detail.earliestInstructionClosingDate),
-      lastDecisionReading: parseDate(detail.lastDecisionReading),
       directoryReference: detail.directory?.reference ?? null,
       directoryComplementaryEmails: detail.directory?.complementaryRecipientEmails ?? [],
       keywords: detail.keywords ?? [],
@@ -292,6 +331,8 @@ async function upsertCaseFileDetail(prisma: PrismaClient, detail: CaseFileDetail
       chamberId: detail.chamber?.id ?? null,
     },
   });
+
+  await upsertLastDecisionReading(prisma, detail.caseFileNumber, detail.lastDecisionReading);
 }
 
 async function upsertHearingForCaseFile(

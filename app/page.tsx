@@ -26,13 +26,7 @@ export default function Home() {
       </p>
 
       <div
-        className={fr.cx(
-          "fr-grid-row",
-          "fr-grid-row--gutters",
-          "fr-grid-row--center",
-          "fr-mt-4w",
-          "fr-mb-4w",
-        )}
+        className={fr.cx("fr-grid-row", "fr-grid-row--gutters", "fr-grid-row--center", "fr-my-4w")}
       >
         <div className={fr.cx("fr-col-12", "fr-col-md-5")}>
           <Tile
