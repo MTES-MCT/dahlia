@@ -5,7 +5,7 @@ import { prisma } from "@/app/lib/prisma";
 
 export type UpdatePieceResult = { ok: true } | { ok: false; error: string };
 
-export type PieceMetadataInput = {
+type PieceMetadataInput = {
   dahliaName: string;
   number: string;
   comment: string;
@@ -14,7 +14,7 @@ export type PieceMetadataInput = {
 // Persist the user-editable metadata (renamed name, number, comment) of a pièce.
 // All fields are optional: empty strings are stored as null. `number` keeps its
 // leading zeros because it is a string column (e.g. "002").
-export async function updatePieceMetadata(
+async function persistPieceMetadata(
   encodedFileId: string,
   input: PieceMetadataInput,
 ): Promise<UpdatePieceResult> {
@@ -41,4 +41,20 @@ export async function updatePieceMetadata(
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : String(error) };
   }
+}
+
+export async function updatePieceMetadataFormAction(
+  _prevState: UpdatePieceResult | null,
+  formData: FormData,
+): Promise<UpdatePieceResult> {
+  const encodedFileId = String(formData.get("encodedFileId") ?? "").trim();
+  if (!encodedFileId) {
+    return { ok: false, error: "Identifiant de pièce manquant." };
+  }
+
+  return persistPieceMetadata(encodedFileId, {
+    dahliaName: String(formData.get("dahliaName") ?? ""),
+    number: String(formData.get("number") ?? ""),
+    comment: String(formData.get("comment") ?? ""),
+  });
 }

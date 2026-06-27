@@ -57,11 +57,21 @@ function createPiecesColumns(pieceHref: (piece: Piece) => string): ClientTableCo
     const display = PIECES_COLUMN_DISPLAY[column.key];
     const render =
       column.key === "nom"
-        ? (file: Piece) => (
-            <Link href={pieceHref(file)} className={fr.cx("fr-link")}>
-              {file.originalFileName}
-            </Link>
-          )
+        ? (file: Piece) =>
+            file.dahliaName ? (
+              <div>
+                <Link href={pieceHref(file)} className={fr.cx("fr-link")}>
+                  {file.dahliaName}
+                </Link>
+                <div className={`${fr.cx("fr-text--sm")} text-grey italic`}>
+                  {file.originalFileName}
+                </div>
+              </div>
+            ) : (
+              <Link href={pieceHref(file)} className={fr.cx("fr-link")}>
+                {file.originalFileName}
+              </Link>
+            )
         : display.render;
     return {
       ...column,

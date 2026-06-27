@@ -70,7 +70,7 @@ export default async function Page({ params, searchParams }: Props) {
   });
   const pieceOptions = orderedPieces.map((piece) => ({
     encodedFileId: piece.encodedFileId,
-    label: piece.originalFileName,
+    label: piece.dahliaName ?? piece.originalFileName,
     href: `/case_files/${encodedCaseFileNumber}/pieces/${encodeURIComponent(piece.encodedFileId)}${suffix}`,
   }));
 
