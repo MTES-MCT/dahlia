@@ -95,4 +95,23 @@ describe("MemoryDeadlineCell", () => {
 
     expect(screen.getByText("Urgent")).toBeTruthy();
   });
+
+  it('affiche une infobulle sur le badge "Urgent"', () => {
+    render(<MemoryDeadlineCell date={new Date("2026-06-15T13:00:00")} status={SCHEDULED_STATUS} />);
+
+    expect(screen.getByRole("tooltip").textContent).toBe("Échéance dans moins de 2 semaines");
+  });
+
+  it('affiche une infobulle sur le badge "Très urgent"', () => {
+    render(<MemoryDeadlineCell date={new Date("2026-06-10T13:00:00")} status={SCHEDULED_STATUS} />);
+
+    expect(screen.getByRole("tooltip").textContent).toBe("Échéance dans moins de 2 jours ouvrés");
+  });
+
+  it("n'affiche pas d'infobulle sur le badge Passé", () => {
+    render(<MemoryDeadlineCell date={new Date("2026-06-01T13:00:00")} status={SCHEDULED_STATUS} />);
+
+    expect(screen.getByText("Passé")).toBeTruthy();
+    expect(screen.queryByRole("tooltip")).toBeNull();
+  });
 });

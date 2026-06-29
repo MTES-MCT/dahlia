@@ -1,5 +1,6 @@
 import { fr } from "@codegouvfr/react-dsfr";
 import { Badge, type BadgeProps } from "@codegouvfr/react-dsfr/Badge";
+import { Tooltip } from "@codegouvfr/react-dsfr/Tooltip";
 import { differenceInBusinessDays } from "date-fns";
 import { formatDateFr } from "@/app/lib/case-file-format";
 import { normalizeForSearch } from "@/app/lib/case-file-search";
@@ -31,6 +32,7 @@ export function MemoryDeadlineCell({ date, status }: { date: Date | null; status
   const startOfDeadline = date;
 
   let badgeLabel: string | null = null;
+  let badgeTooltip: string | null = null;
   let badgeSeverity: BadgeProps["severity"] = "warning";
   // The badge is only relevant for case files scheduled for a hearing.
   if (normalizeForSearch(status) === MEMORY_DEADLINE_STATUS) {
@@ -41,9 +43,11 @@ export function MemoryDeadlineCell({ date, status }: { date: Date | null; status
       const businessDays = differenceInBusinessDays(startOfDeadline, startOfToday);
       if (businessDays < VERY_URGENT_WINDOW_BUSINESS_DAYS) {
         badgeLabel = "Très urgent";
+        badgeTooltip = "Échéance dans moins de 2 jours ouvrés";
         badgeSeverity = "error";
       } else if (businessDays < URGENT_WINDOW_BUSINESS_DAYS) {
         badgeLabel = "Urgent";
+        badgeTooltip = "Échéance dans moins de 2 semaines";
         badgeSeverity = "warning";
       }
     }
@@ -54,7 +58,13 @@ export function MemoryDeadlineCell({ date, status }: { date: Date | null; status
       {formatDateFr(date)}
       {badgeLabel && (
         <div className={fr.cx("fr-mt-1v")}>
-          <Badge severity={badgeSeverity}>{badgeLabel}</Badge>
+          {badgeTooltip ? (
+            <Tooltip title={badgeTooltip}>
+              <Badge severity={badgeSeverity}>{badgeLabel}</Badge>
+            </Tooltip>
+          ) : (
+            <Badge severity={badgeSeverity}>{badgeLabel}</Badge>
+          )}
         </div>
       )}
     </>
