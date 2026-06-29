@@ -74,7 +74,7 @@ describe("CaseFileDetailsCard", () => {
   it("affiche N/A pour les acteurs absents", () => {
     render(
       <CaseFileDetailsCard
-        caseFile={caseFileFixture({ mainClaimant: null, mainDefender: null })}
+        caseFile={caseFileFixture({ mainClaimant: undefined, mainDefender: undefined })}
       />,
     );
 

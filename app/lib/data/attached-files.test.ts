@@ -97,7 +97,7 @@ describe("fetchCaseFilePiecesTableData", () => {
   });
 
   it("retourne les lignes paginées et le total", async () => {
-    vi.mocked(prisma.attachedFile.findMany).mockResolvedValue([mockPiece]);
+    vi.mocked(prisma.attachedFile.findMany).mockResolvedValue([mockPiece] as never);
     vi.mocked(prisma.attachedFile.count).mockResolvedValue(1);
 
     const result = await fetchCaseFilePiecesTableData("TA069-001", {});

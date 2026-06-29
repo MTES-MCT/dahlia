@@ -3,7 +3,12 @@ import { render, screen, cleanup } from "@testing-library/react";
 import { CaseFileTabs } from "./case-file-tabs";
 import { fetchCaseFilePiecesTableData } from "@/app/lib/data/attached-files";
 import { fetchCaseFileEventsTableData } from "@/app/lib/data/case-file-events";
-import { fetchCaseFileDebugSnapshot, type CaseFileDetail } from "@/app/lib/data/case-files";
+import {
+  fetchCaseFileDebugSnapshot,
+  type CaseFileDetail,
+} from "@/app/lib/data/case-files";
+import type { CaseFilePiecesTableData } from "@/app/lib/data/attached-files";
+import type { CaseFileEventsTableData } from "@/app/lib/data/case-file-events";
 
 vi.mock("@/app/lib/prisma", () => ({ prisma: {} }));
 
@@ -49,7 +54,7 @@ const piecesTable = {
   totalPages: 1,
   currentPage: 1,
   pageSize: 10,
-};
+} satisfies CaseFilePiecesTableData;
 
 const historiqueTable = {
   rows: [
@@ -61,6 +66,8 @@ const historiqueTable = {
       receiptDate: null,
       instructionClosingDate: null,
       comment: "Commentaire de test",
+      commentSearchNormalized: null,
+      deadlineLabelSearchNormalized: null,
       hasAttachment: false,
       generateAR: false,
       nbEventFile: 0,
@@ -69,7 +76,14 @@ const historiqueTable = {
       caseFileNumber: "TA069-2026-001",
       measureCode: "REQ",
       actorId: null,
-      measure: { code: "REQ", label: "Enregistrement de la requête", type: "T", isImportant: false, family: null, labelNormalized: null },
+      measure: {
+        code: "REQ",
+        label: "Enregistrement de la requête",
+        type: "T",
+        isImportant: false,
+        family: null,
+        labelNormalized: null,
+      },
       actor: null,
     },
   ],
@@ -77,12 +91,16 @@ const historiqueTable = {
   totalPages: 1,
   currentPage: 1,
   pageSize: 10,
-};
+} satisfies CaseFileEventsTableData;
+
+type CaseFileDebugSnapshot = NonNullable<
+  Awaited<ReturnType<typeof fetchCaseFileDebugSnapshot>>
+>;
 
 const debugSnapshot = {
   caseFileNumber: "TA069-2026-001",
   title: "Dossier de test",
-};
+} as CaseFileDebugSnapshot;
 
 const mockCaseFile = {
   caseFileNumber: "TA069-2026-001",
