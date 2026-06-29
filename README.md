@@ -1,9 +1,9 @@
-# DAHL'ia
+# DAHLIA
 
 Application d'aide pour organiser les défenses des dossier DALO, DAHO et DAHU
 permets de récupérer les dossiers de contentieux du droit aux logements que les départements doivent défendre
 
-Ce répertoire contient le code de la webapp DAHL'ia
+Ce répertoire contient le code de la webapp DAHLIA
 
 - Application NextJS
 - Utilisation du DSFR via `@codegouvfr/react-dsfr`
@@ -406,7 +406,7 @@ erDiagram
 ### Pièces jointes
 
 Le pièces sont enregistrées dans Télérecours
-Puis on ajoute des pièces dans DAHL'ia
+Puis on ajoute des pièces dans DAHLIA
 Et on les repartages dans Télérecours et/ou LITIJ
 
 Est-ce qu'on peut s'épargner de stocker les pièces qui le sont déjà dans Télérecours ?

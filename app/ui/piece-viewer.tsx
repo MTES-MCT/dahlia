@@ -20,7 +20,7 @@ export function PieceViewer({ dataUrl, mimeType, fileName }: Props) {
         borderRadius: "0.5rem",
         overflow: "hidden",
         backgroundColor: "var(--background-alt-grey)",
-        height: "80vh",
+        height: "90vh",
       }}
     >
       {isImage ? (
@@ -44,7 +44,10 @@ export function PieceViewer({ dataUrl, mimeType, fileName }: Props) {
         <object data={dataUrl} type={mimeType} width="100%" height="100%">
           <div className={fr.cx("fr-p-3w")}>
             <p>Impossible d&apos;afficher cette pièce directement dans le navigateur.</p>
-            <a className={fr.cx("fr-link", "fr-icon-download-line", "fr-link--icon-left")} href={dataUrl}>
+            <a
+              className={fr.cx("fr-link", "fr-icon-download-line", "fr-link--icon-left")}
+              href={dataUrl}
+            >
               Télécharger « {fileName} »
             </a>
           </div>

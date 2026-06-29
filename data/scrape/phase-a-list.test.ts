@@ -14,6 +14,7 @@ const baseArgs: Args = {
   legalEntityDivisionIds: [2488],
   anonymize: true,
   skipEnrichment: false,
+  updatePieceNumbers: false,
 };
 
 function makeDeps(

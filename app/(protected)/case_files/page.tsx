@@ -10,6 +10,7 @@ import { ColumnHeader } from "@/app/ui/column-header";
 import { MemoryDeadlineCell } from "@/app/ui/memory-deadline-cell";
 import { CaseFilesSearch } from "@/app/ui/case-files-search";
 import Link from "next/link";
+import { statusLabelForCount } from "@/app/lib/status-label-plural";
 
 const NUMBER_OF_CASE_FILES = 30;
 
@@ -95,7 +96,7 @@ export default async function Page({ searchParams }: Props) {
       />
 
       <Table
-        caption={`${totalCount} dossier${totalCount > 1 ? "s" : ""}`}
+        caption={`${totalCount} dossier${totalCount > 1 ? "s" : ""}${currentStatut ? ` ${statusLabelForCount(totalCount, currentStatut)}` : ""}`}
         data={rows.map(
           ([
             caseFileNumber,

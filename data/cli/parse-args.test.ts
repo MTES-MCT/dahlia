@@ -26,12 +26,23 @@ describe("parseArgs", () => {
       size: 30,
       all: false,
       skipEnrichment: false,
+      updatePieceNumbers: false,
     });
   });
 
   it("reads explicit flags", () => {
     const args = parseArgs(
-      argv("--jurisdiction", "TA075", "--page", "2", "--size", "50", "--all", "--skipEnrichment"),
+      argv(
+        "--jurisdiction",
+        "TA075",
+        "--page",
+        "2",
+        "--size",
+        "50",
+        "--all",
+        "--skipEnrichment",
+        "--update-piece-numbers",
+      ),
     );
     expect(args).toMatchObject({
       jurisdiction: "TA075",
@@ -39,6 +50,7 @@ describe("parseArgs", () => {
       size: 50,
       all: true,
       skipEnrichment: true,
+      updatePieceNumbers: true,
     });
   });
 

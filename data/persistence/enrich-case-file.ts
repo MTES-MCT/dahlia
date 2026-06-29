@@ -16,6 +16,14 @@ function parseDate(value: string | null | undefined): Date | undefined {
   return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
+// Extract the leading digit sequence of a file name, kept as a string so any
+// leading zeros are preserved (e.g. "002_facture.pdf" → "002"). Returns null
+// when the name does not start with a digit.
+export function leadingNumber(fileName: string): string | null {
+  const match = fileName.match(/^\d+/);
+  return match ? match[0] : null;
+}
+
 // Normalize a string for case- and accent-insensitive comparison.
 function normalizeLabel(value: string): string {
   return value
@@ -30,7 +38,11 @@ function normalizeLabel(value: string): string {
 export function findLastProducerId(events: CaseFileEvent[]): number | null {
   let latest: CaseFileEvent | null = null;
   for (const event of events) {
-    if (!normalizeLabel(event.measure.label).startsWith("reception")) continue;
+    if (
+      !normalizeLabel(event.measure.label).startsWith("reception") &&
+      !normalizeLabel(event.measure.label).startsWith("requete nouvelle")
+    )
+      continue;
     if (!latest || new Date(event.eventDate) > new Date(latest.eventDate)) {
       latest = event;
     }
@@ -222,6 +234,7 @@ async function upsertAttachedFile(
   prisma: PrismaClient,
   caseFileNumber: string,
   file: AttachedFile,
+  updatePieceNumbers: boolean,
 ): Promise<{ upserted: boolean; reason?: string }> {
   // The corresponding event must already have been created by phase B/measures.
   const event = await prisma.caseFileEvent.findUnique({ where: { id: file.eventId } });
@@ -262,10 +275,18 @@ async function upsertAttachedFile(
     eventId: file.eventId,
     fileFamilyTypeCode: file.fileFamilyType,
   };
+  const pieceNumber = leadingNumber(file.originalFileName);
   await prisma.attachedFile.upsert({
     where: { encodedFileId: file.encodedFileId },
-    update: data,
-    create: { encodedFileId: file.encodedFileId, ...data },
+    // `update` leaves user-editable fields (dahliaName, number, comment)
+    // untouched so manual edits survive a re-scrape, unless --update-piece-numbers
+    // was passed. The number derived from the file name is always seeded on create.
+    update: updatePieceNumbers ? { ...data, number: pieceNumber } : data,
+    create: {
+      encodedFileId: file.encodedFileId,
+      ...data,
+      number: pieceNumber,
+    },
   });
   return { upserted: true };
 }
@@ -279,6 +300,7 @@ export async function enrichCaseFile(
   caseFileNumber: string,
   jurisdiction: string,
   anonymize: boolean,
+  updatePieceNumbers: boolean = false,
 ): Promise<void> {
   // 1. Enriched detail
   const detail = await client.getCaseFileDetail(caseFileNumber, jurisdiction);
@@ -322,7 +344,12 @@ export async function enrichCaseFile(
   for await (const file of paginate<AttachedFile>((page) =>
     client.getCaseFileAttachedFiles(caseFileNumber, jurisdiction, page),
   )) {
-    const result = await upsertAttachedFile(prisma, caseFileNumber, file);
+    const result = await upsertAttachedFile(
+      prisma,
+      caseFileNumber,
+      file,
+      updatePieceNumbers,
+    );
     if (result.upserted) {
       filesCount++;
     } else {
