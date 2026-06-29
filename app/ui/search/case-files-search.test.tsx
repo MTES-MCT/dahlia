@@ -1,6 +1,8 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
-import { CaseFilesSearch } from "./case-files-search";
+import { DASHBOARD_TABLE_PARAMS } from "@/app/lib/case-file-search";
+import { buildCaseFilesSearchConfig } from "./case-files-search";
+import { TableSearchForm } from "@/app/ui/table/table-search-form";
 
 const OPTIONS = ["En cours d'instruction", "Terminé"];
 const DEFAULT_STATUT = "En cours d'instruction";
@@ -15,15 +17,25 @@ function hiddenValue(form: HTMLFormElement, name: string): string | undefined {
   return field?.value;
 }
 
-describe("CaseFilesSearch", () => {
+function renderDashboardSearch(
+  props: Parameters<typeof buildCaseFilesSearchConfig>[0],
+) {
+  render(
+    <TableSearchForm params={DASHBOARD_TABLE_PARAMS} {...buildCaseFilesSearchConfig(props)} />,
+  );
+}
+
+describe("buildCaseFilesSearchConfig", () => {
   afterEach(() => {
     cleanup();
   });
 
   it("est un form GET vers /case_files sans champ page", () => {
-    render(
-      <CaseFilesSearch statusOptions={OPTIONS} defaultStatut={DEFAULT_STATUT} currentQuery="" />,
-    );
+    renderDashboardSearch({
+      statusOptions: OPTIONS,
+      defaultStatut: DEFAULT_STATUT,
+      currentQuery: "",
+    });
 
     const form = getForm();
     expect(form.getAttribute("method")).toBe("get");
@@ -33,14 +45,12 @@ describe("CaseFilesSearch", () => {
   });
 
   it("englobe le filtre statut et le champ texte", () => {
-    render(
-      <CaseFilesSearch
-        statusOptions={OPTIONS}
-        defaultStatut={DEFAULT_STATUT}
-        currentQuery="dupont"
-        statutParam="Terminé"
-      />,
-    );
+    renderDashboardSearch({
+      statusOptions: OPTIONS,
+      defaultStatut: DEFAULT_STATUT,
+      currentQuery: "dupont",
+      statutParam: "Terminé",
+    });
 
     const form = getForm();
     const select = screen.getByRole("combobox") as HTMLSelectElement;
@@ -55,9 +65,11 @@ describe("CaseFilesSearch", () => {
   });
 
   it("affiche un bouton « Rechercher » et un lien de réinitialisation", () => {
-    render(
-      <CaseFilesSearch statusOptions={OPTIONS} defaultStatut={DEFAULT_STATUT} currentQuery="" />,
-    );
+    renderDashboardSearch({
+      statusOptions: OPTIONS,
+      defaultStatut: DEFAULT_STATUT,
+      currentQuery: "",
+    });
 
     const button = screen.getByRole("button", { name: "Rechercher" });
     expect(button.getAttribute("type")).toBe("submit");
@@ -67,15 +79,13 @@ describe("CaseFilesSearch", () => {
   });
 
   it("rend les champs cachés sortBy/sortOrder quand ils sont fournis", () => {
-    render(
-      <CaseFilesSearch
-        statusOptions={OPTIONS}
-        defaultStatut={DEFAULT_STATUT}
-        currentQuery=""
-        sortByParam="caseFileNumber"
-        sortOrderParam="ascending"
-      />,
-    );
+    renderDashboardSearch({
+      statusOptions: OPTIONS,
+      defaultStatut: DEFAULT_STATUT,
+      currentQuery: "",
+      sortByParam: "caseFileNumber",
+      sortOrderParam: "ascending",
+    });
 
     const form = getForm();
     expect(hiddenValue(form, "sortBy")).toBe("caseFileNumber");
@@ -83,14 +93,12 @@ describe("CaseFilesSearch", () => {
   });
 
   it("n'émet pas de tri caché tant que sortBy est absent", () => {
-    render(
-      <CaseFilesSearch
-        statusOptions={OPTIONS}
-        defaultStatut={DEFAULT_STATUT}
-        currentQuery=""
-        sortOrderParam="ascending"
-      />,
-    );
+    renderDashboardSearch({
+      statusOptions: OPTIONS,
+      defaultStatut: DEFAULT_STATUT,
+      currentQuery: "",
+      sortOrderParam: "ascending",
+    });
 
     const form = getForm();
     expect(hiddenValue(form, "sortBy")).toBeUndefined();

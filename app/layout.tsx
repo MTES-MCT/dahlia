@@ -8,8 +8,8 @@ import { Footer } from "@codegouvfr/react-dsfr/Footer";
 import clsx from "clsx";
 import { headers } from "next/headers";
 import { auth } from "@/app/lib/auth";
-import { EnvironmentBanner } from "@/app/ui/environment-banner";
-import { HeaderDahlia } from "@/app/ui/header-dahlia";
+import { EnvironmentBanner } from "@/app/ui/header/environment-banner";
+import { HeaderDahlia } from "@/app/ui/header/header-dahlia";
 
 export const metadata: Metadata = {
   title: "DAHLIA (Ministères du logement)",

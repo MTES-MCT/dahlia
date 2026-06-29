@@ -7,6 +7,7 @@ import {
   type TablePageSizeId,
   DEFAULT_TABLE_PAGE_SIZES,
   DASHBOARD_PAGE_SIZE_COOKIE,
+  getTablePageSizeCookieName,
   getTablePageSizeStorageKey,
   parseTablePageSize,
 } from "@/app/lib/table-page-size";
@@ -22,51 +23,55 @@ function readStoredPageSize(tableId: TablePageSizeId): TablePageSize {
   );
 }
 
-function readDashboardPageSizeCookie(): TablePageSize | null {
+function readPageSizeCookie(tableId: TablePageSizeId): TablePageSize | null {
   if (typeof document === "undefined") return null;
 
-  const prefix = `${DASHBOARD_PAGE_SIZE_COOKIE}=`;
+  const cookieName =
+    tableId === "dashboard" ? DASHBOARD_PAGE_SIZE_COOKIE : getTablePageSizeCookieName(tableId);
+  const prefix = `${cookieName}=`;
   const entry = document.cookie.split("; ").find((part) => part.startsWith(prefix));
   if (!entry) return null;
 
-  return parseTablePageSize(
-    entry.slice(prefix.length),
-    DEFAULT_TABLE_PAGE_SIZES.dashboard,
-  );
+  return parseTablePageSize(entry.slice(prefix.length), DEFAULT_TABLE_PAGE_SIZES[tableId]);
 }
 
-export function setDashboardPageSizeCookie(pageSize: TablePageSize) {
-  document.cookie = `${DASHBOARD_PAGE_SIZE_COOKIE}=${pageSize}; path=/; max-age=31536000; SameSite=Lax`;
+export function setTablePageSizeCookie(tableId: TablePageSizeId, pageSize: TablePageSize) {
+  const cookieName =
+    tableId === "dashboard" ? DASHBOARD_PAGE_SIZE_COOKIE : getTablePageSizeCookieName(tableId);
+  document.cookie = `${cookieName}=${pageSize}; path=/; max-age=31536000; SameSite=Lax`;
 }
 
 export function useTablePageSize(tableId: TablePageSizeId) {
   const router = useRouter();
   const defaultSize = DEFAULT_TABLE_PAGE_SIZES[tableId];
   const [pageSize, setPageSizeState] = useState<TablePageSize>(() => readStoredPageSize(tableId));
-  const syncedDashboardCookie = useRef(false);
+  const syncedCookie = useRef(false);
 
   const setPageSize = useCallback(
     (size: TablePageSize) => {
       localStorage.setItem(getTablePageSizeStorageKey(tableId), String(size));
       setPageSizeState(size);
-      if (tableId === "dashboard") {
-        setDashboardPageSizeCookie(size);
-      }
+      setTablePageSizeCookie(tableId, size);
     },
     [tableId],
   );
 
   useEffect(() => {
-    if (tableId !== "dashboard" || syncedDashboardCookie.current) return;
+    if (syncedCookie.current) return;
 
-    const stored = readStoredPageSize("dashboard");
-    const cookieValue = readDashboardPageSizeCookie();
-    syncedDashboardCookie.current = true;
+    const stored = readStoredPageSize(tableId);
+    const cookieValue = readPageSizeCookie(tableId);
+    syncedCookie.current = true;
     if (cookieValue === stored) return;
 
-    setDashboardPageSizeCookie(stored);
+    setTablePageSizeCookie(tableId, stored);
     router.refresh();
   }, [tableId, router]);
 
   return { pageSize, defaultSize, setPageSize };
+}
+
+// Legacy export kept for dashboard footer until fully migrated to DataTableFooter.
+export function setDashboardPageSizeCookie(pageSize: TablePageSize) {
+  setTablePageSizeCookie("dashboard", pageSize);
 }

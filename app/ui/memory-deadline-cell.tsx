@@ -1,7 +1,7 @@
 import { fr } from "@codegouvfr/react-dsfr";
 import { Badge, type BadgeProps } from "@codegouvfr/react-dsfr/Badge";
 import { differenceInBusinessDays } from "date-fns";
-import { formatDateFr } from "@/app/lib/data/case-files";
+import { formatDateFr } from "@/app/lib/case-file-format";
 import { normalizeForSearch } from "@/app/lib/case-file-search";
 
 // Number of business days before the deadline under which it is flagged as

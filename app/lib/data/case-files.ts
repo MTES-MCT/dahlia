@@ -1,18 +1,12 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/app/lib/prisma";
-import { formatDateFr, getActorDisplayName } from "@/app/lib/case-file-format";
 import {
   normalizeForSearch,
   parseSearchQuery,
   FACET_KEYS,
   type FacetKey,
 } from "@/app/lib/case-file-search";
-
-// Re-exported so existing imports from this data module keep working; the actual
-// implementations live in Prisma-free modules shared with client components.
-export { formatDateFr, getActorDisplayName };
-export { normalizeForSearch, parseSearchQuery, FACET_KEYS };
-export type { ParsedSearch, FacetKey } from "@/app/lib/case-file-search";
+import { buildWordAndFilter, combineAnd, facetSearchWords } from "@/app/lib/search-where";
 
 type CaseFileWithRelations = Prisma.CaseFileGetPayload<{
   include: {
@@ -25,11 +19,13 @@ type CaseFileWithRelations = Prisma.CaseFileGetPayload<{
   };
 }>;
 
-// The last element is the raw hearing convocation date (or null): the UI cell
-// formats it and derives a status badge from it (see MemoryDeadlineCell).
-export type CaseFileRow = [string, string, string, string, string, string, Date | null];
-
 const ACTOR_SORT_KEYS = ["mainClaimant", "mainDefender", "lastProducer"] as const;
+
+export type CaseFilesTableData = {
+  rows: CaseFileWithRelations[];
+  totalPages: number;
+  totalCount: number;
+};
 
 // Sort key for the memory-production deadline column: the convocation date of
 // the last hearing. It lives on the `lastHearing` relation, so it needs a
@@ -53,26 +49,6 @@ function buildOrderBy(
     return { lastHearing: { convocationDate: direction } };
   }
   return { [sortBy]: direction };
-}
-
-// Faceted-search builders: a facet `key:value` in the search box restricts the
-// match to a single displayed column instead of the global OR. Keys map to the
-// column names (normalized: lowercase + accents removed), so `requerant:`,
-// `Requérant:` and `REQUERANT:` are all accepted. The value is matched
-// case-insensitively and accent-insensitively (same rules as the free search).
-// Multi-word values match when every word is found, in any order.
-function facetSearchWords(value: string): string[] {
-  return value.trim().split(/\s+/).filter(Boolean);
-}
-
-function buildWordAndFilter(
-  words: string[],
-  buildContains: (word: string) => Prisma.CaseFileWhereInput,
-): Prisma.CaseFileWhereInput {
-  if (words.length <= 1) {
-    return buildContains(words[0] ?? "");
-  }
-  return { AND: words.map(buildContains) };
 }
 
 const FACET_BUILDERS: Record<
@@ -140,8 +116,7 @@ function buildWhere(query: string | null, statusLabel: string | null): Prisma.Ca
     conditions.push({ lastStatus: { label: statusLabel } });
   }
 
-  if (conditions.length === 1) return conditions[0];
-  return { AND: conditions };
+  return combineAnd(conditions);
 }
 
 async function fetchCaseFiles(
@@ -190,28 +165,35 @@ export async function fetchUsedStatusLabels(): Promise<string[]> {
   return statuses.map((s) => s.label);
 }
 
-export function formatForTable(caseFiles: CaseFileWithRelations[]): CaseFileRow[] {
-  return caseFiles.map((caseFile) => [
-    caseFile.caseFileNumber,
-    formatDateFr(caseFile.depositDate),
-    getActorDisplayName(caseFile.mainClaimant),
-    getActorDisplayName(caseFile.mainDefender),
-    getActorDisplayName(caseFile.lastProducer),
-    caseFile.lastStatus.label,
-    caseFile.lastHearing?.convocationDate ?? null,
-  ]);
-}
-
-export type CaseFilesTableData = {
-  rows: CaseFileRow[];
-  totalPages: number;
-  totalCount: number;
-};
-
 // case-file detail with all its relations, for the detail page.
 // Load the complete tree (actors, status, hearings → conclusions,
 // events → measures/files, related case files) to display it in JSON.
 export async function fetchCaseFileDetail(caseFileNumber: string) {
+  return prisma.caseFile.findUnique({
+    where: { caseFileNumber },
+    include: {
+      mainClaimant: true,
+      mainDefender: true,
+      urgency: true,
+      lastStatus: true,
+      chamber: true,
+      assignedToLegalEntityDivision: true,
+      lastHearing: { include: { lastConclusion: { include: { conclusionOperativePart: true } } } },
+      hearings: { include: { lastConclusion: { include: { conclusionOperativePart: true } } } },
+      events: {
+        include: { measure: true, actor: true, attachedFiles: true },
+        orderBy: { eventDate: "desc" },
+      },
+      relatedSources: { include: { relatedCaseFile: true } },
+      relatedTargets: { include: { caseFile: true } },
+    },
+  });
+}
+
+export type CaseFileDetail = Prisma.PromiseReturnType<typeof fetchCaseFileDetail>;
+
+// Full case-file graph for the debug tab only (includes pièces).
+export async function fetchCaseFileDebugSnapshot(caseFileNumber: string) {
   return prisma.caseFile.findUnique({
     where: { caseFileNumber },
     include: {
@@ -234,8 +216,6 @@ export async function fetchCaseFileDetail(caseFileNumber: string) {
   });
 }
 
-export type CaseFileDetail = Prisma.PromiseReturnType<typeof fetchCaseFileDetail>;
-
 export async function fetchCaseFilesTableData(
   page: number,
   numberOfCaseFiles: number,
@@ -249,7 +229,7 @@ export async function fetchCaseFilesTableData(
     fetchCaseFilesCount(query, statusLabel),
   ]);
   return {
-    rows: formatForTable(caseFiles),
+    rows: caseFiles,
     totalPages: Math.ceil(totalCount / numberOfCaseFiles),
     totalCount: totalCount,
   };

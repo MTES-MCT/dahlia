@@ -2,10 +2,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 import { MemoryDeadlineCell } from "./memory-deadline-cell";
 
-// formatDateFr lives in the data-access module, which imports the Prisma client:
-// mock it so importing the component does not instantiate a real client.
-vi.mock("@/app/lib/prisma", () => ({ prisma: {} }));
-
 // The badge is only computed for case files scheduled for a hearing.
 const SCHEDULED_STATUS = "Inscrit au rôle d'une audience";
 

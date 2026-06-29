@@ -1,11 +1,11 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
-import { renderPieceNameCell, renderPieceTypeCell } from "./case-file-tabs";
-import type { CaseFileDetail } from "@/app/lib/data/case-files";
+import { renderPieceNameCell, renderPieceTypeCell } from "./piece-table-cells";
+import type { CaseFilePiece } from "@/app/lib/data/attached-files";
 
 vi.mock("@/app/lib/prisma", () => ({ prisma: {} }));
 
-type Piece = NonNullable<CaseFileDetail>["attachedFiles"][number];
+type Piece = CaseFilePiece;
 
 function renderCell(node: React.ReactNode) {
   return render(<>{node}</>);
@@ -24,30 +24,29 @@ describe("renderPieceNameCell", () => {
   });
 
   it("affiche le nom original seul quand dahliaName est absent", () => {
-    renderCell(renderPieceNameCell(basePiece, () => "/pieces/f1"));
+    renderCell(renderPieceNameCell(basePiece, "TA069/2024/001", ""));
 
     const link = screen.getByRole("link", { name: "requete.pdf" });
-    expect(link.getAttribute("href")).toBe("/pieces/f1");
+    expect(link.getAttribute("href")).toBe("/case_files/TA069%2F2024%2F001/pieces/f1");
     expect(screen.getAllByText("requete.pdf")).toHaveLength(1);
   });
 
   it("affiche dahliaName en lien et le nom original en sous-texte", () => {
     const piece = { ...basePiece, dahliaName: "Requête initiale" } as Piece;
 
-    renderCell(renderPieceNameCell(piece, () => "/pieces/f1"));
+    renderCell(renderPieceNameCell(piece, "TA069/2024/001", ""));
 
     const link = screen.getByRole("link", { name: "Requête initiale" });
-    expect(link.getAttribute("href")).toBe("/pieces/f1");
+    expect(link.getAttribute("href")).toBe("/case_files/TA069%2F2024%2F001/pieces/f1");
     expect(screen.getByText("requete.pdf")).toBeTruthy();
   });
 
-  it("utilise pieceHref pour construire l'URL du lien", () => {
-    const pieceHref = vi.fn(() => "/custom/href");
+  it("conserve les paramètres de requête dans l'URL du lien", () => {
+    renderCell(renderPieceNameCell(basePiece, "TA069/2024/001", "tab=pieces&pcSort=date"));
 
-    renderCell(renderPieceNameCell(basePiece, pieceHref));
-
-    expect(pieceHref).toHaveBeenCalledWith(basePiece);
-    expect(screen.getByRole("link").getAttribute("href")).toBe("/custom/href");
+    expect(screen.getByRole("link").getAttribute("href")).toBe(
+      "/case_files/TA069%2F2024%2F001/pieces/f1?tab=pieces&pcSort=date",
+    );
   });
 });
 

@@ -8,7 +8,7 @@ type Props = {
   statutParam?: string;
 };
 
-// Status filter rendered as a plain field of the shared `CaseFilesSearch` form.
+// Status filter rendered as a plain field of the dashboard search form.
 // It submits its value under `statut`; the actual filtering happens when the user
 // clicks « Rechercher ».
 export function CaseFilesSearchByStatus({ options, defaultStatut, statutParam }: Props) {

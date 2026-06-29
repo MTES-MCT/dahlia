@@ -12,6 +12,10 @@ export type TablePageSizeId = (typeof TABLE_PAGE_SIZE_IDS)[keyof typeof TABLE_PA
 
 export const DASHBOARD_PAGE_SIZE_COOKIE = "dahlia-table-page-size";
 
+export function getTablePageSizeCookieName(id: TablePageSizeId): string {
+  return `dahlia-table-page-size-${id}`;
+}
+
 export const DEFAULT_TABLE_PAGE_SIZES: Record<TablePageSizeId, TablePageSize> = {
   dashboard: 30,
   pieces: 10,

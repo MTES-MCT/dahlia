@@ -1,20 +1,19 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from "vitest";
 import { render, screen, within, cleanup } from "@testing-library/react";
 
-// Use the real Prisma client pointed at the dedicated `dahlia_test` database
-// instead of the unit-test mock, so `fetchCaseFileDetail` runs its actual query
-// (relations, snake_case mapping, generated columns) end to end.
 vi.mock("@/app/lib/prisma", async () => {
   const { testPrisma } = await import("@/data/test-support/integration-db");
   return { prisma: testPrisma };
 });
 
-// The pièces table is a client component reading its state from the URL via
-// next/navigation; stub it like the unit component test does.
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
   usePathname: () => "/case_files/TA069-001",
   useSearchParams: vi.fn(),
+}));
+
+vi.mock("next/headers", () => ({
+  cookies: vi.fn().mockResolvedValue({ get: () => undefined }),
 }));
 
 import { useSearchParams } from "next/navigation";
@@ -23,9 +22,9 @@ import {
   resetTestDatabase,
   testPrisma,
 } from "@/data/test-support/integration-db";
-import { fetchCaseFileDetail } from "@/app/lib/data/case-files";
+import { type CaseFileDetail } from "@/app/lib/data/case-files";
 import { PIECES_PARAMS } from "@/app/lib/pieces-table";
-import { CaseFileTabs } from "@/app/ui/case-file-tabs";
+import { CaseFileTabs } from "@/app/ui/tabs/case-file-tabs";
 
 const CASE_FILE_NUMBER = "TA069-001";
 
@@ -45,10 +44,6 @@ function expectSinglePieceRow(matchingText: string) {
   expect(dataRows[0].textContent).toContain(matchingText);
 }
 
-// Seed the minimal graph required to load a case file with two pièces:
-// catalogs (quality, division, status, measure, file family), one actor, the
-// case file, one event, and two attached files with distinct metadata so nom/type
-// search can exercise dahliaName and fileFamilyType labels end to end.
 async function seedCaseFileWithPieces(): Promise<void> {
   await testPrisma.quality.create({ data: { code: "R", name: "Requérant" } });
   await testPrisma.legalEntityDivision.create({
@@ -106,6 +101,7 @@ async function seedCaseFileWithPieces(): Promise<void> {
         mimeType: "application/pdf",
         documentType: "REQUETE",
         fileTypeLabel: "Requête",
+        fileFamilyTypeLabel: "Requête",
         eventCreationDate: new Date("2026-01-15T00:00:00Z"),
         caseFileNumber: CASE_FILE_NUMBER,
         eventId: 90001,
@@ -118,6 +114,7 @@ async function seedCaseFileWithPieces(): Promise<void> {
         mimeType: "application/pdf",
         documentType: "MEMOIRE",
         fileTypeLabel: "Document annexe",
+        fileFamilyTypeLabel: "Mémoire",
         eventCreationDate: new Date("2026-01-05T00:00:00Z"),
         caseFileNumber: CASE_FILE_NUMBER,
         eventId: 90001,
@@ -125,6 +122,16 @@ async function seedCaseFileWithPieces(): Promise<void> {
       },
     ],
   });
+}
+
+async function renderPiecesTab(query: string | null) {
+  render(
+    await CaseFileTabs({
+      caseFile: { caseFileNumber: CASE_FILE_NUMBER, updatedAt: new Date() } as NonNullable<CaseFileDetail>,
+      tab: "pieces",
+      searchParams: query ? { [PIECES_PARAMS.query]: query } : {},
+    }),
+  );
 }
 
 describe("case file pièces table (integration)", () => {
@@ -147,14 +154,8 @@ describe("case file pièces table (integration)", () => {
   });
 
   it("affiche le tableau des pièces du dossier chargé depuis la base", async () => {
-    const caseFile = await fetchCaseFileDetail(CASE_FILE_NUMBER);
-    expect(caseFile).not.toBeNull();
-    // The detail query returns both seeded pièces.
-    expect(caseFile!.attachedFiles).toHaveLength(2);
+    await renderPiecesTab(null);
 
-    render(<CaseFileTabs caseFile={caseFile!} />);
-
-    // Expected column headers of the pièces table.
     const table = screen.getByRole("table");
     const headers = within(table)
       .getAllByRole("columnheader")
@@ -162,15 +163,13 @@ describe("case file pièces table (integration)", () => {
     expect(headers.some((text) => text.includes("Nom"))).toBe(true);
     expect(headers.some((text) => text.includes("Type"))).toBe(true);
     expect(headers.some((text) => text.includes("Date"))).toBe(true);
+    expect(screen.getByText("2 pièces")).toBeTruthy();
   });
 
   it("affiche un contenu de ligne correct (nom, type, date)", async () => {
-    const caseFile = await fetchCaseFileDetail(CASE_FILE_NUMBER);
-    render(<CaseFileTabs caseFile={caseFile!} />);
+    await renderPiecesTab(null);
 
-    // Default sort is date descending, so the requête (15/01) comes first.
     const rows = within(screen.getByRole("table")).getAllByRole("row");
-    // rows[0] is the header row.
     const firstDataRow = rows[1];
     const cells = within(firstDataRow).getAllByRole("cell");
 
@@ -182,32 +181,28 @@ describe("case file pièces table (integration)", () => {
 
   it("filtre par texte libre sur dahliaName via ?pcq", async () => {
     setSearchParams(`${PIECES_PARAMS.query}=introductive`);
-    const caseFile = await fetchCaseFileDetail(CASE_FILE_NUMBER);
-    render(<CaseFileTabs caseFile={caseFile!} />);
+    await renderPiecesTab("introductive");
 
     expectSinglePieceRow("Requête introductive");
   });
 
   it('filtre par facette nom sur dahliaName via ?pcq=nom:"…"', async () => {
     setSearchParams(`${PIECES_PARAMS.query}=nom:"requete introductive"`);
-    const caseFile = await fetchCaseFileDetail(CASE_FILE_NUMBER);
-    render(<CaseFileTabs caseFile={caseFile!} />);
+    await renderPiecesTab('nom:"requete introductive"');
 
     expectSinglePieceRow("Requête introductive");
   });
 
   it("filtre par texte libre sur fileFamilyType via ?pcq", async () => {
     setSearchParams(`${PIECES_PARAMS.query}=memoire`);
-    const caseFile = await fetchCaseFileDetail(CASE_FILE_NUMBER);
-    render(<CaseFileTabs caseFile={caseFile!} />);
+    await renderPiecesTab("memoire");
 
     expectSinglePieceRow("memoire.pdf");
   });
 
   it("filtre par facette type sur fileFamilyType via ?pcq=type:…", async () => {
     setSearchParams(`${PIECES_PARAMS.query}=type:memoire`);
-    const caseFile = await fetchCaseFileDetail(CASE_FILE_NUMBER);
-    render(<CaseFileTabs caseFile={caseFile!} />);
+    await renderPiecesTab("type:memoire");
 
     expectSinglePieceRow("memoire.pdf");
   });
