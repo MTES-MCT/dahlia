@@ -40,7 +40,7 @@ describe("CaseFileTabNav", () => {
   it("affiche le contenu des enfants", () => {
     render(
       <CaseFileTabNav selectedTabId="pieces">
-        <p>Contenu de l'onglet</p>
+        <p>Contenu de l&apos;onglet</p>
       </CaseFileTabNav>,
     );
 

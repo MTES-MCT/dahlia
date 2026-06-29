@@ -1,11 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/app/lib/prisma";
-import {
-  normalizeForSearch,
-  parseSearchQuery,
-  FACET_KEYS,
-  type FacetKey,
-} from "@/app/lib/case-file-search";
+import { normalizeForSearch, parseSearchQuery, type FacetKey } from "@/app/lib/case-file-search";
 import { buildWordAndFilter, combineAnd, facetSearchWords } from "@/app/lib/search-where";
 
 type CaseFileWithRelations = Prisma.CaseFileGetPayload<{
