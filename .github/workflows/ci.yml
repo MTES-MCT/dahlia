@@ -12,6 +12,23 @@ jobs:
   lint_and_test:
     name: 🧹 Lint and Test
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine3.23
+        env:
+          POSTGRES_USER: dahlia
+          POSTGRES_PASSWORD: dahlia # pragma: allowlist secret
+          POSTGRES_DB: dahlia
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      # Dedicated database for integration tests (created/migrated by the harness).
+      TEST_DATABASE_URL: postgresql://dahlia:dahlia@localhost:5432/dahlia_test?schema=public
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -39,3 +56,6 @@ jobs:
 
       - name: Test
         run: pnpm test run
+
+      - name: Integration tests
+        run: pnpm test:integration

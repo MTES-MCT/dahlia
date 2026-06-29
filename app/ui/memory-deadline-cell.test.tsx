@@ -2,10 +2,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 import { MemoryDeadlineCell } from "./memory-deadline-cell";
 
-// formatDateFr lives in the data-access module, which imports the Prisma client:
-// mock it so importing the component does not instantiate a real client.
-vi.mock("@/app/lib/prisma", () => ({ prisma: {} }));
-
 // The badge is only computed for case files scheduled for a hearing.
 const SCHEDULED_STATUS = "Inscrit au rôle d'une audience";
 
@@ -98,5 +94,24 @@ describe("MemoryDeadlineCell", () => {
     );
 
     expect(screen.getByText("Urgent")).toBeTruthy();
+  });
+
+  it('affiche une infobulle sur le badge "Urgent"', () => {
+    render(<MemoryDeadlineCell date={new Date("2026-06-15T13:00:00")} status={SCHEDULED_STATUS} />);
+
+    expect(screen.getByRole("tooltip").textContent).toBe("Échéance dans moins de 2 semaines");
+  });
+
+  it('affiche une infobulle sur le badge "Très urgent"', () => {
+    render(<MemoryDeadlineCell date={new Date("2026-06-10T13:00:00")} status={SCHEDULED_STATUS} />);
+
+    expect(screen.getByRole("tooltip").textContent).toBe("Échéance dans moins de 2 jours ouvrés");
+  });
+
+  it("n'affiche pas d'infobulle sur le badge Passé", () => {
+    render(<MemoryDeadlineCell date={new Date("2026-06-01T13:00:00")} status={SCHEDULED_STATUS} />);
+
+    expect(screen.getByText("Passé")).toBeTruthy();
+    expect(screen.queryByRole("tooltip")).toBeNull();
   });
 });
