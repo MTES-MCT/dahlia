@@ -31,8 +31,7 @@ function testDatabaseName(): string {
 // Connect to the server's maintenance database (`postgres`) and create the test
 // database if it does not exist yet. `CREATE DATABASE` cannot run inside the
 // target database, hence the separate admin connection.
-async function ensureDatabaseExists(): Promise<void> {
-  const dbName = testDatabaseName();
+async function withAdminClient<T>(fn: (admin: Client) => Promise<T>): Promise<T> {
   const adminUrl = new URL(TEST_DATABASE_URL);
   adminUrl.pathname = "/postgres";
   adminUrl.search = "";
@@ -40,24 +39,65 @@ async function ensureDatabaseExists(): Promise<void> {
   const admin = new Client({ connectionString: adminUrl.toString() });
   await admin.connect();
   try {
-    const existing = await admin.query("SELECT 1 FROM pg_database WHERE datname = $1", [dbName]);
-    if (existing.rowCount === 0) {
-      // Database names cannot be parameterized; dbName comes from our own config.
-      await admin.query(`CREATE DATABASE "${dbName}"`);
-    }
+    return await fn(admin);
   } finally {
     await admin.end();
   }
 }
 
+async function ensureDatabaseExists(): Promise<void> {
+  const dbName = testDatabaseName();
+  await withAdminClient(async (admin) => {
+    const existing = await admin.query("SELECT 1 FROM pg_database WHERE datname = $1", [dbName]);
+    if (existing.rowCount === 0) {
+      // Database names cannot be parameterized; dbName comes from our own config.
+      await admin.query(`CREATE DATABASE "${dbName}"`);
+    }
+  });
+}
+
+// Drop and recreate the dedicated test database (never dev/prod). Equivalent to
+// `prisma migrate reset` but scoped to `dahlia_test` and without Prisma's reset
+// guardrails — safe because the database name comes from our own test config.
+async function recreateTestDatabase(): Promise<void> {
+  const dbName = testDatabaseName();
+  await testPrisma.$disconnect();
+  await withAdminClient(async (admin) => {
+    await admin.query(
+      `SELECT pg_terminate_backend(pid)
+       FROM pg_stat_activity
+       WHERE datname = $1 AND pid <> pg_backend_pid()`,
+      [dbName],
+    );
+    await admin.query(`DROP DATABASE IF EXISTS "${dbName}"`);
+    await admin.query(`CREATE DATABASE "${dbName}"`);
+  });
+}
+
+function prismaEnv(): NodeJS.ProcessEnv {
+  return { ...process.env, DATABASE_URL: TEST_DATABASE_URL };
+}
+
+// True when integration tests are launched with `--db-reset` (see
+// vitest.integration.config.mts). Use after editing an already-applied migration
+// so the test database is rebuilt from scratch instead of staying on stale SQL.
+export function integrationDbResetRequested(): boolean {
+  return process.env.DAHLIA_INTEGRATION_DB_RESET === "1";
+}
+
 // Provision the test database: create it if missing, then apply every migration
-// (incl. the unaccent function and the GENERATED ALWAYS columns) via
-// `prisma migrate deploy`. Idempotent — safe to call before each run.
+// (incl. the unaccent function and the GENERATED ALWAYS columns). By default uses
+// `prisma migrate deploy` (idempotent). Pass `--db-reset` to drop and recreate
+// the test database first (re-applies all migrations from scratch).
 export async function setupTestDatabase(): Promise<void> {
-  await ensureDatabaseExists();
+  if (integrationDbResetRequested()) {
+    await recreateTestDatabase();
+  } else {
+    await ensureDatabaseExists();
+  }
   execSync("pnpm exec prisma migrate deploy", {
     cwd: process.cwd(),
-    env: { ...process.env, DATABASE_URL: TEST_DATABASE_URL },
+    env: prismaEnv(),
     stdio: "inherit",
   });
 }
