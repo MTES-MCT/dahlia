@@ -43,7 +43,7 @@ Il existe déjà une API utilisée par l'interface
   - Gestion des utilisateurs : est-ce possible de récupérer les autorisations assignées aux utilisateurs ?
   - entity -> pas toujours renvoyé lors de la récupération de la liste des case-files
 
-Note : une API en lecture seule est suffisante pour les besoins de notre première itération. Selon la trajectoire de DAHL'ia, nous aurons peut-être un jour besoin de déposer des pièces dans un dossier
+Note : une API en lecture seule est suffisante pour les besoins de notre première itération. Selon la trajectoire de DAHLIA, nous aurons peut-être un jour besoin de déposer des pièces dans un dossier
 
 ### Architecture
 
@@ -126,7 +126,7 @@ Où est-ce que vous en êtes ?
 
 ## Mon Dalo
 
-MonDalo est l'application en amont de DAHL'ia qui gère les recours gracieux au sein de la COMED (Commité de médiation)
+MonDalo est l'application en amont de DAHLIA qui gère les recours gracieux au sein de la COMED (Commité de médiation)
 Nous avons tout intérêt à s'aligner sur nos pratiques tant que faire se peut dans la perspective de pérénisation future
 
 - Context

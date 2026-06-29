@@ -12,7 +12,7 @@ import { EnvironmentBanner } from "@/app/ui/environment-banner";
 import { HeaderDahlia } from "@/app/ui/header-dahlia";
 
 export const metadata: Metadata = {
-  title: "DAHL'ia (Ministères du logement)",
+  title: "DAHLIA (Ministères du logement)",
   description:
     "Aide au traitement des contentieux du droit au logement et à l'hébergement opposable",
 };

@@ -38,7 +38,11 @@ function normalizeLabel(value: string): string {
 export function findLastProducerId(events: CaseFileEvent[]): number | null {
   let latest: CaseFileEvent | null = null;
   for (const event of events) {
-    if (!normalizeLabel(event.measure.label).startsWith("reception")) continue;
+    if (
+      !normalizeLabel(event.measure.label).startsWith("reception") &&
+      !normalizeLabel(event.measure.label).startsWith("requete nouvelle")
+    )
+      continue;
     if (!latest || new Date(event.eventDate) > new Date(latest.eventDate)) {
       latest = event;
     }
