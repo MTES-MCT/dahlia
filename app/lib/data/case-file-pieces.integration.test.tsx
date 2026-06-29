@@ -12,24 +12,43 @@ vi.mock("@/app/lib/prisma", async () => {
 // The pièces table is a client component reading its state from the URL via
 // next/navigation; stub it like the unit component test does.
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
   usePathname: () => "/case_files/TA069-001",
-  useSearchParams: () => new URLSearchParams(""),
+  useSearchParams: vi.fn(),
 }));
 
+import { useSearchParams } from "next/navigation";
 import {
   setupTestDatabase,
   resetTestDatabase,
   testPrisma,
 } from "@/data/test-support/integration-db";
 import { fetchCaseFileDetail } from "@/app/lib/data/case-files";
+import { PIECES_PARAMS } from "@/app/lib/pieces-table";
 import { CaseFileTabs } from "@/app/ui/case-file-tabs";
 
 const CASE_FILE_NUMBER = "TA069-001";
 
+function setSearchParams(init: string) {
+  vi.mocked(useSearchParams).mockReturnValue(new URLSearchParams(init) as never);
+}
+
+function getPieceTableDataRows() {
+  const rows = within(screen.getByRole("table")).getAllByRole("row");
+  return rows.slice(1);
+}
+
+function expectSinglePieceRow(matchingText: string) {
+  expect(screen.getByText("1 pièce")).toBeTruthy();
+  const dataRows = getPieceTableDataRows();
+  expect(dataRows).toHaveLength(1);
+  expect(dataRows[0].textContent).toContain(matchingText);
+}
+
 // Seed the minimal graph required to load a case file with two pièces:
 // catalogs (quality, division, status, measure, file family), one actor, the
-// case file, one event, and two attached files with distinct types/dates.
+// case file, one event, and two attached files with distinct metadata so nom/type
+// search can exercise dahliaName and fileFamilyType labels end to end.
 async function seedCaseFileWithPieces(): Promise<void> {
   await testPrisma.quality.create({ data: { code: "R", name: "Requérant" } });
   await testPrisma.legalEntityDivision.create({
@@ -70,14 +89,20 @@ async function seedCaseFileWithPieces(): Promise<void> {
       measureCode: "RECMEM",
     },
   });
-  await testPrisma.fileFamilyType.create({ data: { code: "REQ", label: "Requête" } });
+  await testPrisma.fileFamilyType.createMany({
+    data: [
+      { code: "REQ", label: "Requête" },
+      { code: "MEM", label: "Mémoire" },
+    ],
+  });
 
   await testPrisma.attachedFile.createMany({
     data: [
       {
         encodedFileId: "ENC-REQ",
-        originalFileName: "requete.pdf",
-        fileName: "requete.pdf",
+        originalFileName: "scan_requete.pdf",
+        dahliaName: "Requête introductive",
+        fileName: "scan_requete.pdf",
         mimeType: "application/pdf",
         documentType: "REQUETE",
         fileTypeLabel: "Requête",
@@ -92,11 +117,11 @@ async function seedCaseFileWithPieces(): Promise<void> {
         fileName: "memoire.pdf",
         mimeType: "application/pdf",
         documentType: "MEMOIRE",
-        fileTypeLabel: "Mémoire",
+        fileTypeLabel: "Document annexe",
         eventCreationDate: new Date("2026-01-05T00:00:00Z"),
         caseFileNumber: CASE_FILE_NUMBER,
         eventId: 90001,
-        fileFamilyTypeCode: "REQ",
+        fileFamilyTypeCode: "MEM",
       },
     ],
   });
@@ -114,6 +139,7 @@ describe("case file pièces table (integration)", () => {
   beforeEach(async () => {
     await resetTestDatabase();
     await seedCaseFileWithPieces();
+    setSearchParams("");
   });
 
   afterEach(() => {
@@ -148,8 +174,41 @@ describe("case file pièces table (integration)", () => {
     const firstDataRow = rows[1];
     const cells = within(firstDataRow).getAllByRole("cell");
 
-    expect(cells[0].textContent).toContain("requete.pdf");
+    expect(cells[0].textContent).toContain("Requête introductive");
+    expect(cells[0].textContent).toContain("scan_requete.pdf");
     expect(cells[1].textContent).toContain("Requête");
     expect(cells[2].textContent).toContain("15/01/2026");
+  });
+
+  it("filtre par texte libre sur dahliaName via ?pcq", async () => {
+    setSearchParams(`${PIECES_PARAMS.query}=introductive`);
+    const caseFile = await fetchCaseFileDetail(CASE_FILE_NUMBER);
+    render(<CaseFileTabs caseFile={caseFile!} />);
+
+    expectSinglePieceRow("Requête introductive");
+  });
+
+  it('filtre par facette nom sur dahliaName via ?pcq=nom:"…"', async () => {
+    setSearchParams(`${PIECES_PARAMS.query}=nom:"requete introductive"`);
+    const caseFile = await fetchCaseFileDetail(CASE_FILE_NUMBER);
+    render(<CaseFileTabs caseFile={caseFile!} />);
+
+    expectSinglePieceRow("Requête introductive");
+  });
+
+  it("filtre par texte libre sur fileFamilyType via ?pcq", async () => {
+    setSearchParams(`${PIECES_PARAMS.query}=memoire`);
+    const caseFile = await fetchCaseFileDetail(CASE_FILE_NUMBER);
+    render(<CaseFileTabs caseFile={caseFile!} />);
+
+    expectSinglePieceRow("memoire.pdf");
+  });
+
+  it("filtre par facette type sur fileFamilyType via ?pcq=type:…", async () => {
+    setSearchParams(`${PIECES_PARAMS.query}=type:memoire`);
+    const caseFile = await fetchCaseFileDetail(CASE_FILE_NUMBER);
+    render(<CaseFileTabs caseFile={caseFile!} />);
+
+    expectSinglePieceRow("memoire.pdf");
   });
 });

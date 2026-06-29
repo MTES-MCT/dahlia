@@ -12,9 +12,31 @@ import { type TableColumn, type SortOrder } from "@/app/lib/table-query";
 // `attachedFiles` relation and the lighter list fetch satisfy it.
 export type PieceQueryData = {
   originalFileName: string;
+  dahliaName?: string | null;
   fileTypeLabel: string;
+  fileFamilyType?: { label: string } | null;
   eventCreationDate: Date;
 };
+
+// Haystack for free-text and facet filters on the Nom column: Dahlia name plus
+// original file name when they differ (same rule as the table cell display).
+export function pieceNameSearchText(
+  file: Pick<PieceQueryData, "originalFileName" | "dahliaName">,
+): string {
+  const dahliaName = file.dahliaName?.trim();
+  return dahliaName && dahliaName !== file.originalFileName
+    ? `${dahliaName} ${file.originalFileName}`
+    : file.originalFileName;
+}
+
+// Haystack for free-text and facet filters on the Type column: type label plus
+// family label when it differs (same rule as the table cell display).
+export function pieceTypeSearchText(file: Pick<PieceQueryData, "fileTypeLabel" | "fileFamilyType">): string {
+  const familyTypeLabel = file.fileFamilyType?.label;
+  return familyTypeLabel && familyTypeLabel !== file.fileTypeLabel
+    ? `${file.fileTypeLabel} ${familyTypeLabel}`
+    : file.fileTypeLabel;
+}
 
 // Prefixed URL params isolating the pièces table state within the case-file URL,
 // so it coexists with the other table (historique) and the selected tab.
@@ -34,14 +56,14 @@ export const PIECES_DEFAULT_ORDER: SortOrder = "descending";
 export const piecesQueryColumns: TableColumn<PieceQueryData>[] = [
   {
     key: "nom",
-    text: (file) => file.originalFileName,
+    text: pieceNameSearchText,
     sortValue: (file) => file.originalFileName,
     searchable: true,
     facet: true,
   },
   {
     key: "type",
-    text: (file) => file.fileTypeLabel,
+    text: pieceTypeSearchText,
     sortValue: (file) => file.fileTypeLabel,
     searchable: true,
     facet: true,
