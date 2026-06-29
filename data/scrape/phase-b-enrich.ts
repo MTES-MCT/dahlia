@@ -30,7 +30,14 @@ export async function phaseB(
   for (const { caseFileNumber } of targets) {
     try {
       console.log(`→ Enrichissement ${caseFileNumber}…`);
-      await enrichCaseFile(prisma, client, caseFileNumber, args.jurisdiction, args.anonymize);
+      await enrichCaseFile(
+        prisma,
+        client,
+        caseFileNumber,
+        args.jurisdiction,
+        args.anonymize,
+        args.updatePieceNumbers,
+      );
       enriched++;
     } catch (error) {
       console.error(`✗ Phase B failed for ${caseFileNumber}: ${describeError(error)}`);

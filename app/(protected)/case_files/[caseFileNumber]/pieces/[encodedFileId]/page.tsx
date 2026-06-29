@@ -9,6 +9,7 @@ import {
   PIECES_DEFAULT_ORDER,
   piecesQueryColumns,
 } from "@/app/lib/pieces-table";
+import { pieceDisplayLabel, pieceEditionHref } from "@/app/lib/piece-display";
 import { PieceViewer } from "@/app/ui/piece-viewer";
 import { PieceNavigator } from "@/app/ui/piece-navigator";
 import { PieceMetadata } from "@/app/ui/piece-metadata";
@@ -70,8 +71,12 @@ export default async function Page({ params, searchParams }: Props) {
   });
   const pieceOptions = orderedPieces.map((piece) => ({
     encodedFileId: piece.encodedFileId,
-    label: piece.dahliaName ?? piece.originalFileName,
-    href: `/case_files/${encodedCaseFileNumber}/pieces/${encodeURIComponent(piece.encodedFileId)}${suffix}`,
+    label: pieceDisplayLabel(piece),
+    href: pieceEditionHref({
+      caseFileNumber: decodedCaseFileNumber,
+      encodedFileId: piece.encodedFileId,
+      queryString,
+    }),
   }));
 
   return (
