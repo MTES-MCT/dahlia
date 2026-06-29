@@ -14,6 +14,7 @@ export interface Args {
   legalEntityDivisionIds: number[];
   anonymize: boolean;
   skipEnrichment: boolean;
+  updatePieceNumbers: boolean;
 }
 
 // Everything the pipeline needs from the outside world. Injected so the phases

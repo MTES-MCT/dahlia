@@ -24,6 +24,7 @@ export async function fetchCaseFilePieces(caseFileNumber: string) {
     select: {
       encodedFileId: true,
       originalFileName: true,
+      dahliaName: true,
       fileTypeLabel: true,
       eventCreationDate: true,
       mimeType: true,

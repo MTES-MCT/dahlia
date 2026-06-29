@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { mockDeep, type DeepMockProxy } from "vitest-mock-extended";
 import type { PrismaClient } from "@prisma/client";
-import { enrichCaseFile, findLastProducerId } from "./enrich-case-file";
+import { enrichCaseFile, findLastProducerId, leadingNumber } from "./enrich-case-file";
 import { fakeTelerecoursClient } from "../test-support/fake-client";
 import {
   attachedFileFixture,
@@ -42,6 +42,18 @@ describe("findLastProducerId", () => {
         eventFixture({ measure: { ...eventFixture().measure, label: "Autre" } }),
       ]),
     ).toBeNull();
+  });
+});
+
+describe("leadingNumber", () => {
+  it("extracts a leading digit sequence and preserves leading zeros", () => {
+    expect(leadingNumber("002_facture.pdf")).toBe("002");
+    expect(leadingNumber("12 - lettre.pdf")).toBe("12");
+  });
+
+  it("returns null when the file name does not start with a digit", () => {
+    expect(leadingNumber("facture.pdf")).toBeNull();
+    expect(leadingNumber("")).toBeNull();
   });
 });
 

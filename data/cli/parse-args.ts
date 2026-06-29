@@ -30,6 +30,7 @@ export function parseArgs(argv: string[] = process.argv): Args {
     // Default: anonymize unless running against the prod environment.
     anonymize: process.env.ENVIRONMENT !== "production",
     skipEnrichment: false,
+    updatePieceNumbers: false,
   };
 
   // Distinguish an explicit --legalEntityDivisionIds from the env-derived
@@ -55,6 +56,8 @@ export function parseArgs(argv: string[] = process.argv): Args {
       args.anonymize = true;
     } else if (arg === "--skipEnrichment") {
       args.skipEnrichment = true;
+    } else if (arg === "--update-piece-numbers") {
+      args.updatePieceNumbers = true;
     }
   }
 

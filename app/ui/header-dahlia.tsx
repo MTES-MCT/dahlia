@@ -10,7 +10,7 @@ export type HeaderDahliaUser = {
   email?: string | null;
 };
 
-// Application header (DSFR) for DAHL'ia.
+// Application header (DSFR) for DAHLIA.
 // Shows a « Se connecter » link when no user is provided; otherwise displays
 // the user's name and a « Se déconnecter » link.
 export function HeaderDahlia({ user }: { user?: HeaderDahliaUser | null }) {
@@ -45,7 +45,7 @@ export function HeaderDahlia({ user }: { user?: HeaderDahliaUser | null }) {
       }
       homeLinkProps={{
         href: "/",
-        title: "Accueil - DAHL'ia (Ministères du logement)",
+        title: "Accueil - DAHLIA (Ministères du logement)",
       }}
       id="fr-header-simple-header-with-service-title-and-tagline"
       serviceTagline="Aide au traitement des contentieux du droit au logement et à l'hébergement opposable"

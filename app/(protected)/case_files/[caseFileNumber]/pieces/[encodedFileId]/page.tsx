@@ -1,9 +1,7 @@
 import { fr } from "@codegouvfr/react-dsfr";
 import { notFound } from "next/navigation";
 import { Breadcrumb } from "@codegouvfr/react-dsfr/Breadcrumb";
-import { Input } from "@codegouvfr/react-dsfr/Input";
 import { fetchAttachedFile, fetchCaseFilePieces } from "@/app/lib/data/attached-files";
-import { formatDateFr } from "@/app/lib/case-file-format";
 import { queryTableRows, type SortOrder } from "@/app/lib/table-query";
 import {
   PIECES_PARAMS,
@@ -11,8 +9,11 @@ import {
   PIECES_DEFAULT_ORDER,
   piecesQueryColumns,
 } from "@/app/lib/pieces-table";
+import { pieceDisplayLabel, pieceEditionHref } from "@/app/lib/piece-display";
 import { PieceViewer } from "@/app/ui/piece-viewer";
 import { PieceNavigator } from "@/app/ui/piece-navigator";
+import { PieceMetadata } from "@/app/ui/piece-metadata";
+import { PieceMetadataForm } from "@/app/ui/piece-metadata-form";
 
 type Props = {
   params: Promise<{ caseFileNumber: string; encodedFileId: string }>;
@@ -22,17 +23,6 @@ type Props = {
 // Label for the case file in the breadcrumb: number + optional title.
 function caseFileLabel(caseFileNumber: string, title: string | null): string {
   return caseFileNumber + (title ? ` - ${title}` : "");
-}
-
-// A read-only DSFR field used to display one metadata value of the pièce.
-function MetadataField({ label, value }: { label: string; value: string }) {
-  return (
-    <Input
-      label={label}
-      nativeInputProps={{ value: value || "—", readOnly: true }}
-      className={fr.cx("fr-mb-2w")}
-    />
-  );
 }
 
 export default async function Page({ params, searchParams }: Props) {
@@ -81,8 +71,12 @@ export default async function Page({ params, searchParams }: Props) {
   });
   const pieceOptions = orderedPieces.map((piece) => ({
     encodedFileId: piece.encodedFileId,
-    label: piece.originalFileName,
-    href: `/case_files/${encodedCaseFileNumber}/pieces/${encodeURIComponent(piece.encodedFileId)}${suffix}`,
+    label: pieceDisplayLabel(piece),
+    href: pieceEditionHref({
+      caseFileNumber: decodedCaseFileNumber,
+      encodedFileId: piece.encodedFileId,
+      queryString,
+    }),
   }));
 
   return (
@@ -105,28 +99,28 @@ export default async function Page({ params, searchParams }: Props) {
         ]}
       />
 
-      <h1 className={fr.cx("fr-h4", "fr-mb-3w")}>Édition des pièces</h1>
+      <h1 className={fr.cx("fr-mb-3w")}>Édition des pièces</h1>
 
       <PieceNavigator pieces={pieceOptions} currentEncodedFileId={decodedFileId} />
 
-      <div className={fr.cx("fr-grid-row", "fr-grid-row--gutters")}>
+      <div className={fr.cx("fr-grid-row", "fr-grid-row--gutters", "fr-mb-3w")}>
         <div className={fr.cx("fr-col-12", "fr-col-lg-7")}>
-          <PieceViewer dataUrl={dataUrl} mimeType={file.mimeType} fileName={file.originalFileName} />
+          <PieceViewer
+            dataUrl={dataUrl}
+            mimeType={file.mimeType}
+            fileName={file.originalFileName}
+          />
         </div>
 
         <div className={fr.cx("fr-col-12", "fr-col-lg-5")}>
-          <form>
-            <fieldset className={fr.cx("fr-fieldset")} style={{ border: "none", padding: 0 }}>
-              <legend className={fr.cx("fr-h6")}>Métadonnées de la pièce</legend>
-              <MetadataField label="Nom du fichier" value={file.originalFileName} />
-              <MetadataField label="Type de pièce" value={file.fileTypeLabel} />
-              <MetadataField label="Famille de pièce" value={file.fileFamilyType.label} />
-              <MetadataField label="Type de document" value={file.documentType} />
-              <MetadataField label="Format (MIME)" value={file.mimeType} />
-              <MetadataField label="Date de création" value={formatDateFr(file.eventCreationDate)} />
-              <MetadataField label="Identifiant Télérecours" value={file.encodedFileId} />
-            </fieldset>
-          </form>
+          <h2>Édition de la pièce</h2>
+          <PieceMetadataForm
+            encodedFileId={file.encodedFileId}
+            dahliaName={file.dahliaName ?? ""}
+            number={file.number ?? ""}
+            comment={file.comment ?? ""}
+          />
+          <PieceMetadata file={file} />
         </div>
       </div>
     </>

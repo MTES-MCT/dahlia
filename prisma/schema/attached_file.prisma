@@ -23,6 +23,12 @@ model AttachedFile {
   fileTypeLabel             String
   eventCreationDate         DateTime
 
+  // DAHLIA editable metadata (optional, set by users on the pièce edition page).
+  // `number` is a string so leading zeros are preserved (e.g. "002").
+  dahliaName String?
+  number     String?
+  comment    String?
+
   caseFileNumber String
   caseFile       CaseFile @relation(fields: [caseFileNumber], references: [caseFileNumber], onDelete: Cascade)
 

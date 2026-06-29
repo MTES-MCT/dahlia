@@ -8,6 +8,7 @@ import { formatDateFr, getActorDisplayName } from "@/app/lib/case-file-format";
 import { type TableParamNames } from "@/app/lib/case-file-search";
 import { ClientTable, type ClientTableColumn } from "@/app/ui/client-table";
 import { type SortOrder } from "@/app/lib/table-query";
+import { pieceEditionHref } from "@/app/lib/piece-display";
 import { PIECES_PARAMS, piecesQueryColumns } from "@/app/lib/pieces-table";
 import type { CaseFileDetail } from "@/app/lib/data/case-files";
 
@@ -57,11 +58,21 @@ function createPiecesColumns(pieceHref: (piece: Piece) => string): ClientTableCo
     const display = PIECES_COLUMN_DISPLAY[column.key];
     const render =
       column.key === "nom"
-        ? (file: Piece) => (
-            <Link href={pieceHref(file)} className={fr.cx("fr-link")}>
-              {file.originalFileName}
-            </Link>
-          )
+        ? (file: Piece) =>
+            file.dahliaName ? (
+              <div>
+                <Link href={pieceHref(file)} className={fr.cx("fr-link")}>
+                  {file.dahliaName}
+                </Link>
+                <div className={`${fr.cx("fr-text--sm")} text-grey italic`}>
+                  {file.originalFileName}
+                </div>
+              </div>
+            ) : (
+              <Link href={pieceHref(file)} className={fr.cx("fr-link")}>
+                {file.originalFileName}
+              </Link>
+            )
         : display.render;
     return {
       ...column,
@@ -146,8 +157,11 @@ export function CaseFileTabs({ caseFile }: Props) {
   // the breadcrumb can restore the dashboard and the case file as they are now.
   const currentQuery = searchParams.toString();
   const pieceHref = (piece: Piece) =>
-    `/case_files/${encodeURIComponent(caseFile.caseFileNumber)}/pieces/` +
-    `${encodeURIComponent(piece.encodedFileId)}${currentQuery ? `?${currentQuery}` : ""}`;
+    pieceEditionHref({
+      caseFileNumber: caseFile.caseFileNumber,
+      encodedFileId: piece.encodedFileId,
+      queryString: currentQuery || undefined,
+    });
 
   return (
     <Tabs
