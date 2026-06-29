@@ -4,8 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { fr } from "@codegouvfr/react-dsfr";
 import { Button } from "@codegouvfr/react-dsfr/Button";
 import { type TableParamNames, DASHBOARD_TABLE_PARAMS } from "@/app/lib/case-file-search";
-
-type SortOrder = "ascending" | "descending";
+import { type SortOrder } from "@/app/lib/table-sort";
 
 type Props = {
   label: string;

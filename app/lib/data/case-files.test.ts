@@ -1,12 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import {
-  getActorDisplayName,
-  formatForTable,
-  fetchCaseFilesTableData,
-  fetchUsedStatusLabels,
-  normalizeForSearch,
-  parseSearchQuery,
-} from "./case-files";
+import { getActorDisplayName } from "@/app/lib/case-file-format";
+import { fetchCaseFilesTableData, fetchUsedStatusLabels } from "./case-files";
 import { prisma } from "@/app/lib/prisma";
 
 vi.mock("@/app/lib/prisma", () => ({
@@ -111,108 +105,9 @@ const mockCaseFile = {
   lastHearing: null,
 };
 
-const mockHearing = {
-  hearingId: "98577",
-  convocationDate: new Date("2026-07-01T13:00:00.000Z"),
-  room: "n° 5",
-  creationDate: null,
-  modificationDates: [],
-  lastConclusionId: null,
-  caseFileNumber: "CF-2024-001",
-};
-
 describe("case-files", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  describe("normalizeForSearch", () => {
-    it("supprime les diacritiques courants", () => {
-      expect(normalizeForSearch("Café")).toBe("cafe");
-      expect(normalizeForSearch("François")).toBe("francois");
-      expect(normalizeForSearch("Müller")).toBe("muller");
-    });
-
-    it("met en minuscules", () => {
-      expect(normalizeForSearch("DUPONT")).toBe("dupont");
-    });
-
-    it("laisse intacte une chaîne sans accents", () => {
-      expect(normalizeForSearch("dupont")).toBe("dupont");
-    });
-  });
-
-  describe("parseSearchQuery", () => {
-    it("treats a plain query as free text without facets", () => {
-      expect(parseSearchQuery("dupont")).toEqual({ freeText: "dupont", facets: [] });
-    });
-
-    it("extracts a single facet and restricts to its column", () => {
-      expect(parseSearchQuery("requerant:prefet")).toEqual({
-        freeText: null,
-        facets: [{ key: "requerant", value: "prefet" }],
-      });
-    });
-
-    it("normalizes the facet key (case- and accent-insensitive)", () => {
-      expect(parseSearchQuery("Requérant:prefet")).toEqual({
-        freeText: null,
-        facets: [{ key: "requerant", value: "prefet" }],
-      });
-    });
-
-    it("supports several facets combined together", () => {
-      expect(parseSearchQuery("requerant:prefet defendeur:dupont")).toEqual({
-        freeText: null,
-        facets: [
-          { key: "requerant", value: "prefet" },
-          { key: "defendeur", value: "dupont" },
-        ],
-      });
-    });
-
-    it("keeps free text alongside facets", () => {
-      expect(parseSearchQuery("prefet statut:cours")).toEqual({
-        freeText: "prefet",
-        facets: [{ key: "statut", value: "cours" }],
-      });
-    });
-
-    it("keeps an unknown key as free text", () => {
-      expect(parseSearchQuery("foo:bar")).toEqual({ freeText: "foo:bar", facets: [] });
-    });
-
-    it("keeps a key with an empty value as free text", () => {
-      expect(parseSearchQuery("requerant:")).toEqual({ freeText: "requerant:", facets: [] });
-    });
-
-    it("treats a double-quoted segment as a single free-text token", () => {
-      expect(parseSearchQuery('"jean dupont"')).toEqual({
-        freeText: "jean dupont",
-        facets: [],
-      });
-    });
-
-    it("keeps quoted free text alongside unquoted tokens and facets", () => {
-      expect(parseSearchQuery('prefet "jean dupont" statut:cours')).toEqual({
-        freeText: "prefet jean dupont",
-        facets: [{ key: "statut", value: "cours" }],
-      });
-    });
-
-    it("supports quoted facet values containing spaces", () => {
-      expect(parseSearchQuery('requerant:"jean dupont"')).toEqual({
-        freeText: null,
-        facets: [{ key: "requerant", value: "jean dupont" }],
-      });
-    });
-
-    it("treats a quoted key:value pair as literal free text", () => {
-      expect(parseSearchQuery('"requerant:prefet"')).toEqual({
-        freeText: "requerant:prefet",
-        facets: [],
-      });
-    });
   });
 
   describe("getActorDisplayName", () => {
@@ -268,59 +163,8 @@ describe("case-files", () => {
     });
   });
 
-  describe("formatForTable", () => {
-    it("formats case files to table rows", () => {
-      const result = formatForTable([mockCaseFile]);
-
-      expect(result).toEqual([
-        ["CF-2024-001", "", "Dupont Jean", "Dupont Jean", "Dupont Jean", "En cours", null],
-      ]);
-    });
-
-    it("exposes the raw lastHearing convocationDate as the last column", () => {
-      const caseFile = { ...mockCaseFile, lastHearing: mockHearing };
-      const result = formatForTable([caseFile]);
-
-      expect(result[0][6]).toEqual(mockHearing.convocationDate);
-    });
-
-    it("exposes a null memory deadline when lastHearing is absent", () => {
-      const result = formatForTable([mockCaseFile]);
-
-      expect(result[0][6]).toBeNull();
-    });
-
-    it("formats depositDate as dd/mm/yyyy", () => {
-      const caseFile = { ...mockCaseFile, depositDate: new Date("2024-03-09") };
-      const result = formatForTable([caseFile]);
-
-      expect(result[0][1]).toBe("09/03/2024");
-    });
-
-    it("renders an empty depositDate as an empty string", () => {
-      const result = formatForTable([mockCaseFile]);
-
-      expect(result[0][1]).toBe("");
-    });
-
-    it("formats multiple case files", () => {
-      const caseFile2 = {
-        ...mockCaseFile,
-        caseFileNumber: "CF-2024-002",
-        mainClaimant: mockActorWithLegalPerson,
-        mainClaimantId: 2,
-      };
-      const result = formatForTable([mockCaseFile, caseFile2]);
-
-      expect(result).toHaveLength(2);
-      expect(result[0][0]).toBe("CF-2024-001");
-      expect(result[1][0]).toBe("CF-2024-002");
-      expect(result[1][2]).toBe("SARL Acme");
-    });
-  });
-
   describe("fetchCaseFilesTableData", () => {
-    it("fetches and formats case files with descending sort", async () => {
+    it("fetches case files with descending sort", async () => {
       const mockFindMany = vi.fn().mockResolvedValue([mockCaseFile]);
       const mockCount = vi.fn().mockResolvedValue(25);
 
@@ -330,7 +174,7 @@ describe("case-files", () => {
       const result = await fetchCaseFilesTableData(1, 10, "caseFileNumber", "descending");
 
       expect(result).toEqual({
-        rows: [["CF-2024-001", "", "Dupont Jean", "Dupont Jean", "Dupont Jean", "En cours", null]],
+        rows: [mockCaseFile],
         totalPages: 3,
         totalCount: 25,
       });

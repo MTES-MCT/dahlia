@@ -3,6 +3,8 @@
 model Measure {
   code        String  @id
   label       String
+  // Computed column: lower(f_unaccent(label)) — accent-insensitive search.
+  labelNormalized String?
   type        String
   isImportant Boolean
   family      String?
@@ -27,6 +29,10 @@ model CaseFileEvent {
   nbEventFile            Int       @default(0)
   piecesNonDownloadable  Boolean?
   relatedEventCount      Int       @default(0)
+
+  // Computed columns for accent-insensitive search (cf. migration table_search_normalized).
+  commentSearchNormalized       String?
+  deadlineLabelSearchNormalized String?
 
   caseFileNumber String
   caseFile       CaseFile @relation(fields: [caseFileNumber], references: [caseFileNumber], onDelete: Cascade)

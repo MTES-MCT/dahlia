@@ -23,6 +23,16 @@ model AttachedFile {
   fileTypeLabel             String
   eventCreationDate         DateTime
 
+  // Denormalized from fileFamilyType.label at import time (GENERATED search
+  // columns cannot join other tables).
+  fileFamilyTypeLabel String?
+
+  // Computed columns for accent-insensitive search (cf. migration table_search_normalized).
+  dahliaNameNormalized          String?
+  originalFileNameNormalized    String?
+  fileTypeLabelNormalized       String?
+  fileFamilyTypeLabelNormalized String?
+
   // DAHLIA editable metadata (optional, set by users on the pièce edition page).
   // `number` is a string so leading zeros are preserved (e.g. "002").
   dahliaName String?

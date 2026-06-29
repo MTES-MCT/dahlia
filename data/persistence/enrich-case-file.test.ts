@@ -69,6 +69,7 @@ describe("enrichCaseFile", () => {
   it("upserts detail, hearings, events and attached files, then sets lastProducer", async () => {
     // The attached file's event must already exist in DB for it to be linked.
     prisma.caseFileEvent.findUnique.mockResolvedValue({ id: 90001 } as never);
+    prisma.fileFamilyType.upsert.mockResolvedValue({ code: "REQ", label: "Requête" } as never);
 
     const client = fakeTelerecoursClient({
       getCaseFileDetail: vi.fn().mockResolvedValue(caseFileDetailFixture()),

@@ -1,15 +1,16 @@
 "use client";
 
-import { SortableColumnHeader } from "@/app/ui/sortable-column-header";
-import { ColumnFilterButton } from "@/app/ui/column-filter-button";
+import { SortableColumnHeader } from "@/app/ui/table/sortable-column-header";
+import { ColumnFilterButton } from "@/app/ui/table/column-filter-button";
 import { type TableParamNames } from "@/app/lib/case-file-search";
+import { type SortOrder } from "@/app/lib/table-sort";
 
 type Props = {
   label: string;
   // When set, the column is sortable (renders the sort button).
   sortKey?: string;
   // Default sort order applied when no `sortBy` is in the URL (sortable columns only).
-  defaultOrder?: "ascending" | "descending";
+  defaultOrder?: SortOrder;
   // When set, the column is filterable (renders the facet filter button).
   facetKey?: string;
   // URL param names backing this table's state (defaults to the dashboard's).

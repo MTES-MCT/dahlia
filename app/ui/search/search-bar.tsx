@@ -16,8 +16,7 @@ type Props = {
 };
 
 // Shared uncontrolled `type="search"` field used by every search form. Concrete
-// bars (`CaseFilesSearchBar`, `TableSearchBar`) wrap this with their own id /
-// name / label / placeholder.
+// bars (`TableSearchBar`) wrap this with their own id / name / label / placeholder.
 export function SearchBar({ id, name, label, defaultValue, placeholder, className }: Props) {
   return (
     <Input

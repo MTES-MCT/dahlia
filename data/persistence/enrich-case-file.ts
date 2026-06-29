@@ -242,7 +242,7 @@ async function upsertAttachedFile(
     return { upserted: false, reason: `event ${file.eventId} not found` };
   }
 
-  await prisma.fileFamilyType.upsert({
+  const familyType = await prisma.fileFamilyType.upsert({
     where: { code: file.fileFamilyType },
     update: { label: file.fileTypeLabel },
     create: { code: file.fileFamilyType, label: file.fileTypeLabel },
@@ -270,6 +270,7 @@ async function upsertAttachedFile(
     receiptAcknowledgmentId: file.receiptAcknowledgmentId,
     receiptAcknowledgmentType: file.receiptAcknowledgmentType,
     fileTypeLabel: file.fileTypeLabel,
+    fileFamilyTypeLabel: familyType.label,
     eventCreationDate: new Date(file.eventCreationDate),
     caseFileNumber,
     eventId: file.eventId,
