@@ -27,7 +27,6 @@ export async function fetchCaseFilePieces(caseFileNumber: string) {
       dahliaName: true,
       fileTypeLabel: true,
       eventCreationDate: true,
-      mimeType: true,
     },
   });
 }

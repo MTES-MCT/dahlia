@@ -11,6 +11,7 @@ import { type SortOrder } from "@/app/lib/table-query";
 import { pieceEditionHref } from "@/app/lib/piece-display";
 import { PIECES_PARAMS, piecesQueryColumns } from "@/app/lib/pieces-table";
 import type { CaseFileDetail } from "@/app/lib/data/case-files";
+import clsx from "clsx";
 
 type CaseFile = NonNullable<CaseFileDetail>;
 type Piece = CaseFile["attachedFiles"][number];
@@ -25,8 +26,6 @@ type TabId = "pieces" | "historique" | "debug";
 
 const TAB_IDS: TabId[] = ["pieces", "historique", "debug"];
 const DEFAULT_TAB: TabId = "pieces";
-
-const PAGE_SIZE = 10;
 
 // Prefixed URL params so the two tables (and the tab selection) coexist in a
 // single query string without colliding, and survive tab switches / refresh.
@@ -47,10 +46,47 @@ const PIECES_COLUMN_DISPLAY: Record<
   nom: { label: "Nom" },
   type: { label: "Type" },
   date: { label: "Date", defaultOrder: "descending" },
-  format: { label: "Format" },
 };
 
-// Attached files: free text searches Nom + Type; Nom/Type/Format are filterable
+export function renderPieceNameCell(
+  file: Piece,
+  pieceHref: (piece: Piece) => string,
+): React.ReactNode {
+  if (file.dahliaName) {
+    return (
+      <div>
+        <Link href={pieceHref(file)} className={fr.cx("fr-link")}>
+          {file.dahliaName}
+        </Link>
+        <div className={clsx(fr.cx("fr-text--sm"), "text-grey", "italic")}>
+          {file.originalFileName}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <Link href={pieceHref(file)} className={fr.cx("fr-link")}>
+      {file.originalFileName}
+    </Link>
+  );
+}
+
+export function renderPieceTypeCell(file: Piece): React.ReactNode {
+  const familyTypeLabel = file.fileFamilyType?.label;
+  if (familyTypeLabel && familyTypeLabel !== file.fileTypeLabel) {
+    return (
+      <div>
+        <div>{file.fileTypeLabel}</div>
+        <div className={clsx(fr.cx("fr-text--sm"), "text-grey", "italic")}>{familyTypeLabel}</div>
+      </div>
+    );
+  }
+
+  return file.fileTypeLabel;
+}
+
+// Attached files: free text searches Nom + Type; Nom/Type are filterable
 // facets; default sort by date, most recent first. Built from the shared query
 // columns so the pièce edition page rebuilds the exact same ordered list.
 function createPiecesColumns(pieceHref: (piece: Piece) => string): ClientTableColumn<Piece>[] {
@@ -58,22 +94,10 @@ function createPiecesColumns(pieceHref: (piece: Piece) => string): ClientTableCo
     const display = PIECES_COLUMN_DISPLAY[column.key];
     const render =
       column.key === "nom"
-        ? (file: Piece) =>
-            file.dahliaName ? (
-              <div>
-                <Link href={pieceHref(file)} className={fr.cx("fr-link")}>
-                  {file.dahliaName}
-                </Link>
-                <div className={`${fr.cx("fr-text--sm")} text-grey italic`}>
-                  {file.originalFileName}
-                </div>
-              </div>
-            ) : (
-              <Link href={pieceHref(file)} className={fr.cx("fr-link")}>
-                {file.originalFileName}
-              </Link>
-            )
-        : display.render;
+        ? (file: Piece) => renderPieceNameCell(file, pieceHref)
+        : column.key === "type"
+          ? renderPieceTypeCell
+          : display.render;
     return {
       ...column,
       label: display.label,
@@ -179,7 +203,7 @@ export function CaseFileTabs({ caseFile }: Props) {
           rows={caseFile.attachedFiles}
           columns={createPiecesColumns(pieceHref)}
           params={PIECES_PARAMS}
-          pageSize={PAGE_SIZE}
+          tableId="pieces"
           caption={(count) => `${count} pièce${count > 1 ? "s" : ""}`}
           defaultSortBy="date"
           defaultOrder="descending"
@@ -193,7 +217,7 @@ export function CaseFileTabs({ caseFile }: Props) {
           rows={caseFile.events}
           columns={HISTORIQUE_COLUMNS}
           params={HISTORIQUE_PARAMS}
-          pageSize={PAGE_SIZE}
+          tableId="historique"
           caption={(count) => `${count} événement${count > 1 ? "s" : ""}`}
           defaultSortBy="date"
           defaultOrder="descending"

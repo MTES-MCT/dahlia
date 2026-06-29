@@ -1,14 +1,15 @@
 "use client";
 
 import { useMemo } from "react";
-import { useSearchParams } from "next/navigation";
-import { fr } from "@codegouvfr/react-dsfr";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Table } from "@codegouvfr/react-dsfr/Table";
-import { Pagination } from "@codegouvfr/react-dsfr/Pagination";
 import { ColumnHeader } from "@/app/ui/column-header";
 import { TableSearch } from "@/app/ui/table-search";
+import { TablePaginationFooter } from "@/app/ui/table-pagination-footer";
 import { type TableParamNames } from "@/app/lib/case-file-search";
+import { type TablePageSize, type TablePageSizeId } from "@/app/lib/table-page-size";
 import { type TableColumn, type SortOrder, queryTableRows } from "@/app/lib/table-query";
+import { useTablePageSize } from "@/app/ui/use-table-page-size";
 
 // A column for a client-rendered table: the query behaviour (TableColumn) plus
 // the display concerns (header label, sort capability, cell rendering).
@@ -27,7 +28,7 @@ type Props<T> = {
   columns: ClientTableColumn<T>[];
   // Prefixed URL param names isolating this table's state from the others.
   params: TableParamNames;
-  pageSize: number;
+  tableId: TablePageSizeId;
   // Builds the table caption from the (filtered) total row count.
   caption: (totalCount: number) => string;
   // Sort applied when no `sortBy` is present in the URL.
@@ -46,14 +47,16 @@ export function ClientTable<T>({
   rows,
   columns,
   params,
-  pageSize,
+  tableId,
   caption,
   defaultSortBy,
   defaultOrder,
   searchLabel,
   searchPlaceholder,
 }: Props<T>) {
+  const router = useRouter();
   const searchParams = useSearchParams();
+  const { pageSize, setPageSize } = useTablePageSize(tableId);
   const facetKeys = useMemo(
     () => columns.filter((column) => column.facet).map((column) => column.key),
     [columns],
@@ -97,22 +100,22 @@ export function ClientTable<T>({
         )}
       />
 
-      {totalPages > 1 && (
-        <Pagination
-          count={totalPages}
-          defaultPage={currentPage}
-          getPageLinkProps={(pageNumber: number) => {
-            // Next's Link is registered with the DSFR, so an href carrying the
-            // full query string is a client navigation that preserves the other
-            // tables' state and the selected tab.
-            const nextParams = new URLSearchParams(searchParams.toString());
-            nextParams.set(params.page, String(pageNumber));
-            return { href: `?${nextParams.toString()}`, scroll: false };
-          }}
-          showFirstLast
-          className={fr.cx("fr-mt-2w")}
-        />
-      )}
+      <TablePaginationFooter
+        pageSize={pageSize}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        getPageLinkProps={(pageNumber: number) => {
+          const nextParams = new URLSearchParams(searchParams.toString());
+          nextParams.set(params.page, String(pageNumber));
+          return { href: `?${nextParams.toString()}`, scroll: false };
+        }}
+        onPageSizeChange={(nextPageSize: TablePageSize) => {
+          setPageSize(nextPageSize);
+          const nextParams = new URLSearchParams(searchParams.toString());
+          nextParams.set(params.page, "1");
+          router.push(`?${nextParams.toString()}`, { scroll: false });
+        }}
+      />
     </>
   );
 }

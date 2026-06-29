@@ -48,6 +48,8 @@ Note : une API en lecture seule est suffisante pour les besoins de notre premiè
 ### Architecture
 
 - Comment Télérecours détermine qu'un utilisateur à les droits pour visualider les dossiers du tribunal administartif du Rhône (TA069)
+- Est-ce qu'on pourrait utiliser télérecours comme SSO ? pour récupérer l'identité et les droits 'utilisateur'
+- ⚠️ Le producteur est toujours le.la "Prefet.e", ce comportement est hérité de télérecours
 
 ## Ministère de l'interieur / ASTREE
 

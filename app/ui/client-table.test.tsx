@@ -11,6 +11,17 @@ vi.mock("next/navigation", () => ({
   useSearchParams: vi.fn(),
 }));
 
+const mockSetPageSize = vi.fn();
+let mockPageSize = 2;
+
+vi.mock("@/app/ui/use-table-page-size", () => ({
+  useTablePageSize: () => ({
+    pageSize: mockPageSize,
+    defaultSize: 10,
+    setPageSize: mockSetPageSize,
+  }),
+}));
+
 import { useSearchParams } from "next/navigation";
 
 function setSearchParams(init: string) {
@@ -45,7 +56,7 @@ function renderTable(overrides: Partial<Parameters<typeof ClientTable<Row>>[0]> 
       rows={rows}
       columns={columns}
       params={params}
-      pageSize={2}
+      tableId="pieces"
       caption={(total) => `${total} ligne(s)`}
       defaultSortBy="name"
       defaultOrder="ascending"
@@ -58,6 +69,7 @@ function renderTable(overrides: Partial<Parameters<typeof ClientTable<Row>>[0]> 
 describe("ClientTable", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPageSize = 2;
     setSearchParams("");
   });
 
@@ -94,7 +106,8 @@ describe("ClientTable", () => {
   });
 
   it("masque la pagination quand tout tient sur une page", () => {
-    renderTable({ pageSize: 10 });
+    mockPageSize = 10;
+    renderTable();
 
     expect(screen.queryByRole("navigation", { name: /pagination/i })).toBeNull();
   });

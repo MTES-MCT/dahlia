@@ -1,18 +1,22 @@
 import { fr } from "@codegouvfr/react-dsfr";
 import { Table } from "@codegouvfr/react-dsfr/Table";
+import { CaseFilesTableFooter } from "@/app/ui/case-files-table-footer";
 import {
   fetchCaseFilesTableData,
   fetchUsedStatusLabels,
   HEARING_CONVOCATION_SORT_KEY,
 } from "@/app/lib/data/case-files";
-import { Pagination } from "@codegouvfr/react-dsfr/Pagination";
+import {
+  DASHBOARD_PAGE_SIZE_COOKIE,
+  DEFAULT_TABLE_PAGE_SIZES,
+  parseTablePageSize,
+} from "@/app/lib/table-page-size";
+import { cookies } from "next/headers";
 import { ColumnHeader } from "@/app/ui/column-header";
 import { MemoryDeadlineCell } from "@/app/ui/memory-deadline-cell";
 import { CaseFilesSearch } from "@/app/ui/case-files-search";
 import Link from "next/link";
 import { statusLabelForCount } from "@/app/lib/status-label-plural";
-
-const NUMBER_OF_CASE_FILES = 30;
 
 // Status selected by default when arriving on the page (no `statut` param in the URL).
 const DEFAULT_STATUT = "Inscrit au rôle d'une audience";
@@ -60,10 +64,16 @@ export default async function Page({ searchParams }: Props) {
   const currentStatut =
     statutParam === undefined ? DEFAULT_STATUT : statutParam.trim() ? statutParam.trim() : null;
 
+  const cookieStore = await cookies();
+  const pageSize = parseTablePageSize(
+    cookieStore.get(DASHBOARD_PAGE_SIZE_COOKIE)?.value,
+    DEFAULT_TABLE_PAGE_SIZES.dashboard,
+  );
+
   const [{ rows, totalPages, totalCount }, statusOptions] = await Promise.all([
     fetchCaseFilesTableData(
       currentPage,
-      NUMBER_OF_CASE_FILES,
+      pageSize,
       currentSortBy,
       currentSortOrder,
       currentQuery,
@@ -161,18 +171,14 @@ export default async function Page({ searchParams }: Props) {
           />,
         ]}
       />
-      <Pagination
-        count={totalPages}
-        defaultPage={currentPage}
-        getPageLinkProps={(pageNumber: number) => {
-          const params = new URLSearchParams({ page: String(pageNumber) });
-          if (currentSortBy) params.set("sortBy", currentSortBy);
-          if (currentSortOrder) params.set("sortOrder", currentSortOrder);
-          if (currentQuery) params.set("dahliaq", currentQuery);
-          setStatutSearchParam(params, statutParam, DEFAULT_STATUT);
-          return { href: `/case_files?${params}`, scroll: false };
-        }}
-        showFirstLast
+      <CaseFilesTableFooter
+        currentPage={currentPage}
+        totalPages={totalPages}
+        sortBy={currentSortBy}
+        sortOrder={currentSortOrder}
+        query={currentQuery}
+        statutParam={statutParam}
+        defaultStatut={DEFAULT_STATUT}
       />
     </>
   );

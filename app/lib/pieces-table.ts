@@ -14,7 +14,6 @@ export type PieceQueryData = {
   originalFileName: string;
   fileTypeLabel: string;
   eventCreationDate: Date;
-  mimeType: string;
 };
 
 // Prefixed URL params isolating the pièces table state within the case-file URL,
@@ -30,8 +29,8 @@ export const PIECES_PARAMS: TableParamNames = {
 export const PIECES_DEFAULT_SORT_BY = "date";
 export const PIECES_DEFAULT_ORDER: SortOrder = "descending";
 
-// Free text searches Nom + Type; Nom/Type/Format are filterable facets; Date is
-// only sortable. Mirrors the dashboard column semantics.
+// Free text searches Nom + Type; Nom/Type are filterable facets; Date is only
+// sortable. Mirrors the dashboard column semantics.
 export const piecesQueryColumns: TableColumn<PieceQueryData>[] = [
   {
     key: "nom",
@@ -51,11 +50,5 @@ export const piecesQueryColumns: TableColumn<PieceQueryData>[] = [
     key: "date",
     text: (file) => formatDateFr(file.eventCreationDate),
     sortValue: (file) => file.eventCreationDate,
-  },
-  {
-    key: "format",
-    text: (file) => file.mimeType,
-    sortValue: (file) => file.mimeType,
-    facet: true,
   },
 ];
