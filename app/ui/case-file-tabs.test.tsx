@@ -47,6 +47,9 @@ const caseFile = {
       fileTypeLabel: "Requête",
       eventCreationDate: new Date("2026-01-15T10:00:00"),
       mimeType: "application/pdf",
+      event: {
+        actor: { lastName: "Dupont", firstName: "Jean", legalPersonName: null, legalEntityName: null },
+      },
     },
   ],
   events: [
@@ -75,6 +78,7 @@ describe("CaseFileTabs", () => {
 
     expect(screen.getByText("requete.pdf")).toBeTruthy();
     expect(screen.getByText("Requête")).toBeTruthy();
+    expect(screen.getByText("Dupont Jean")).toBeTruthy();
   });
 
   it("affiche l'historique des événements quand ?tab=historique", () => {

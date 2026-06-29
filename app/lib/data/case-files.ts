@@ -227,7 +227,7 @@ export async function fetchCaseFileDetail(caseFileNumber: string) {
         include: { measure: true, actor: true, attachedFiles: true },
         orderBy: { eventDate: "desc" },
       },
-      attachedFiles: true,
+      attachedFiles: { include: { event: { include: { actor: true } } } },
       relatedSources: { include: { relatedCaseFile: true } },
       relatedTargets: { include: { caseFile: true } },
     },

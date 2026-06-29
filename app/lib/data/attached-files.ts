@@ -9,6 +9,7 @@ export async function fetchAttachedFile(encodedFileId: string) {
     include: {
       fileFamilyType: true,
       caseFile: { select: { caseFileNumber: true, title: true } },
+      event: { include: { actor: true } },
     },
   });
 }
@@ -28,6 +29,7 @@ export async function fetchCaseFilePieces(caseFileNumber: string) {
       fileTypeLabel: true,
       eventCreationDate: true,
       mimeType: true,
+      event: { select: { actor: true } },
     },
   });
 }

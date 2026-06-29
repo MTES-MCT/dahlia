@@ -48,6 +48,10 @@ const PIECES_COLUMN_DISPLAY: Record<
   type: { label: "Type" },
   date: { label: "Date", defaultOrder: "descending" },
   format: { label: "Format" },
+  proprietaire: {
+    label: "Propriétaire",
+    render: (piece) => (piece.event?.actor ? getActorDisplayName(piece.event.actor) : "—"),
+  },
 };
 
 // Attached files: free text searches Nom + Type; Nom/Type/Format are filterable

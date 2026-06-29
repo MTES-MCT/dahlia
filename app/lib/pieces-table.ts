@@ -4,9 +4,16 @@
 // same ordered/filtered list for its navigator). Prisma-free so it can run both
 // in the browser bundle and in the Server Component.
 
-import { formatDateFr } from "@/app/lib/case-file-format";
+import { formatDateFr, getActorDisplayName } from "@/app/lib/case-file-format";
 import { type TableParamNames } from "@/app/lib/case-file-search";
 import { type TableColumn, type SortOrder } from "@/app/lib/table-query";
+
+type PieceOwner = {
+  firstName: string | null;
+  lastName: string | null;
+  legalPersonName: string | null;
+  legalEntityName: string | null;
+};
 
 // Minimal shape of a pièce needed to filter/sort the table. Both the full
 // `attachedFiles` relation and the lighter list fetch satisfy it.
@@ -15,7 +22,14 @@ export type PieceQueryData = {
   fileTypeLabel: string;
   eventCreationDate: Date;
   mimeType: string;
+  event: {
+    actor: PieceOwner | null;
+  };
 };
+
+function getPieceOwnerDisplayName(piece: PieceQueryData): string {
+  return piece.event?.actor ? getActorDisplayName(piece.event.actor) : "";
+}
 
 // Prefixed URL params isolating the pièces table state within the case-file URL,
 // so it coexists with the other table (historique) and the selected tab.
@@ -56,6 +70,13 @@ export const piecesQueryColumns: TableColumn<PieceQueryData>[] = [
     key: "format",
     text: (file) => file.mimeType,
     sortValue: (file) => file.mimeType,
+    facet: true,
+  },
+  {
+    key: "proprietaire",
+    text: getPieceOwnerDisplayName,
+    sortValue: getPieceOwnerDisplayName,
+    searchable: true,
     facet: true,
   },
 ];

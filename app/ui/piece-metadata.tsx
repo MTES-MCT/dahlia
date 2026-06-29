@@ -1,5 +1,5 @@
 import { fr } from "@codegouvfr/react-dsfr";
-import { formatDateFr } from "@/app/lib/case-file-format";
+import { formatDateFr, getActorDisplayName } from "@/app/lib/case-file-format";
 import type { AttachedFileDetail } from "@/app/lib/data/attached-files";
 
 type Props = {
@@ -24,6 +24,10 @@ export function PieceMetadata({ file }: Props) {
         <MetadataItem label="Type de pièce" value={file.fileTypeLabel} />
         <MetadataItem label="Famille de pièce" value={file.fileFamilyType.label} />
         <MetadataItem label="Type de document" value={file.documentType} />
+        <MetadataItem
+          label="Propriétaire"
+          value={file.event?.actor ? getActorDisplayName(file.event.actor) : ""}
+        />
         <MetadataItem label="Format (MIME)" value={file.mimeType} />
         <MetadataItem label="Date de création" value={formatDateFr(file.eventCreationDate)} />
         <MetadataItem label="Identifiant Télérecours" value={file.encodedFileId} />
