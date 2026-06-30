@@ -44,6 +44,7 @@ const piecesTable = {
       encodedFileId: "f1",
       originalFileName: "requete.pdf",
       dahliaName: null,
+      number: null,
       fileTypeLabel: "Requête",
       fileFamilyTypeLabel: "Requête",
       fileFamilyType: { label: "Requête" },

@@ -1,14 +1,12 @@
 import { type CarriedSearchParams } from "@/app/lib/carried-search-params";
-import { pieceDisplayLabel } from "@/app/lib/piece-display";
+import { pieceDisplayLabel, type PieceLabelInput } from "@/app/lib/piece-display";
 import {
   buildCaseFileBreadcrumbSegment,
   CaseFileBreadcrumb,
   type CaseFileForBreadcrumb,
 } from "@/app/ui/breadcrumb/case-file-breadcrumb";
 
-type PieceForBreadcrumb = {
-  originalFileName: string;
-  dahliaName?: string | null;
+type PieceForBreadcrumb = PieceLabelInput & {
   caseFile: CaseFileForBreadcrumb;
 };
 

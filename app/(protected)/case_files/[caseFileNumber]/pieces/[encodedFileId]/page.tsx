@@ -1,13 +1,21 @@
 import { fr } from "@codegouvfr/react-dsfr";
 import { notFound } from "next/navigation";
-import { fetchAttachedFile, fetchCaseFilePiecesFiltered } from "@/app/lib/data/attached-files";
+import {
+  CaseFilePiece,
+  fetchAttachedFile,
+  fetchCaseFilePiecesFiltered,
+} from "@/app/lib/data/attached-files";
 import {
   PIECES_PARAMS,
   PIECES_DEFAULT_SORT_BY,
   PIECES_DEFAULT_ORDER,
 } from "@/app/lib/pieces-table";
 import { parseTableQueryState } from "@/app/lib/table-query-state";
-import { pieceDisplayLabel, pieceEditionHref } from "@/app/lib/piece-display";
+import {
+  pieceDisplayLabel,
+  pieceDownloadFileName,
+  pieceEditionHref,
+} from "@/app/lib/piece-display";
 import { PieceViewer } from "@/app/ui/piece-viewer";
 import { PieceNavigator } from "@/app/ui/piece-navigator";
 import { PieceMetadata } from "@/app/ui/piece-metadata";
@@ -38,6 +46,12 @@ export default async function Page({ params, searchParams }: Props) {
 
   const encodedCaseFileNumber = encodeURIComponent(decodedCaseFileNumber);
   const dataUrl = `/case_files/${encodedCaseFileNumber}/pieces/${encodeURIComponent(decodedFileId)}/data`;
+
+  // Outside production the data route serves a mocked PDF regardless of the real
+  // pièce type, so the viewer must render it as a PDF even when the original
+  // file was an image.
+  const viewerMimeType =
+    process.env.ENVIRONMENT !== "production" ? "application/pdf" : file.mimeType;
 
   const piecesState = parseTableQueryState(resolvedSearchParams, PIECES_PARAMS, {
     defaultSortBy: PIECES_DEFAULT_SORT_BY,
@@ -73,8 +87,8 @@ export default async function Page({ params, searchParams }: Props) {
         <div className={fr.cx("fr-col-12", "fr-col-lg-7")}>
           <PieceViewer
             dataUrl={dataUrl}
-            mimeType={file.mimeType}
-            fileName={file.originalFileName}
+            mimeType={viewerMimeType}
+            fileName={pieceDownloadFileName(file)}
           />
         </div>
 

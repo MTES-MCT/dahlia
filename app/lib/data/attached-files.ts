@@ -21,6 +21,7 @@ const PIECES_LIST_SELECT = {
   encodedFileId: true,
   originalFileName: true,
   dahliaName: true,
+  number: true,
   fileTypeLabel: true,
   fileFamilyTypeLabel: true,
   fileFamilyType: { select: { label: true } },

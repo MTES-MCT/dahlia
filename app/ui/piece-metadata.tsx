@@ -20,7 +20,7 @@ export function PieceMetadata({ file }: Props) {
     <>
       <h3>Métadonnées de la pièce</h3>
       <ul className={fr.cx("fr-mb-3w")} style={{ listStyle: "none", paddingLeft: 0 }}>
-        <MetadataItem label="Nom du fichier" value={file.originalFileName} />
+        <MetadataItem label="Nom original du fichier" value={file.originalFileName} />
         <MetadataItem label="Type de pièce" value={file.fileTypeLabel} />
         <MetadataItem label="Famille de pièce" value={file.fileFamilyType.label} />
         <MetadataItem label="Type de document" value={file.documentType} />
