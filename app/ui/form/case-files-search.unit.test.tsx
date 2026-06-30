@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 import { DASHBOARD_TABLE_PARAMS } from "@/app/lib/case-file-search";
 import { buildCaseFilesSearchConfig } from "./case-files-search";
-import { TableSearchForm } from "@/app/ui/table/table-search-form";
+import { TableSearchForm } from "@/app/ui/form/table-search-form";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),

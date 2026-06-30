@@ -1,4 +1,4 @@
-import { SearchBar } from "@/app/ui/search/search-bar";
+import { SearchBar } from "@/app/ui/form/search-bar";
 
 type Props = {
   // URL param name backing this table's search query (also used for the input id).

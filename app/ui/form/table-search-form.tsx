@@ -8,8 +8,8 @@ import { useRouter } from "next/navigation";
 import { type FormEvent } from "react";
 import { type TableParamNames } from "@/app/lib/case-file-search";
 import { type TableSearchHiddenParam } from "@/app/lib/table-search-context";
-import { HiddenField } from "@/app/ui/hidden-field";
-import { TableSearchBar } from "@/app/ui/table/table-search-bar";
+import { HiddenField } from "@/app/ui/form/hidden-field";
+import { TableSearchBar } from "@/app/ui/form/table-search-bar";
 
 export type TableSearchFormProps = {
   action: string;

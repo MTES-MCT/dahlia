@@ -1,7 +1,7 @@
 "use client";
 
 import { SortableColumnHeader } from "@/app/ui/table/sortable-column-header";
-import { ColumnFilterButton } from "@/app/ui/table/column-filter-button";
+import { ColumnFilterButton } from "@/app/ui/button/column-filter-button";
 import { type TableParamNames } from "@/app/lib/case-file-search";
 import { type SortOrder } from "@/app/lib/table-sort";
 

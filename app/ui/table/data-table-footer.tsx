@@ -1,11 +1,11 @@
 "use client";
 
-import { fr } from "@codegouvfr/react-dsfr";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type TableParamNames } from "@/app/lib/case-file-search";
 import { type TablePageSize, type TablePageSizeId } from "@/app/lib/table-page-size";
-import { TablePaginationFooter } from "@/app/ui/table-pagination-footer";
-import { setTablePageSizeCookie } from "@/app/ui/use-table-page-size";
+import { DownloadButton } from "@/app/ui/button/download-button";
+import { TablePaginationFooter } from "@/app/ui/table/table-pagination-footer";
+import { setTablePageSizeCookie } from "@/app/ui/table/use-table-page-size";
 
 type Props = {
   params: TableParamNames;
@@ -82,23 +82,7 @@ export function DataTableFooter({
         })}
         onPageSizeChange={handlePageSizeChange}
       />
-      {exportPath && (
-        // Plain anchor (not a DSFR Button/Next Link) so the browser performs a
-        // real navigation to the route handler and triggers the file download.
-        <a
-          className={fr.cx(
-            "fr-btn",
-            "fr-btn--secondary",
-            "fr-icon-download-line",
-            "fr-btn--icon-left",
-            "fr-mb-2w",
-          )}
-          href={buildExportHref()}
-          download
-        >
-          Télécharger les résultats
-        </a>
-      )}
+      {exportPath && <DownloadButton href={buildExportHref()} />}
     </>
   );
 }

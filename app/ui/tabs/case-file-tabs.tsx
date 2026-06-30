@@ -11,7 +11,7 @@ import { type CaseFileTabId } from "@/app/lib/case-file-tabs";
 import { buildBackParams, type CarriedSearchParams } from "@/app/lib/carried-search-params";
 import { buildTableSearchContext } from "@/app/lib/table-search-context";
 import { CaseFileTabNav } from "@/app/ui/tabs/case-file-tab-nav";
-import { RefreshCaseFileButton } from "@/app/ui/refresh-case-file-button";
+import { RefreshCaseFileButton } from "@/app/ui/button/refresh-case-file-button";
 import { DataTable, type DataTableColumn } from "@/app/ui/table/data-table";
 import { renderPieceNameCell, renderPieceTypeCell } from "@/app/ui/table/piece-table-cells";
 

@@ -4,7 +4,7 @@ import { fr } from "@codegouvfr/react-dsfr";
 import { Pagination } from "@codegouvfr/react-dsfr/Pagination";
 import clsx from "clsx";
 import { type TablePageSize } from "@/app/lib/table-page-size";
-import { TablePageSizeSelect } from "@/app/ui/table-page-size-select";
+import { TablePageSizeSelect } from "@/app/ui/table/table-page-size-select";
 
 type Props = {
   pageSize: TablePageSize;
@@ -26,7 +26,11 @@ export function TablePaginationFooter({
   return (
     <div className={clsx("flex", "flex-wrap", "items-center", "gap-4")}>
       <div className={clsx("flex", "flex-wrap", "items-center", "gap-2")}>
-        <TablePageSizeSelect pageSize={pageSize} onChange={onPageSizeChange} />
+        <TablePageSizeSelect
+          pageSize={pageSize}
+          onChange={onPageSizeChange}
+          className={clsx(fr.cx("fr-mb-2w"))}
+        />
 
         {totalPages > 1 && (
           <Pagination

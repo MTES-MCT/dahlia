@@ -16,9 +16,9 @@ import { parseTableQueryState } from "@/app/lib/table-query-state";
 import { formatDateFr, getActorDisplayName } from "@/app/lib/case-file-format";
 import { statusLabelForCount } from "@/app/lib/status-label-plural";
 import { DEFAULT_STATUT, resolveCurrentStatut } from "@/app/lib/dashboard-filter";
-import { buildCaseFilesSearchConfig } from "@/app/ui/search/case-files-search";
+import { buildCaseFilesSearchConfig } from "@/app/ui/form/case-files-search";
 import { DataTable, type DataTableColumn } from "@/app/ui/table/data-table";
-import { MemoryDeadlineCell } from "@/app/ui/memory-deadline-cell";
+import { MemoryDeadlineCell } from "@/app/ui/table/memory-deadline-cell";
 import { type Prisma } from "@prisma/client";
 
 type CaseFileRow = Prisma.CaseFileGetPayload<{
