@@ -23,6 +23,7 @@ const mockPiece = {
   encodedFileId: "ENC-1",
   originalFileName: "memoire.pdf",
   dahliaName: null,
+  number: null,
   fileTypeLabel: "Mémoire en défense",
   fileFamilyTypeLabel: "Mémoire",
   fileFamilyType: { label: "Mémoire" },

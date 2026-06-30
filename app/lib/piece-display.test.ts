@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { pieceDisplayLabel, pieceEditionHref } from "@/app/lib/piece-display";
+import {
+  pieceDisplayLabel,
+  pieceDownloadFileName,
+  pieceEditionHref,
+} from "@/app/lib/piece-display";
 
 describe("pieceDisplayLabel", () => {
   it("returns dahliaName when set", () => {
@@ -12,6 +16,33 @@ describe("pieceDisplayLabel", () => {
     expect(pieceDisplayLabel({ dahliaName: null, originalFileName: "requete.pdf" })).toBe(
       "requete.pdf",
     );
+  });
+});
+
+describe("pieceDownloadFileName", () => {
+  it("appends the original extension to the DAHLIA display label", () => {
+    expect(
+      pieceDownloadFileName({
+        dahliaName: "Pièce introductive",
+        number: "1",
+        originalFileName: "scan_requete.pdf",
+      }),
+    ).toBe("1 - Pièce introductive.pdf");
+  });
+
+  it("keeps originalFileName when dahliaName is unset", () => {
+    expect(
+      pieceDownloadFileName({ dahliaName: null, originalFileName: "requete.pdf" }),
+    ).toBe("requete.pdf");
+  });
+
+  it("returns the label unchanged when the original file has no extension", () => {
+    expect(
+      pieceDownloadFileName({
+        dahliaName: "Pièce sans extension",
+        originalFileName: "sans_ext",
+      }),
+    ).toBe("Pièce sans extension");
   });
 });
 

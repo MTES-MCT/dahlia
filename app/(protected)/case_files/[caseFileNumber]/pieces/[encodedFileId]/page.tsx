@@ -1,13 +1,21 @@
 import { fr } from "@codegouvfr/react-dsfr";
 import { notFound } from "next/navigation";
-import { fetchAttachedFile, fetchCaseFilePiecesFiltered } from "@/app/lib/data/attached-files";
+import {
+  CaseFilePiece,
+  fetchAttachedFile,
+  fetchCaseFilePiecesFiltered,
+} from "@/app/lib/data/attached-files";
 import {
   PIECES_PARAMS,
   PIECES_DEFAULT_SORT_BY,
   PIECES_DEFAULT_ORDER,
 } from "@/app/lib/pieces-table";
 import { parseTableQueryState } from "@/app/lib/table-query-state";
-import { pieceDisplayLabel, pieceEditionHref } from "@/app/lib/piece-display";
+import {
+  pieceDisplayLabel,
+  pieceDownloadFileName,
+  pieceEditionHref,
+} from "@/app/lib/piece-display";
 import { PieceViewer } from "@/app/ui/piece-viewer";
 import { PieceNavigator } from "@/app/ui/piece-navigator";
 import { PieceMetadata } from "@/app/ui/piece-metadata";
@@ -80,7 +88,7 @@ export default async function Page({ params, searchParams }: Props) {
           <PieceViewer
             dataUrl={dataUrl}
             mimeType={viewerMimeType}
-            fileName={file.originalFileName}
+            fileName={pieceDownloadFileName(file)}
           />
         </div>
 
