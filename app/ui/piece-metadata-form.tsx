@@ -24,7 +24,7 @@ export function PieceMetadataForm({ encodedFileId, dahliaName, number, comment }
       <input type="hidden" name="encodedFileId" value={encodedFileId} />
 
       <Input
-        label="Renommée"
+        label="Nom sur DAHLIA"
         nativeInputProps={{
           name: "dahliaName",
           defaultValue: dahliaName,
