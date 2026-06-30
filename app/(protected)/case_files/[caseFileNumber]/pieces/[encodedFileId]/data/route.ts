@@ -1,5 +1,6 @@
 import { fetchAttachedFile } from "@/app/lib/data/attached-files";
 import { getTelerecoursClient } from "@/app/lib/telerecours";
+import { readMockedPdf } from "@/app/lib/mocked-pieces";
 import { describeError } from "@/data/telerecours/http";
 
 type RouteContext = {
@@ -17,6 +18,26 @@ export async function GET(_request: Request, { params }: RouteContext) {
   const file = await fetchAttachedFile(decodedFileId);
   if (!file || file.caseFileNumber !== decodedCaseFileNumber) {
     return new Response("Pièce introuvable", { status: 404 });
+  }
+
+  // Outside production we never hit Télérecours: serve a fake PDF picked from
+  // `files/mocked_pdfs` according to the pièce type (random among candidates,
+  // falling back to `Autre.pdf` for unknown types).
+  if (process.env.ENVIRONMENT !== "production") {
+    try {
+      const { data, fileName } = await readMockedPdf(file.fileTypeLabel);
+      return new Response(new Uint8Array(data), {
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `inline; filename="${fileName}"`,
+          "Cache-Control": "no-store",
+        },
+      });
+    } catch (error) {
+      return new Response(`Échec du chargement de la pièce simulée : ${describeError(error)}`, {
+        status: 500,
+      });
+    }
   }
 
   try {

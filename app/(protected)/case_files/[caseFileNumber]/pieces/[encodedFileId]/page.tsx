@@ -39,6 +39,12 @@ export default async function Page({ params, searchParams }: Props) {
   const encodedCaseFileNumber = encodeURIComponent(decodedCaseFileNumber);
   const dataUrl = `/case_files/${encodedCaseFileNumber}/pieces/${encodeURIComponent(decodedFileId)}/data`;
 
+  // Outside production the data route serves a mocked PDF regardless of the real
+  // pièce type, so the viewer must render it as a PDF even when the original
+  // file was an image.
+  const viewerMimeType =
+    process.env.ENVIRONMENT !== "production" ? "application/pdf" : file.mimeType;
+
   const piecesState = parseTableQueryState(resolvedSearchParams, PIECES_PARAMS, {
     defaultSortBy: PIECES_DEFAULT_SORT_BY,
     defaultOrder: PIECES_DEFAULT_ORDER,
@@ -73,7 +79,7 @@ export default async function Page({ params, searchParams }: Props) {
         <div className={fr.cx("fr-col-12", "fr-col-lg-7")}>
           <PieceViewer
             dataUrl={dataUrl}
-            mimeType={file.mimeType}
+            mimeType={viewerMimeType}
             fileName={file.originalFileName}
           />
         </div>
