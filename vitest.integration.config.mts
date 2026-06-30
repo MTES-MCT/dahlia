@@ -15,7 +15,7 @@ if (process.argv.includes("--db-reset")) {
 // Integration tests (`*.integration.test.{ts,tsx}`) run against a real Postgres
 // database (see data/test-support/integration-db.ts). Run with
 // `pnpm test:integration` (or `pnpm test:integration -- --db-reset` to wipe and
-// re-apply all migrations); they are excluded from the default `pnpm test` suite.
+// re-apply all migrations); unit tests use `*.unit.test.{ts,tsx}` via `pnpm test:unit`.
 export default defineConfig({
   plugins: [tsconfigPaths(), react()],
   resolve: {
@@ -26,6 +26,7 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     include: ["**/*.integration.test.{ts,tsx}"],
+    exclude: ["**/node_modules/**", "**/dist/**"],
     // Booting the DB + migrations can take a little while on the first run.
     hookTimeout: 60000,
   },

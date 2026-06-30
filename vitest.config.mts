@@ -6,6 +6,12 @@ import tsconfigPaths from "vite-tsconfig-paths";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// Custom flag consumed by integration-db.ts; strip it so Vitest does not choke.
+if (process.argv.includes("--db-reset")) {
+  process.env.DAHLIA_INTEGRATION_DB_RESET = "1";
+  process.argv.splice(process.argv.indexOf("--db-reset"), 1);
+}
+
 export default defineConfig({
   plugins: [tsconfigPaths(), react()],
   resolve: {
@@ -15,9 +21,9 @@ export default defineConfig({
   },
   test: {
     environment: "jsdom",
-    // Integration tests need a real Postgres database and are run separately via
-    // `pnpm test:integration` (vitest.integration.config.mts). Keep the default
-    // suite Postgres-free.
-    exclude: ["**/node_modules/**", "**/dist/**", "**/*.integration.test.{ts,tsx}"],
+    include: ["**/*.test.{ts,tsx}"],
+    exclude: ["**/node_modules/**", "**/dist/**"],
+    // Booting the DB + migrations can take a little while on the first run.
+    hookTimeout: 60000,
   },
 });
