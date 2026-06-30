@@ -126,7 +126,7 @@ describe("case-files", () => {
       expect(result).toBe("Martin");
     });
 
-    it("returns N/A when no name is available", () => {
+    it("returns '-' when no name is available", () => {
       const actor = {
         ...actorBase,
         id: 99,
@@ -135,7 +135,7 @@ describe("case-files", () => {
         firstName: null,
         lastName: null,
       };
-      expect(getActorDisplayName(actor)).toBe("N/A");
+      expect(getActorDisplayName(actor)).toBe("-");
     });
 
     it("returns legalEntityName when no other name is available", () => {

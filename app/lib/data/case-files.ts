@@ -211,6 +211,31 @@ export async function fetchCaseFileDebugSnapshot(caseFileNumber: string) {
   });
 }
 
+// All case files matching the current filter/sort, without pagination. Used by
+// the xlsx export route so the downloaded file mirrors the dashboard filter but
+// contains every matching row.
+export async function fetchAllCaseFilesForExport(
+  sortBy: string | null,
+  sortOrder: string,
+  query: string | null = null,
+  statusLabel: string | null = null,
+): Promise<CaseFileWithRelations[]> {
+  const direction: Prisma.SortOrder = sortOrder === "ascending" ? "asc" : "desc";
+  const where = buildWhere(query, statusLabel);
+  return prisma.caseFile.findMany({
+    include: {
+      mainClaimant: true,
+      mainDefender: true,
+      lastProducer: true,
+      urgency: true,
+      lastStatus: true,
+      lastHearing: true,
+    },
+    where,
+    ...(sortBy ? { orderBy: buildOrderBy(sortBy, direction) } : {}),
+  });
+}
+
 export async function fetchCaseFilesTableData(
   page: number,
   numberOfCaseFiles: number,

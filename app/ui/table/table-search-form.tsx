@@ -1,7 +1,11 @@
+"use client";
+
 import { fr } from "@codegouvfr/react-dsfr";
 import { Button } from "@codegouvfr/react-dsfr/Button";
 import clsx from "clsx";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { type FormEvent } from "react";
 import { type TableParamNames } from "@/app/lib/case-file-search";
 import { type TableSearchHiddenParam } from "@/app/lib/table-search-context";
 import { HiddenField } from "@/app/ui/hidden-field";
@@ -20,9 +24,9 @@ export type TableSearchFormProps = {
   className?: string;
 };
 
-// Server-rendered GET search form for a table. Submitting navigates with the
-// visible query under `params.query`, preserves `hiddenParams`, and omits
-// `params.page` so pagination resets to page 1. Reset is a plain link.
+// GET search form for a table. Submitting navigates with the visible query under
+// `params.query`, preserves `hiddenParams`, and omits `params.page` so pagination
+// resets to page 1. Navigation uses `scroll: false` so the viewport stays put.
 export function TableSearchForm({
   action,
   params,
@@ -34,8 +38,31 @@ export function TableSearchForm({
   searchSlot,
   className,
 }: TableSearchFormProps) {
+  const router = useRouter();
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const nextParams = new URLSearchParams();
+    for (const [key, value] of formData.entries()) {
+      if (typeof value === "string") {
+        nextParams.append(key, value);
+      }
+    }
+    const queryString = nextParams.toString();
+    const href = queryString ? `${action}?${queryString}` : action;
+    router.push(href, { scroll: false });
+    router.refresh();
+  }
+
   return (
-    <form role="search" method="get" action={action} className={clsx("fr-mb-2w", className)}>
+    <form
+      role="search"
+      method="get"
+      action={action}
+      onSubmit={handleSubmit}
+      className={clsx("fr-mb-2w", className)}
+    >
       {hiddenParams.map(({ name, value }, index) => (
         <HiddenField key={`${name}-${index}`} name={name} value={value} />
       ))}
@@ -56,6 +83,7 @@ export function TableSearchForm({
         </Button>
         <Link
           href={resetHref}
+          scroll={false}
           className={fr.cx("fr-link", "fr-icon-refresh-line", "fr-link--icon-left")}
         >
           Ré-initialiser la recherche

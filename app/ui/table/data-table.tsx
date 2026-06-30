@@ -42,6 +42,9 @@ export type DataTableProps<T> = {
   caption: (totalCount: number) => string;
   search: DataTableSearchConfig;
   preserveParams?: Record<string, string | undefined>;
+  // When set, a "download" button (flush right of the pagination) exports every
+  // matching row to this route, preserving the current filter and sort.
+  exportPath?: string;
 };
 
 // Unified server-rendered table: search bar, column headers (sort + facet),
@@ -60,6 +63,7 @@ export function DataTable<T>({
   caption,
   search,
   preserveParams,
+  exportPath,
 }: DataTableProps<T>) {
   return (
     <>
@@ -89,6 +93,7 @@ export function DataTable<T>({
         totalPages={totalPages}
         pageSize={pageSize}
         preserveParams={preserveParams}
+        exportPath={exportPath}
       />
     </>
   );

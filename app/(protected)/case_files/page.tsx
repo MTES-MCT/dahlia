@@ -15,12 +15,11 @@ import {
 import { parseTableQueryState } from "@/app/lib/table-query-state";
 import { formatDateFr, getActorDisplayName } from "@/app/lib/case-file-format";
 import { statusLabelForCount } from "@/app/lib/status-label-plural";
+import { DEFAULT_STATUT, resolveCurrentStatut } from "@/app/lib/dashboard-filter";
 import { buildCaseFilesSearchConfig } from "@/app/ui/search/case-files-search";
 import { DataTable, type DataTableColumn } from "@/app/ui/table/data-table";
 import { MemoryDeadlineCell } from "@/app/ui/memory-deadline-cell";
 import { type Prisma } from "@prisma/client";
-
-const DEFAULT_STATUT = "Inscrit au rôle d'une audience";
 
 type CaseFileRow = Prisma.CaseFileGetPayload<{
   include: {
@@ -140,8 +139,7 @@ export default async function Page({ searchParams }: Props) {
     },
   );
 
-  const currentStatut =
-    statutParam === undefined ? DEFAULT_STATUT : statutParam.trim() ? statutParam.trim() : null;
+  const currentStatut = resolveCurrentStatut(statutParam);
 
   const cookieStore = await cookies();
   const pageSize = parseTablePageSize(
@@ -202,6 +200,7 @@ export default async function Page({ searchParams }: Props) {
           `${count} dossier${count > 1 ? "s" : ""}${currentStatut ? ` ${statusLabelForCount(count, currentStatut)}` : ""}`
         }
         preserveParams={statutPreserve}
+        exportPath="/case_files/export"
       />
     </>
   );

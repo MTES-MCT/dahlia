@@ -63,21 +63,19 @@ describe("CaseFileDetailsCard", () => {
 
   it("affiche des tirets pour la chambre et la date de réception absentes", () => {
     render(
-      <CaseFileDetailsCard
-        caseFile={caseFileFixture({ chamber: null, depositDate: null })}
-      />,
+      <CaseFileDetailsCard caseFile={caseFileFixture({ chamber: null, depositDate: null })} />,
     );
 
     expect(screen.getAllByText("—")).toHaveLength(2);
   });
 
-  it("affiche N/A pour les acteurs absents", () => {
+  it("affiche '-' pour les acteurs absents", () => {
     render(
       <CaseFileDetailsCard
         caseFile={caseFileFixture({ mainClaimant: undefined, mainDefender: undefined })}
       />,
     );
 
-    expect(screen.getAllByText("N/A")).toHaveLength(2);
+    expect(screen.getAllByText("-")).toHaveLength(2);
   });
 });

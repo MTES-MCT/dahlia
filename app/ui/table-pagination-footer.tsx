@@ -2,6 +2,7 @@
 
 import { fr } from "@codegouvfr/react-dsfr";
 import { Pagination } from "@codegouvfr/react-dsfr/Pagination";
+import clsx from "clsx";
 import { type TablePageSize } from "@/app/lib/table-page-size";
 import { TablePageSizeSelect } from "@/app/ui/table-page-size-select";
 
@@ -11,6 +12,8 @@ type Props = {
   currentPage: number;
   totalPages: number;
   getPageLinkProps: (pageNumber: number) => { href: string; scroll?: boolean };
+  // Optional content pushed to the right edge of the footer (e.g. an export button).
+  rightSlot?: React.ReactNode;
 };
 
 export function TablePaginationFooter({
@@ -21,20 +24,20 @@ export function TablePaginationFooter({
   getPageLinkProps,
 }: Props) {
   return (
-    <div
-      className={fr.cx("fr-mt-2w")}
-      style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: "1rem" }}
-    >
-      <TablePageSizeSelect pageSize={pageSize} onChange={onPageSizeChange} />
+    <div className={clsx("flex", "flex-wrap", "items-center", "gap-4")}>
+      <div className={clsx("flex", "flex-wrap", "items-center", "gap-2")}>
+        <TablePageSizeSelect pageSize={pageSize} onChange={onPageSizeChange} />
 
-      {totalPages > 1 && (
-        <Pagination
-          count={totalPages}
-          defaultPage={currentPage}
-          getPageLinkProps={getPageLinkProps}
-          showFirstLast
-        />
-      )}
+        {totalPages > 1 && (
+          <Pagination
+            className={clsx(fr.cx("fr-mt-2w"))}
+            count={totalPages}
+            defaultPage={currentPage}
+            getPageLinkProps={getPageLinkProps}
+            showFirstLast={false}
+          />
+        )}
+      </div>
     </div>
   );
 }
