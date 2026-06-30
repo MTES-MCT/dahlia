@@ -6,12 +6,6 @@ import tsconfigPaths from "vite-tsconfig-paths";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Custom flag consumed by integration-db.ts; strip it so Vitest does not choke.
-if (process.argv.includes("--db-reset")) {
-  process.env.DAHLIA_INTEGRATION_DB_RESET = "1";
-  process.argv.splice(process.argv.indexOf("--db-reset"), 1);
-}
-
 export default defineConfig({
   plugins: [tsconfigPaths(), react()],
   resolve: {
@@ -21,9 +15,7 @@ export default defineConfig({
   },
   test: {
     environment: "jsdom",
-    include: ["**/*.test.{ts,tsx}"],
+    include: ["**/*.unit.test.{ts,tsx}"],
     exclude: ["**/node_modules/**", "**/dist/**"],
-    // Booting the DB + migrations can take a little while on the first run.
-    hookTimeout: 60000,
   },
 });
