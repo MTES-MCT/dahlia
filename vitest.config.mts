@@ -15,9 +15,7 @@ export default defineConfig({
   },
   test: {
     environment: "jsdom",
-    // Integration tests need a real Postgres database and are run separately via
-    // `pnpm test:integration` (vitest.integration.config.mts). Keep the default
-    // suite Postgres-free.
-    exclude: ["**/node_modules/**", "**/dist/**", "**/*.integration.test.{ts,tsx}"],
+    include: ["**/*.unit.test.{ts,tsx}"],
+    exclude: ["**/node_modules/**", "**/dist/**"],
   },
 });

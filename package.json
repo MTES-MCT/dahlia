@@ -21,7 +21,8 @@
     "db:format": "prisma format",
     "scrape:dev": "ts-node -P data/tsconfig.json data/cli/scrape-telerecours.ts",
     "download:dev": "ts-node -P data/tsconfig.json data/telecharge-fichier.ts",
-    "test": "vitest",
+    "test": "pnpm test:unit && pnpm test:integration",
+    "test:unit": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.mts"
   },
   "dependencies": {
