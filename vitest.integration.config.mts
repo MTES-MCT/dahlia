@@ -26,6 +26,7 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     include: ["**/*.integration.test.{ts,tsx}"],
+    exclude: ["**/node_modules/**", "**/dist/**"],
     // Booting the DB + migrations can take a little while on the first run.
     hookTimeout: 60000,
   },
