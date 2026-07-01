@@ -18,11 +18,11 @@ export function formatDateFr(date: Date | null | undefined): string {
 }
 
 export function getActorDisplayName(actor: ActorForDisplay): string {
-  if (!actor) return "N/A";
+  if (!actor) return "-";
   if (actor.legalPersonName) return actor.legalPersonName;
   if (actor.legalEntityName) return actor.legalEntityName;
   if (actor.firstName && actor.lastName) return `${actor.lastName} ${actor.firstName}`;
   if (actor.lastName) return actor.lastName;
   if (actor.firstName) return actor.firstName;
-  return "N/A";
+  return "-";
 }

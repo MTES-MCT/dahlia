@@ -1,7 +1,11 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 import { PIECES_PARAMS } from "@/app/lib/pieces-table";
 import { TableSearchForm } from "./table-search-form";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
+}));
 
 function getForm(): HTMLFormElement {
   return screen.getByRole("search") as HTMLFormElement;

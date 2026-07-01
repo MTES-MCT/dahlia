@@ -1,9 +1,9 @@
 import clsx from "clsx";
 import { DASHBOARD_TABLE_PARAMS } from "@/app/lib/case-file-search";
 import { buildDashboardSortHiddenParams } from "@/app/lib/table-search-context";
-import { CaseFilesSearchByStatus } from "@/app/ui/search/case-files-search-by-status";
+import { CaseFilesSearchByStatus } from "@/app/ui/form/case-files-search-by-status";
+import { TableSearchBar } from "@/app/ui/form/table-search-bar";
 import { type DataTableSearchConfig } from "@/app/ui/table/data-table";
-import { TableSearchBar } from "@/app/ui/table/table-search-bar";
 
 const PLACEHOLDER = 'ex. « dupont » ou « requerant:prefet defendeur:"jean dupont" »';
 

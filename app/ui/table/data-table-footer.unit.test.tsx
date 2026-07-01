@@ -12,7 +12,7 @@ vi.mock("next/navigation", () => ({
   useSearchParams: vi.fn(),
 }));
 
-vi.mock("@/app/ui/use-table-page-size", () => ({
+vi.mock("@/app/ui/table/use-table-page-size", () => ({
   setTablePageSizeCookie: (...args: unknown[]) => mockSetTablePageSizeCookie(...args),
 }));
 

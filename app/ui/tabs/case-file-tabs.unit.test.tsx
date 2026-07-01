@@ -28,7 +28,7 @@ vi.mock("@/app/lib/data/case-files", async (importOriginal) => {
   };
 });
 
-vi.mock("@/app/ui/refresh-case-file-button", () => ({
+vi.mock("@/app/ui/button/refresh-case-file-button", () => ({
   RefreshCaseFileButton: () => null,
 }));
 
