@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Deploy to Prod
         uses: kolok/deploy-to-scalingo@3c03e17a8815000194aa06289db6e80ef1a687bc # v1
