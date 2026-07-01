@@ -5,7 +5,9 @@ import { type SortOrder } from "@/app/lib/table-sort";
 import { type TablePageSize, type TablePageSizeId } from "@/app/lib/table-page-size";
 import { ColumnHeader } from "@/app/ui/table/column-header";
 import { DataTableFooter } from "@/app/ui/table/data-table-footer";
-import { TableSearchForm } from "@/app/ui/table/table-search-form";
+import { TableSearchForm } from "@/app/ui/form/table-search-form";
+import clsx from "clsx";
+import { fr } from "@codegouvfr/react-dsfr";
 
 export type DataTableColumn<T> = {
   key: string;
@@ -42,6 +44,9 @@ export type DataTableProps<T> = {
   caption: (totalCount: number) => string;
   search: DataTableSearchConfig;
   preserveParams?: Record<string, string | undefined>;
+  // When set, a "download" button (flush right of the pagination) exports every
+  // matching row to this route, preserving the current filter and sort.
+  exportPath?: string;
 };
 
 // Unified server-rendered table: search bar, column headers (sort + facet),
@@ -60,6 +65,7 @@ export function DataTable<T>({
   caption,
   search,
   preserveParams,
+  exportPath,
 }: DataTableProps<T>) {
   return (
     <>
@@ -80,6 +86,7 @@ export function DataTable<T>({
           />
         ))}
         data={rows.map((row) => columns.map((column) => column.render(row)))}
+        className={clsx(fr.cx("fr-mb-2w"))}
       />
 
       <DataTableFooter
@@ -89,6 +96,7 @@ export function DataTable<T>({
         totalPages={totalPages}
         pageSize={pageSize}
         preserveParams={preserveParams}
+        exportPath={exportPath}
       />
     </>
   );

@@ -1,10 +1,6 @@
 import { fr } from "@codegouvfr/react-dsfr";
 import { notFound } from "next/navigation";
-import {
-  CaseFilePiece,
-  fetchAttachedFile,
-  fetchCaseFilePiecesFiltered,
-} from "@/app/lib/data/attached-files";
+import { fetchAttachedFile, fetchCaseFilePiecesFiltered } from "@/app/lib/data/attached-files";
 import {
   PIECES_PARAMS,
   PIECES_DEFAULT_SORT_BY,
@@ -19,7 +15,7 @@ import {
 import { PieceViewer } from "@/app/ui/piece-viewer";
 import { PieceNavigator } from "@/app/ui/piece-navigator";
 import { PieceMetadata } from "@/app/ui/piece-metadata";
-import { PieceMetadataForm } from "@/app/ui/piece-metadata-form";
+import { PieceMetadataForm } from "@/app/ui/form/piece-metadata-form";
 import { PieceCaseFileBreadcrumb } from "@/app/ui/breadcrumb/piece-case-file-breadcrumb";
 
 type Props = {
