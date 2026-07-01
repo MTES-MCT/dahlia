@@ -1,10 +1,6 @@
 import { fr } from "@codegouvfr/react-dsfr";
 import { notFound } from "next/navigation";
-import {
-  CaseFilePiece,
-  fetchAttachedFile,
-  fetchCaseFilePiecesFiltered,
-} from "@/app/lib/data/attached-files";
+import { fetchAttachedFile, fetchCaseFilePiecesFiltered } from "@/app/lib/data/attached-files";
 import {
   PIECES_PARAMS,
   PIECES_DEFAULT_SORT_BY,
