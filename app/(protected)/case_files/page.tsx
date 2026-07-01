@@ -6,6 +6,10 @@ import {
   fetchUsedStatusLabels,
   HEARING_CONVOCATION_SORT_KEY,
 } from "@/app/lib/data/case-files";
+import {
+  CASE_FILES_DASHBOARD_COLUMNS,
+  type CaseFileDashboardRow,
+} from "@/app/lib/case-files-dashboard-columns";
 import { FACET_KEYS, DASHBOARD_TABLE_PARAMS } from "@/app/lib/case-file-search";
 import {
   DEFAULT_TABLE_PAGE_SIZES,
@@ -13,23 +17,11 @@ import {
   parseTablePageSize,
 } from "@/app/lib/table-page-size";
 import { parseTableQueryState } from "@/app/lib/table-query-state";
-import { formatDateFr, getActorDisplayName } from "@/app/lib/case-file-format";
 import { statusLabelForCount } from "@/app/lib/status-label-plural";
 import { DEFAULT_STATUT, resolveCurrentStatut } from "@/app/lib/dashboard-filter";
 import { buildCaseFilesSearchConfig } from "@/app/ui/form/case-files-search";
 import { DataTable, type DataTableColumn } from "@/app/ui/table/data-table";
 import { MemoryDeadlineCell } from "@/app/ui/table/memory-deadline-cell";
-import { type Prisma } from "@prisma/client";
-
-type CaseFileRow = Prisma.CaseFileGetPayload<{
-  include: {
-    mainClaimant: true;
-    mainDefender: true;
-    lastProducer: true;
-    lastStatus: true;
-    lastHearing: true;
-  };
-}>;
 
 function setStatutSearchParam(
   params: URLSearchParams,
@@ -43,72 +35,35 @@ function setStatutSearchParam(
   }
 }
 
-function dashboardColumns(detailQueryString: string): DataTableColumn<CaseFileRow>[] {
+function dashboardColumns(detailQueryString: string): DataTableColumn<CaseFileDashboardRow>[] {
   const suffix = detailQueryString ? `?${detailQueryString}` : "";
 
-  return [
-    {
-      key: "caseFileNumber",
-      facetKey: "dossier",
-      label: "Dossier",
-      sortable: true,
-      facet: true,
-      render: (caseFile) => (
-        <Link href={`/case_files/${encodeURIComponent(caseFile.caseFileNumber)}${suffix}`}>
-          {caseFile.caseFileNumber}
-        </Link>
-      ),
+  return CASE_FILES_DASHBOARD_COLUMNS.map((column) => ({
+    key: column.key,
+    label: column.label,
+    sortable: column.sortable,
+    defaultOrder: column.defaultOrder,
+    facet: column.facet,
+    facetKey: column.facetKey,
+    render: (caseFile) => {
+      if (column.key === "caseFileNumber") {
+        return (
+          <Link href={`/case_files/${encodeURIComponent(caseFile.caseFileNumber)}${suffix}`}>
+            {caseFile.caseFileNumber}
+          </Link>
+        );
+      }
+      if (column.key === HEARING_CONVOCATION_SORT_KEY) {
+        return (
+          <MemoryDeadlineCell
+            date={caseFile.lastHearing?.convocationDate ?? null}
+            status={caseFile.lastStatus.label}
+          />
+        );
+      }
+      return column.exportValue(caseFile);
     },
-    {
-      key: "depositDate",
-      label: "Date de réception",
-      sortable: true,
-      render: (caseFile) => formatDateFr(caseFile.depositDate),
-    },
-    {
-      key: "mainClaimant",
-      facetKey: "requerant",
-      label: "Requérant",
-      sortable: true,
-      facet: true,
-      render: (caseFile) => getActorDisplayName(caseFile.mainClaimant),
-    },
-    {
-      key: "mainDefender",
-      facetKey: "defendeur",
-      label: "Défendeur",
-      sortable: true,
-      facet: true,
-      render: (caseFile) => getActorDisplayName(caseFile.mainDefender),
-    },
-    {
-      key: "lastProducer",
-      facetKey: "producteur",
-      label: "Dernier producteur",
-      sortable: true,
-      facet: true,
-      render: (caseFile) => getActorDisplayName(caseFile.lastProducer),
-    },
-    {
-      key: "status",
-      facetKey: "statut",
-      label: "Statut",
-      facet: true,
-      render: (caseFile) => caseFile.lastStatus.label,
-    },
-    {
-      key: HEARING_CONVOCATION_SORT_KEY,
-      label: "Date limite de production de mémoire",
-      sortable: true,
-      defaultOrder: "ascending",
-      render: (caseFile) => (
-        <MemoryDeadlineCell
-          date={caseFile.lastHearing?.convocationDate ?? null}
-          status={caseFile.lastStatus.label}
-        />
-      ),
-    },
-  ];
+  }));
 }
 
 type Props = {

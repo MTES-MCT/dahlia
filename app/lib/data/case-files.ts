@@ -1,18 +1,16 @@
 import { Prisma } from "@prisma/client";
+import {
+  CASE_FILES_DASHBOARD_INCLUDE,
+  HEARING_CONVOCATION_SORT_KEY,
+  type CaseFileDashboardRow,
+} from "@/app/lib/case-files-dashboard-columns";
 import { prisma } from "@/app/lib/prisma";
 import { normalizeForSearch, parseSearchQuery, type FacetKey } from "@/app/lib/case-file-search";
 import { buildWordAndFilter, combineAnd, facetSearchWords } from "@/app/lib/search-where";
 
-type CaseFileWithRelations = Prisma.CaseFileGetPayload<{
-  include: {
-    mainClaimant: true;
-    mainDefender: true;
-    lastProducer: true;
-    urgency: true;
-    lastStatus: true;
-    lastHearing: true;
-  };
-}>;
+export { HEARING_CONVOCATION_SORT_KEY } from "@/app/lib/case-files-dashboard-columns";
+
+type CaseFileWithRelations = CaseFileDashboardRow;
 
 const ACTOR_SORT_KEYS = ["mainClaimant", "mainDefender", "lastProducer"] as const;
 
@@ -21,11 +19,6 @@ export type CaseFilesTableData = {
   totalPages: number;
   totalCount: number;
 };
-
-// Sort key for the memory-production deadline column: the convocation date of
-// the last hearing. It lives on the `lastHearing` relation, so it needs a
-// dedicated nested orderBy (see buildOrderBy).
-export const HEARING_CONVOCATION_SORT_KEY = "convocationDate";
 
 // Pour les acteurs, on trie sur la colonne calculée `displayName` (générée en
 // base, cf. migration actor_display_name) qui reproduit getActorDisplayName.
@@ -125,14 +118,7 @@ async function fetchCaseFiles(
   const direction: Prisma.SortOrder = sortOrder === "ascending" ? "asc" : "desc";
   const where = buildWhere(query, statusLabel);
   return prisma.caseFile.findMany({
-    include: {
-      mainClaimant: true,
-      mainDefender: true,
-      lastProducer: true,
-      urgency: true,
-      lastStatus: true,
-      lastHearing: true,
-    },
+    include: CASE_FILES_DASHBOARD_INCLUDE,
     where,
     ...(sortBy ? { orderBy: buildOrderBy(sortBy, direction) } : {}),
     skip: (page - 1) * numberOfCaseFiles,
@@ -223,14 +209,7 @@ export async function fetchAllCaseFilesForExport(
   const direction: Prisma.SortOrder = sortOrder === "ascending" ? "asc" : "desc";
   const where = buildWhere(query, statusLabel);
   return prisma.caseFile.findMany({
-    include: {
-      mainClaimant: true,
-      mainDefender: true,
-      lastProducer: true,
-      urgency: true,
-      lastStatus: true,
-      lastHearing: true,
-    },
+    include: CASE_FILES_DASHBOARD_INCLUDE,
     where,
     ...(sortBy ? { orderBy: buildOrderBy(sortBy, direction) } : {}),
   });

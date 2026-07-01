@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { getActorDisplayName } from "@/app/lib/case-file-format";
+import { CASE_FILES_DASHBOARD_INCLUDE } from "@/app/lib/case-files-dashboard-columns";
 import { fetchCaseFilesTableData, fetchUsedStatusLabels } from "./case-files";
 import { prisma } from "@/app/lib/prisma";
 
@@ -179,14 +180,7 @@ describe("case-files", () => {
         totalCount: 25,
       });
       expect(mockFindMany).toHaveBeenCalledWith({
-        include: {
-          mainClaimant: true,
-          mainDefender: true,
-          lastProducer: true,
-          urgency: true,
-          lastStatus: true,
-          lastHearing: true,
-        },
+        include: CASE_FILES_DASHBOARD_INCLUDE,
         where: { isDeleted: false },
         orderBy: { caseFileNumber: "desc" },
         skip: 0,
