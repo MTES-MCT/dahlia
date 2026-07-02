@@ -2,11 +2,12 @@ import Link from "next/link";
 import { fr } from "@codegouvfr/react-dsfr";
 import clsx from "clsx";
 import { type CaseFilePiece } from "@/app/lib/data/attached-files";
-import { pieceEditionHref } from "@/app/lib/piece-display";
+import { pieceDisplayLabel, pieceEditionHref } from "@/app/lib/piece-display";
 
 type PieceWithFamily = Pick<
   CaseFilePiece,
   | "encodedFileId"
+  | "number"
   | "originalFileName"
   | "dahliaName"
   | "fileTypeLabel"
@@ -33,7 +34,7 @@ export function renderPieceNameCell(
     return (
       <div>
         <Link href={href} className={fr.cx("fr-link")}>
-          {file.dahliaName}
+          {pieceDisplayLabel(file)}
         </Link>
         <div className={clsx(fr.cx("fr-text--sm"), "text-grey", "italic")}>
           {file.originalFileName}
@@ -47,6 +48,14 @@ export function renderPieceNameCell(
       {file.originalFileName}
     </Link>
   );
+}
+
+export function renderPieceCommentCell(piece: Pick<CaseFilePiece, "comment">): React.ReactNode {
+  if (!piece.comment) {
+    return "—";
+  }
+
+  return <div className="line-clamp-2">{piece.comment}</div>;
 }
 
 export function renderPieceTypeCell(file: PieceWithFamily): React.ReactNode {

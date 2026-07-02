@@ -21,9 +21,7 @@ function hiddenValue(form: HTMLFormElement, name: string): string | undefined {
   return field?.value;
 }
 
-function renderDashboardSearch(
-  props: Parameters<typeof buildCaseFilesSearchConfig>[0],
-) {
+function renderDashboardSearch(props: Parameters<typeof buildCaseFilesSearchConfig>[0]) {
   render(
     <TableSearchForm params={DASHBOARD_TABLE_PARAMS} {...buildCaseFilesSearchConfig(props)} />,
   );

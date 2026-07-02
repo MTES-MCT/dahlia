@@ -7,9 +7,9 @@ import {
 
 describe("pieceDisplayLabel", () => {
   it("returns dahliaName when set", () => {
-    expect(
-      pieceDisplayLabel({ dahliaName: "Pièce 1", originalFileName: "requete.pdf" }),
-    ).toBe("Pièce 1");
+    expect(pieceDisplayLabel({ dahliaName: "Pièce 1", originalFileName: "requete.pdf" })).toBe(
+      "Pièce 1",
+    );
   });
 
   it("falls back to originalFileName when dahliaName is null", () => {
@@ -31,9 +31,9 @@ describe("pieceDownloadFileName", () => {
   });
 
   it("keeps originalFileName when dahliaName is unset", () => {
-    expect(
-      pieceDownloadFileName({ dahliaName: null, originalFileName: "requete.pdf" }),
-    ).toBe("requete.pdf");
+    expect(pieceDownloadFileName({ dahliaName: null, originalFileName: "requete.pdf" })).toBe(
+      "requete.pdf",
+    );
   });
 
   it("returns the label unchanged when the original file has no extension", () => {

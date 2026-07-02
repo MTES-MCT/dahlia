@@ -9,15 +9,13 @@ import {
 
 describe("caseFileLabel", () => {
   it("concatenates case file number and title when title is set", () => {
-    expect(
-      caseFileLabel({ caseFileNumber: "TA069-2026-001", title: "Requête DALO" }),
-    ).toBe("TA069-2026-001 - Requête DALO");
+    expect(caseFileLabel({ caseFileNumber: "TA069-2026-001", title: "Requête DALO" })).toBe(
+      "TA069-2026-001 - Requête DALO",
+    );
   });
 
   it("returns only the case file number when title is null", () => {
-    expect(caseFileLabel({ caseFileNumber: "TA069-2026-001", title: null })).toBe(
-      "TA069-2026-001",
-    );
+    expect(caseFileLabel({ caseFileNumber: "TA069-2026-001", title: null })).toBe("TA069-2026-001");
   });
 });
 
@@ -52,9 +50,7 @@ describe("buildCaseFileBreadcrumbSegment", () => {
   it("preserves carried search params in the case file link", () => {
     const segment = buildCaseFileBreadcrumbSegment(caseFile, { tab: "pieces", pcSort: "date" });
 
-    expect(segment.linkProps.href).toBe(
-      "/case_files/TA069%2F2024%2F001?tab=pieces&pcSort=date",
-    );
+    expect(segment.linkProps.href).toBe("/case_files/TA069%2F2024%2F001?tab=pieces&pcSort=date");
   });
 });
 

@@ -9,11 +9,7 @@ export const USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:150.0) " + "Gecko/20100101 Firefox/150.0";
 export const PAGINATION_PAGE_SIZE = 30;
 
-const ALLOWED_API_PATH_PREFIXES = [
-  "/api/case-file",
-  "/api/parametres",
-  "/api/file-api",
-] as const;
+const ALLOWED_API_PATH_PREFIXES = ["/api/case-file", "/api/parametres", "/api/file-api"] as const;
 
 /**
  * Ensure a URL targets only the Télérecours API host over HTTPS. Rejects any

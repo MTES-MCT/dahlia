@@ -40,7 +40,10 @@ export function PieceNavigator({ pieces, currentEncodedFileId }: Props) {
   const position = currentIndex >= 0 ? `${currentIndex + 1} / ${pieces.length}` : null;
 
   return (
-    <div style={{ display: "flex", alignItems: "flex-end", gap: "0.5rem" }} className={fr.cx("fr-mb-3w")}>
+    <div
+      style={{ display: "flex", alignItems: "flex-end", gap: "0.5rem" }}
+      className={fr.cx("fr-mb-3w")}
+    >
       <Button
         iconId="fr-icon-arrow-left-s-line"
         priority="secondary"

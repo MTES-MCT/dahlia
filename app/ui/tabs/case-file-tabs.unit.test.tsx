@@ -3,10 +3,7 @@ import { render, screen, cleanup } from "@testing-library/react";
 import { CaseFileTabs } from "./case-file-tabs";
 import { fetchCaseFilePiecesTableData } from "@/app/lib/data/attached-files";
 import { fetchCaseFileEventsTableData } from "@/app/lib/data/case-file-events";
-import {
-  fetchCaseFileDebugSnapshot,
-  type CaseFileDetail,
-} from "@/app/lib/data/case-files";
+import { fetchCaseFileDebugSnapshot, type CaseFileDetail } from "@/app/lib/data/case-files";
 import type { CaseFilePiecesTableData } from "@/app/lib/data/attached-files";
 import type { CaseFileEventsTableData } from "@/app/lib/data/case-file-events";
 
@@ -94,9 +91,7 @@ const historiqueTable = {
   pageSize: 10,
 } satisfies CaseFileEventsTableData;
 
-type CaseFileDebugSnapshot = NonNullable<
-  Awaited<ReturnType<typeof fetchCaseFileDebugSnapshot>>
->;
+type CaseFileDebugSnapshot = NonNullable<Awaited<ReturnType<typeof fetchCaseFileDebugSnapshot>>>;
 
 const debugSnapshot = {
   caseFileNumber: "TA069-2026-001",
@@ -113,7 +108,9 @@ const baseProps = {
   searchParams: {},
 };
 
-async function renderCaseFileTabs(props: typeof baseProps & { tab: "pieces" | "historique" | "debug" }) {
+async function renderCaseFileTabs(
+  props: typeof baseProps & { tab: "pieces" | "historique" | "debug" },
+) {
   render(await CaseFileTabs(props));
 }
 

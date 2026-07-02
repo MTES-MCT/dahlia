@@ -22,7 +22,9 @@ export function caseFileLabel({ caseFileNumber, title }: CaseFileForBreadcrumb):
   return caseFileNumber + (title ? ` - ${title}` : "");
 }
 
-export function buildDashboardBreadcrumbSegment(searchParams: CarriedSearchParams): BreadcrumbSegment {
+export function buildDashboardBreadcrumbSegment(
+  searchParams: CarriedSearchParams,
+): BreadcrumbSegment {
   const backParams = buildBackParams(searchParams);
   const queryString = backParams.toString();
   const backHref = `/case_files${queryString ? `?${queryString}` : ""}`;

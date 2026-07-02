@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
-import { renderPieceNameCell, renderPieceTypeCell } from "./piece-table-cells";
+import { renderPieceCommentCell, renderPieceNameCell, renderPieceTypeCell } from "./piece-table-cells";
 import type { CaseFilePiece } from "@/app/lib/data/attached-files";
 
 vi.mock("@/app/lib/prisma", () => ({ prisma: {} }));
@@ -47,6 +47,27 @@ describe("renderPieceNameCell", () => {
     expect(screen.getByRole("link").getAttribute("href")).toBe(
       "/case_files/TA069%2F2024%2F001/pieces/f1?tab=pieces&pcSort=date",
     );
+  });
+});
+
+describe("renderPieceCommentCell", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("affiche un tiret quand le commentaire est absent", () => {
+    renderCell(renderPieceCommentCell({ comment: null }));
+
+    expect(screen.getByText("—")).toBeTruthy();
+  });
+
+  it("affiche le commentaire tronqué à deux lignes", () => {
+    const { container } = renderCell(
+      renderPieceCommentCell({ comment: "Commentaire sur plusieurs lignes." }),
+    );
+
+    expect(screen.getByText("Commentaire sur plusieurs lignes.")).toBeTruthy();
+    expect(container.querySelector(".line-clamp-2")).toBeTruthy();
   });
 });
 

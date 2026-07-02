@@ -28,11 +28,7 @@ export default async function Page({ params, searchParams }: Props) {
 
       <CaseFileDetailsCard caseFile={caseFile} />
 
-      <CaseFileTabs
-        caseFile={caseFile}
-        tab={tab}
-        searchParams={resolvedSearchParams}
-      />
+      <CaseFileTabs caseFile={caseFile} tab={tab} searchParams={resolvedSearchParams} />
     </>
   );
 }

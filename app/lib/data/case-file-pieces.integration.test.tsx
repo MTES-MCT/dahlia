@@ -127,7 +127,10 @@ async function seedCaseFileWithPieces(): Promise<void> {
 async function renderPiecesTab(query: string | null) {
   render(
     await CaseFileTabs({
-      caseFile: { caseFileNumber: CASE_FILE_NUMBER, updatedAt: new Date() } as NonNullable<CaseFileDetail>,
+      caseFile: {
+        caseFileNumber: CASE_FILE_NUMBER,
+        updatedAt: new Date(),
+      } as NonNullable<CaseFileDetail>,
       tab: "pieces",
       searchParams: query ? { [PIECES_PARAMS.query]: query } : {},
     }),
@@ -173,10 +176,13 @@ describe("case file pièces table (integration)", () => {
     const firstDataRow = rows[1];
     const cells = within(firstDataRow).getAllByRole("cell");
 
-    expect(cells[0].textContent).toContain("Requête introductive");
-    expect(cells[0].textContent).toContain("scan_requete.pdf");
-    expect(cells[1].textContent).toContain("Requête");
-    expect(cells[2].textContent).toContain("15/01/2026");
+    // cells[0] is the leading selection checkbox column.
+    expect(within(cells[0]).getByRole("checkbox")).toBeTruthy();
+    expect(cells[1].textContent).toContain("Requête introductive");
+    expect(cells[1].textContent).toContain("scan_requete.pdf");
+    expect(cells[2].textContent).toContain("Requête");
+    expect(cells[3].textContent).toContain("—");
+    expect(cells[4].textContent).toContain("15/01/2026");
   });
 
   it("filtre par texte libre sur dahliaName via ?pcq", async () => {

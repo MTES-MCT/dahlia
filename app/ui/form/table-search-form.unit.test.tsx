@@ -48,9 +48,9 @@ describe("TableSearchForm", () => {
   });
 
   it("affiche le placeholder quand il est fourni", () => {
-    render(<TableSearchForm {...baseProps} placeholder='ex. « requête »' />);
+    render(<TableSearchForm {...baseProps} placeholder="ex. « requête »" />);
 
-    expect(screen.getByPlaceholderText('ex. « requête »')).toBeTruthy();
+    expect(screen.getByPlaceholderText("ex. « requête »")).toBeTruthy();
   });
 
   it("émet les champs cachés fournis", () => {
@@ -74,18 +74,13 @@ describe("TableSearchForm", () => {
     render(<TableSearchForm {...baseProps} />);
 
     expect(screen.getByRole("button", { name: "Rechercher" }).getAttribute("type")).toBe("submit");
-    expect(screen.getByRole("link", { name: /Ré-initialiser la recherche/ }).getAttribute("href")).toBe(
-      "/case_files/TA069-2026-001?tab=pieces",
-    );
+    expect(
+      screen.getByRole("link", { name: /Ré-initialiser la recherche/ }).getAttribute("href"),
+    ).toBe("/case_files/TA069-2026-001?tab=pieces");
   });
 
   it("remplace la barre par défaut quand searchSlot est fourni", () => {
-    render(
-      <TableSearchForm
-        {...baseProps}
-        searchSlot={<div>Recherche custom</div>}
-      />,
-    );
+    render(<TableSearchForm {...baseProps} searchSlot={<div>Recherche custom</div>} />);
 
     expect(screen.getByText("Recherche custom")).toBeTruthy();
     expect(screen.queryByRole("searchbox")).toBeNull();

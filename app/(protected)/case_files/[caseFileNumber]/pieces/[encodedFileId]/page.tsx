@@ -75,7 +75,7 @@ export default async function Page({ params, searchParams }: Props) {
     <>
       <PieceCaseFileBreadcrumb piece={file} searchParams={resolvedSearchParams} />
 
-      <h1 className={fr.cx("fr-mb-3w")}>Édition des pièces</h1>
+      <h1 className={fr.cx("fr-mb-3w")}>Édition de la pièce</h1>
 
       <PieceNavigator pieces={pieceOptions} currentEncodedFileId={decodedFileId} />
 
@@ -89,7 +89,6 @@ export default async function Page({ params, searchParams }: Props) {
         </div>
 
         <div className={fr.cx("fr-col-12", "fr-col-lg-5")}>
-          <h2>Édition de la pièce</h2>
           <PieceMetadataForm
             encodedFileId={file.encodedFileId}
             dahliaName={file.dahliaName ?? ""}

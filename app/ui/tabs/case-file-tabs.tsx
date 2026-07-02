@@ -13,7 +13,18 @@ import { buildTableSearchContext } from "@/app/lib/table-search-context";
 import { CaseFileTabNav } from "@/app/ui/tabs/case-file-tab-nav";
 import { RefreshCaseFileButton } from "@/app/ui/button/refresh-case-file-button";
 import { DataTable, type DataTableColumn } from "@/app/ui/table/data-table";
-import { renderPieceNameCell, renderPieceTypeCell } from "@/app/ui/table/piece-table-cells";
+import {
+  renderPieceCommentCell,
+  renderPieceNameCell,
+  renderPieceTypeCell,
+} from "@/app/ui/table/piece-table-cells";
+import {
+  RowSelectionProvider,
+  RowSelectionCheckbox,
+  RowSelectionHeaderCheckbox,
+} from "@/app/ui/table/row-selection";
+import { PiecesDownloadBar } from "@/app/ui/table/pieces-download-bar";
+import { pieceDisplayLabel } from "@/app/lib/piece-display";
 
 type Props = {
   caseFile: NonNullable<CaseFileDetail>;
@@ -41,10 +52,18 @@ function piecesColumns(
       render: renderPieceTypeCell,
     },
     {
+      key: "commentaire",
+      label: "Commentaire",
+      sortable: false,
+      facet: true,
+      render: renderPieceCommentCell,
+    },
+    {
       key: "date",
       label: "Date",
       sortable: true,
       defaultOrder: "descending",
+      width: "9rem",
       render: (piece) => formatDateFr(piece.eventCreationDate),
     },
   ];
@@ -103,23 +122,33 @@ export async function CaseFileTabs({ caseFile, tab, searchParams }: Props) {
   return (
     <CaseFileTabNav selectedTabId={tab}>
       {tab === "pieces" && piecesTable && (
-        <DataTable
-          columns={piecesColumns(caseFileNumber, queryString)}
-          rows={piecesTable.rows}
-          totalCount={piecesTable.totalCount}
-          totalPages={piecesTable.totalPages}
-          currentPage={piecesTable.currentPage}
-          pageSize={piecesTable.pageSize}
-          params={PIECES_PARAMS}
-          tableId="pieces"
-          facetKeys={PIECES_FACET_KEYS}
-          caption={(count) => `${count} pièce${count > 1 ? "s" : ""}`}
-          search={{
-            ...buildTableSearchContext(searchParams, PIECES_PARAMS, caseFilePath),
-            label: "Rechercher une pièce",
-            placeholder: 'ex. « requête » ou « type:pdf nom:"acte" »',
-          }}
-        />
+        <RowSelectionProvider allIds={piecesTable.rows.map((piece) => piece.encodedFileId)}>
+          <DataTable
+            columns={piecesColumns(caseFileNumber, queryString)}
+            rows={piecesTable.rows}
+            totalCount={piecesTable.totalCount}
+            totalPages={piecesTable.totalPages}
+            currentPage={piecesTable.currentPage}
+            pageSize={piecesTable.pageSize}
+            params={PIECES_PARAMS}
+            tableId="pieces"
+            facetKeys={PIECES_FACET_KEYS}
+            caption={(count) => `${count} pièce${count > 1 ? "s" : ""}`}
+            search={{
+              ...buildTableSearchContext(searchParams, PIECES_PARAMS, caseFilePath),
+              label: "Rechercher une pièce",
+              placeholder: 'ex. « requête » ou « type:pdf nom:"acte" »',
+            }}
+            leadingColumn={{
+              header: <RowSelectionHeaderCheckbox />,
+              width: "3.5rem",
+              render: (piece) => (
+                <RowSelectionCheckbox id={piece.encodedFileId} label={pieceDisplayLabel(piece)} />
+              ),
+            }}
+          />
+          <PiecesDownloadBar caseFileNumber={caseFileNumber} />
+        </RowSelectionProvider>
       )}
 
       {tab === "historique" && historiqueTable && (
