@@ -1,5 +1,6 @@
 "use client";
 
+import clsx from "clsx";
 import { useRouter, useSearchParams } from "next/navigation";
 import { fr } from "@codegouvfr/react-dsfr";
 import { Tabs } from "@codegouvfr/react-dsfr/Tabs";
@@ -30,6 +31,9 @@ export function CaseFileTabNav({ selectedTabId, children }: Props) {
         { tabId: "debug", label: "Debug" },
       ]}
       className={fr.cx("fr-mb-3w")}
+      classes={{
+        panel: selectedTabId === "pieces" ? clsx("!p-0") : undefined,
+      }}
     >
       {children}
     </Tabs>

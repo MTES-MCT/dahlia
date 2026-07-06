@@ -23,25 +23,14 @@ import {
   testPrisma,
 } from "@/data/test-support/integration-db";
 import { type CaseFileDetail } from "@/app/lib/data/case-files";
-import { PIECES_PARAMS } from "@/app/lib/pieces-table";
 import { CaseFileTabs } from "@/app/ui/tabs/case-file-tabs";
 
 const CASE_FILE_NUMBER = "TA069-001";
 
-function setSearchParams(init: string) {
-  vi.mocked(useSearchParams).mockReturnValue(new URLSearchParams(init) as never);
-}
-
-function getPieceTableDataRows() {
-  const rows = within(screen.getByRole("table")).getAllByRole("row");
-  return rows.slice(1);
-}
-
-function expectSinglePieceRow(matchingText: string) {
-  expect(screen.getByText("1 pièce")).toBeTruthy();
-  const dataRows = getPieceTableDataRows();
-  expect(dataRows).toHaveLength(1);
-  expect(dataRows[0].textContent).toContain(matchingText);
+// The pièces workspace is rendered inside the case-file tab. It lists every
+// pièce of the case file (no pagination, no search) in a sidebar.
+function piecesSidebar() {
+  return screen.getByRole("navigation", { name: "Liste des pièces" });
 }
 
 async function seedCaseFileWithPieces(): Promise<void> {
@@ -124,7 +113,7 @@ async function seedCaseFileWithPieces(): Promise<void> {
   });
 }
 
-async function renderPiecesTab(query: string | null) {
+async function renderPiecesTab() {
   render(
     await CaseFileTabs({
       caseFile: {
@@ -132,12 +121,12 @@ async function renderPiecesTab(query: string | null) {
         updatedAt: new Date(),
       } as NonNullable<CaseFileDetail>,
       tab: "pieces",
-      searchParams: query ? { [PIECES_PARAMS.query]: query } : {},
+      searchParams: {},
     }),
   );
 }
 
-describe("case file pièces table (integration)", () => {
+describe("case file pièces workspace (integration)", () => {
   beforeAll(async () => {
     await setupTestDatabase();
   });
@@ -149,67 +138,30 @@ describe("case file pièces table (integration)", () => {
   beforeEach(async () => {
     await resetTestDatabase();
     await seedCaseFileWithPieces();
-    setSearchParams("");
+    // The tab nav (a client component) reads the search params.
+    vi.mocked(useSearchParams).mockReturnValue(new URLSearchParams("") as never);
   });
 
   afterEach(() => {
     cleanup();
   });
 
-  it("affiche le tableau des pièces du dossier chargé depuis la base", async () => {
-    await renderPiecesTab(null);
+  it("liste toutes les pièces du dossier chargées depuis la base", async () => {
+    await renderPiecesTab();
 
-    const table = screen.getByRole("table");
-    const headers = within(table)
-      .getAllByRole("columnheader")
-      .map((header) => header.textContent ?? "");
-    expect(headers.some((text) => text.includes("Nom"))).toBe(true);
-    expect(headers.some((text) => text.includes("Type"))).toBe(true);
-    expect(headers.some((text) => text.includes("Date"))).toBe(true);
-    expect(screen.getByText("2 pièces")).toBeTruthy();
+    const sidebar = piecesSidebar();
+    // DAHLIA name when set, otherwise the original file name.
+    expect(within(sidebar).getByText("Requête introductive")).toBeTruthy();
+    expect(within(sidebar).getByText("memoire.pdf")).toBeTruthy();
+
+    // One "Tout sélectionner" checkbox plus one per pièce.
+    expect(within(sidebar).getAllByRole("checkbox")).toHaveLength(3);
   });
 
-  it("affiche un contenu de ligne correct (nom, type, date)", async () => {
-    await renderPiecesTab(null);
+  it("affiche la pièce la plus récente dans le panneau de détail", async () => {
+    await renderPiecesTab();
 
-    const rows = within(screen.getByRole("table")).getAllByRole("row");
-    const firstDataRow = rows[1];
-    const cells = within(firstDataRow).getAllByRole("cell");
-
-    // cells[0] is the leading selection checkbox column.
-    expect(within(cells[0]).getByRole("checkbox")).toBeTruthy();
-    expect(cells[1].textContent).toContain("Requête introductive");
-    expect(cells[1].textContent).toContain("scan_requete.pdf");
-    expect(cells[2].textContent).toContain("Requête");
-    expect(cells[3].textContent).toContain("—");
-    expect(cells[4].textContent).toContain("15/01/2026");
-  });
-
-  it("filtre par texte libre sur dahliaName via ?pcq", async () => {
-    setSearchParams(`${PIECES_PARAMS.query}=introductive`);
-    await renderPiecesTab("introductive");
-
-    expectSinglePieceRow("Requête introductive");
-  });
-
-  it('filtre par facette nom sur dahliaName via ?pcq=nom:"…"', async () => {
-    setSearchParams(`${PIECES_PARAMS.query}=nom:"requete introductive"`);
-    await renderPiecesTab('nom:"requete introductive"');
-
-    expectSinglePieceRow("Requête introductive");
-  });
-
-  it("filtre par texte libre sur fileFamilyType via ?pcq", async () => {
-    setSearchParams(`${PIECES_PARAMS.query}=memoire`);
-    await renderPiecesTab("memoire");
-
-    expectSinglePieceRow("memoire.pdf");
-  });
-
-  it("filtre par facette type sur fileFamilyType via ?pcq=type:…", async () => {
-    setSearchParams(`${PIECES_PARAMS.query}=type:memoire`);
-    await renderPiecesTab("type:memoire");
-
-    expectSinglePieceRow("memoire.pdf");
+    // ENC-REQ (15/01) is more recent than ENC-MEM (05/01) and comes first.
+    expect(screen.getByRole("heading", { name: "Requête introductive" })).toBeTruthy();
   });
 });

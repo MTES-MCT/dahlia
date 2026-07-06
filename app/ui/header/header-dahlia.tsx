@@ -1,6 +1,7 @@
 import { fr } from "@codegouvfr/react-dsfr";
 import { Badge } from "@codegouvfr/react-dsfr/Badge";
 import { Header, type HeaderProps } from "@codegouvfr/react-dsfr/Header";
+import clsx from "clsx";
 
 // Minimal shape of the authenticated user needed to render the header.
 export type HeaderDahliaUser = {
@@ -58,6 +59,10 @@ export function HeaderDahlia({ user }: { user?: HeaderDahliaUser | null }) {
         </>
       }
       quickAccessItems={quickAccessItems}
+      classes={{
+        // Align header content with <main> (fr-mx-3w); fr-container cannot be removed via props.
+        container: clsx("!max-w-none", "!px-3w"),
+      }}
     />
   );
 }

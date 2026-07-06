@@ -34,13 +34,27 @@ async function persistPieceMetadata(
       select: { caseFileNumber: true },
     });
 
-    revalidatePath(
-      `/case_files/${encodeURIComponent(file.caseFileNumber)}/pieces/${encodeURIComponent(encodedFileId)}`,
-    );
+    const encodedCaseFileNumber = encodeURIComponent(file.caseFileNumber);
+    revalidatePath(`/case_files/${encodedCaseFileNumber}/pieces/${encodeURIComponent(encodedFileId)}`);
+    // The case-file page embeds the pièces workspace, so its cache must refresh too.
+    revalidatePath(`/case_files/${encodedCaseFileNumber}`);
     return { ok: true };
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : String(error) };
   }
+}
+
+// Structured variant used by the inline editor of the pièces workspace, which
+// holds its own client state instead of relying on a native <form> submission.
+export async function savePieceMetadataAction(
+  encodedFileId: string,
+  input: PieceMetadataInput,
+): Promise<UpdatePieceResult> {
+  const trimmed = encodedFileId.trim();
+  if (!trimmed) {
+    return { ok: false, error: "Identifiant de pièce manquant." };
+  }
+  return persistPieceMetadata(trimmed, input);
 }
 
 export async function updatePieceMetadataFormAction(

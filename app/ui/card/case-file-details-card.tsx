@@ -1,6 +1,9 @@
 import { fr } from "@codegouvfr/react-dsfr";
+import clsx from "clsx";
 import { formatDateFr, getActorDisplayName } from "@/app/lib/case-file-format";
+import { litigationTypeLabel, rightTypeLabel } from "@/app/lib/case-file-enums";
 import { type CaseFileDetail } from "@/app/lib/data/case-files";
+import { CaseFileDetailsEditor } from "@/app/ui/form/case-file-details-editor";
 
 type Props = {
   caseFile: NonNullable<CaseFileDetail>;
@@ -9,39 +12,65 @@ type Props = {
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className={fr.cx("fr-mb-2w")}>
-      <span className={fr.cx("fr-text--sm", "fr-text--bold", "fr-mb-0")}>{label} : </span>
-      <span className={fr.cx("fr-mb-0", "fr-ml-0")}>{value || "—"}</span>
+      <span
+        className={fr.cx("fr-text--xs", "fr-mb-0")}
+        style={{ display: "block", color: "var(--text-mention-grey)" }}
+      >
+        {label}
+      </span>
+      <span className={fr.cx("fr-text--bold", "fr-mb-0")} style={{ display: "block" }}>
+        {value || "—"}
+      </span>
     </div>
   );
 }
 
 export function CaseFileDetailsCard({ caseFile }: Props) {
+  const litigation = litigationTypeLabel(caseFile.litigationType);
+  const right = rightTypeLabel(caseFile.rightType);
+
   return (
     <section
-      className={fr.cx("fr-p-3w", "fr-mb-3w")}
-      style={{
-        border: "1px solid var(--border-default-grey)",
-        borderRadius: "0.5rem",
-        backgroundColor: "var(--background-default-grey)",
-      }}
+      className={clsx(
+        fr.cx("fr-p-1w", "fr-mb-3w"),
+        "border-0 border-l-4 border-solid border-l-(--border-active-blue-france)",
+      )}
     >
-      <h2 className={fr.cx("fr-h4", "fr-mb-1v")}>
-        {caseFile.caseFileNumber + (caseFile.title ? ` - ${caseFile.title}` : "")}
-      </h2>
-      <p className={fr.cx("fr-text--lead", "fr-text--sm", "fr-mb-3w")}>
-        {caseFile.lastStatus.label}
-      </p>
+      <CaseFileDetailsEditor
+        caseFileNumber={caseFile.caseFileNumber}
+        title={caseFile.title}
+        statusLabel={caseFile.lastStatus.label}
+        litigationType={caseFile.litigationType}
+        rightType={caseFile.rightType}
+        summary={caseFile.summary}
+      />
 
-      <div className={fr.cx("fr-grid-row", "fr-grid-row--gutters")}>
-        <dl className={fr.cx("fr-col-12", "fr-col-md-6", "fr-mb-0")}>
+      <details className={fr.cx("fr-mt-2w")}>
+        <summary
+          className={clsx(fr.cx("fr-text--sm", "fr-mb-0", "fr-text--bold", "fr-link"), "cursor-pointer")}
+        >
+          Voir plus
+        </summary>
+
+        <div
+          className={clsx(
+            fr.cx("fr-mt-2w"),
+            "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4",
+          )}
+        >
           <DetailRow label="Requérant" value={getActorDisplayName(caseFile.mainClaimant)} />
-          <DetailRow label="Date de réception" value={formatDateFr(caseFile.depositDate)} />
-        </dl>
-        <dl className={fr.cx("fr-col-12", "fr-col-md-6", "fr-mb-0")}>
           <DetailRow label="Défendeur" value={getActorDisplayName(caseFile.mainDefender)} />
+          <DetailRow label="Date de réception" value={formatDateFr(caseFile.depositDate)} />
           <DetailRow label="Chambre" value={caseFile.chamber?.name} />
-        </dl>
-      </div>
+          {litigation && <DetailRow label="Type de contentieux" value={litigation} />}
+          {right && <DetailRow label="Type de droit" value={right} />}
+          {caseFile.summary && (
+            <div className="col-span-full">
+              <DetailRow label="Raison" value={caseFile.summary} />
+            </div>
+          )}
+        </div>
+      </details>
     </section>
   );
 }

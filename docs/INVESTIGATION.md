@@ -54,6 +54,10 @@ Quastion :
 
 Note : une API en lecture seule est suffisante pour les besoins de notre première itération. Selon la trajectoire de DAHLIA, nous aurons peut-être un jour besoin de déposer des pièces dans un dossier
 
+### Fonctionnel
+
+Pièces toujours attribuées à la préfecture ?
+
 ### Architecture
 
 - Comment Télérecours détermine qu'un utilisateur à les droits pour visualider les dossiers du tribunal administartif du Rhône (TA069)

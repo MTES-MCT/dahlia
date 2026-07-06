@@ -5,13 +5,9 @@ type StatusCaptionLabels = {
 
 // Status labels as stored in `statuses.label` → caption wording after « X dossier(s) ».
 const STATUS_LABEL_PLURAL: Record<string, StatusCaptionLabels> = {
-  "Clôture d'instruction": {
-    singular: "en clôture d'instruction",
-    plural: "en clôture d'instruction",
-  },
-  "Demande d'execution": {
+  "Demande d'exécution": {
     singular: "en cours de demande d'exécution",
-    plural: "en cours de demandes d'exécution",
+    plural: "en cours de demande d'exécution",
   },
   "En cours d'instruction": {
     singular: "en cours d'instruction",
@@ -21,9 +17,9 @@ const STATUS_LABEL_PLURAL: Record<string, StatusCaptionLabels> = {
     singular: "en cours de régularisation",
     plural: "en cours de régularisation",
   },
-  "En délibéré": {
-    singular: "en délibéré",
-    plural: "en délibéré",
+  "En cours de délibéré": {
+    singular: "en cours de délibéré",
+    plural: "en cours de délibéré",
   },
   Enregistré: {
     singular: "enregistré",

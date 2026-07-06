@@ -1,73 +1,27 @@
 import { fr } from "@codegouvfr/react-dsfr";
 import { formatDateFr, getActorDisplayName } from "@/app/lib/case-file-format";
 import { type CaseFileEventListRow } from "@/app/lib/data/case-file-events";
-import { type CaseFilePiece } from "@/app/lib/data/attached-files";
 import { fetchCaseFileDebugSnapshot, type CaseFileDetail } from "@/app/lib/data/case-files";
 import { fetchCaseFileEventsTableData } from "@/app/lib/data/case-file-events";
-import { fetchCaseFilePiecesTableData } from "@/app/lib/data/attached-files";
+import { fetchCaseFilePiecesFiltered } from "@/app/lib/data/attached-files";
 import { HISTORIQUE_FACET_KEYS, HISTORIQUE_PARAMS } from "@/app/lib/historique-table";
-import { PIECES_FACET_KEYS, PIECES_PARAMS } from "@/app/lib/pieces-table";
+import {
+  PIECES_DEFAULT_ORDER,
+  PIECES_DEFAULT_SORT_BY,
+} from "@/app/lib/pieces-table";
 import { type CaseFileTabId } from "@/app/lib/case-file-tabs";
-import { buildBackParams, type CarriedSearchParams } from "@/app/lib/carried-search-params";
+import { type CarriedSearchParams } from "@/app/lib/carried-search-params";
 import { buildTableSearchContext } from "@/app/lib/table-search-context";
 import { CaseFileTabNav } from "@/app/ui/tabs/case-file-tab-nav";
 import { RefreshCaseFileButton } from "@/app/ui/button/refresh-case-file-button";
 import { DataTable, type DataTableColumn } from "@/app/ui/table/data-table";
-import {
-  renderPieceCommentCell,
-  renderPieceNameCell,
-  renderPieceTypeCell,
-} from "@/app/ui/table/piece-table-cells";
-import {
-  RowSelectionProvider,
-  RowSelectionCheckbox,
-  RowSelectionHeaderCheckbox,
-} from "@/app/ui/table/row-selection";
-import { PiecesDownloadBar } from "@/app/ui/table/pieces-download-bar";
-import { pieceDisplayLabel } from "@/app/lib/piece-display";
+import { PiecesWorkspace, type WorkspacePiece } from "@/app/ui/pieces/pieces-workspace";
 
 type Props = {
   caseFile: NonNullable<CaseFileDetail>;
   tab: CaseFileTabId;
   searchParams: CarriedSearchParams;
 };
-
-function piecesColumns(
-  caseFileNumber: string,
-  queryString: string,
-): DataTableColumn<CaseFilePiece>[] {
-  return [
-    {
-      key: "nom",
-      label: "Nom",
-      sortable: true,
-      facet: true,
-      render: (piece) => renderPieceNameCell(piece, caseFileNumber, queryString),
-    },
-    {
-      key: "type",
-      label: "Type",
-      sortable: true,
-      facet: true,
-      render: renderPieceTypeCell,
-    },
-    {
-      key: "commentaire",
-      label: "Commentaire",
-      sortable: false,
-      facet: true,
-      render: renderPieceCommentCell,
-    },
-    {
-      key: "date",
-      label: "Date",
-      sortable: true,
-      defaultOrder: "descending",
-      width: "9rem",
-      render: (piece) => formatDateFr(piece.eventCreationDate),
-    },
-  ];
-}
 
 const HISTORIQUE_COLUMNS: DataTableColumn<CaseFileEventListRow>[] = [
   {
@@ -110,45 +64,42 @@ const HISTORIQUE_COLUMNS: DataTableColumn<CaseFileEventListRow>[] = [
 export async function CaseFileTabs({ caseFile, tab, searchParams }: Props) {
   const { caseFileNumber } = caseFile;
 
-  const [piecesTable, historiqueTable, debugSnapshot] = await Promise.all([
-    tab === "pieces" ? fetchCaseFilePiecesTableData(caseFileNumber, searchParams) : null,
+  const [pieces, historiqueTable, debugSnapshot] = await Promise.all([
+    tab === "pieces"
+      ? fetchCaseFilePiecesFiltered(
+          caseFileNumber,
+          PIECES_DEFAULT_SORT_BY,
+          PIECES_DEFAULT_ORDER,
+          null,
+        )
+      : null,
     tab === "historique" ? fetchCaseFileEventsTableData(caseFileNumber, searchParams) : null,
     tab === "debug" ? fetchCaseFileDebugSnapshot(caseFileNumber) : null,
   ]);
 
-  const queryString = buildBackParams(searchParams).toString();
   const caseFilePath = `/case_files/${encodeURIComponent(caseFileNumber)}`;
+
+  const workspacePieces: WorkspacePiece[] | null =
+    pieces?.map((piece) => ({
+      encodedFileId: piece.encodedFileId,
+      number: piece.number,
+      originalFileName: piece.originalFileName,
+      dahliaName: piece.dahliaName,
+      comment: piece.comment,
+      typeLabel: piece.fileFamilyTypeLabel ?? piece.fileTypeLabel,
+      dataUrl: `${caseFilePath}/pieces/${encodeURIComponent(piece.encodedFileId)}/data`,
+      // Outside production the data route serves a mocked PDF regardless of the
+      // real pièce type, so the viewer must render it as a PDF.
+      viewerMimeType:
+        process.env.ENVIRONMENT !== "production"
+          ? "application/pdf"
+          : (piece.mimeType ?? "application/octet-stream"),
+    })) ?? null;
 
   return (
     <CaseFileTabNav selectedTabId={tab}>
-      {tab === "pieces" && piecesTable && (
-        <RowSelectionProvider allIds={piecesTable.rows.map((piece) => piece.encodedFileId)}>
-          <DataTable
-            columns={piecesColumns(caseFileNumber, queryString)}
-            rows={piecesTable.rows}
-            totalCount={piecesTable.totalCount}
-            totalPages={piecesTable.totalPages}
-            currentPage={piecesTable.currentPage}
-            pageSize={piecesTable.pageSize}
-            params={PIECES_PARAMS}
-            tableId="pieces"
-            facetKeys={PIECES_FACET_KEYS}
-            caption={(count) => `${count} pièce${count > 1 ? "s" : ""}`}
-            search={{
-              ...buildTableSearchContext(searchParams, PIECES_PARAMS, caseFilePath),
-              label: "Rechercher une pièce",
-              placeholder: 'ex. « requête » ou « type:pdf nom:"acte" »',
-            }}
-            leadingColumn={{
-              header: <RowSelectionHeaderCheckbox />,
-              width: "3.5rem",
-              render: (piece) => (
-                <RowSelectionCheckbox id={piece.encodedFileId} label={pieceDisplayLabel(piece)} />
-              ),
-            }}
-          />
-          <PiecesDownloadBar caseFileNumber={caseFileNumber} />
-        </RowSelectionProvider>
+      {tab === "pieces" && workspacePieces && (
+        <PiecesWorkspace caseFileNumber={caseFileNumber} pieces={workspacePieces} />
       )}
 
       {tab === "historique" && historiqueTable && (

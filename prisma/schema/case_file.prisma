@@ -1,3 +1,17 @@
+// Type de contentieux du dossier, saisi manuellement par l'utilisateur.
+enum LitigationType {
+  INDEMNITAIRE // Recours indemnitaire
+  REFERE // Référé
+  INJONCTION // Recours injonction
+  EXCES_DE_POUVOIR // Recours en excès de pouvoir
+}
+
+// Type de droit concerné (DALO / DAHO), saisi manuellement par l'utilisateur.
+enum RightType {
+  LOGEMENT // Logement
+  HEBERGEMENT // Hébergement
+}
+
 model CaseFile {
   caseFileNumber String @id
 
@@ -33,6 +47,12 @@ model CaseFile {
   hearings Hearing[] @relation("CaseFileHearings")
 
   procedureState String?
+
+  // User-managed classification fields (edited from the case-file details card).
+  litigationType LitigationType?
+  rightType      RightType?
+  // Short free-text label (a few words) characterizing the case; shown as "Raison".
+  summary        String?
 
   // Set to true when a case file present in DB is no longer returned by the
   // Telerecours list scrape within the same perimeter (see scrape-telerecours

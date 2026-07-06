@@ -23,6 +23,7 @@ const PIECES_LIST_SELECT = {
   dahliaName: true,
   number: true,
   comment: true,
+  mimeType: true,
   fileTypeLabel: true,
   fileFamilyTypeLabel: true,
   fileFamilyType: { select: { label: true } },
