@@ -1,7 +1,9 @@
-import { LitigationType, RightType } from "@prisma/client";
+import type { LitigationType, RightType } from "@prisma/client";
 
 // French labels for the user-managed classification enums of a case file.
 // The option arrays keep the display order chosen for the edit form.
+// Enum values are inlined here (not imported from @prisma/client) so this module
+// stays safe to import from Client Components.
 
 export const LITIGATION_TYPE_LABELS: Record<LitigationType, string> = {
   INDEMNITAIRE: "Recours indemnitaire",
@@ -15,17 +17,21 @@ export const RIGHT_TYPE_LABELS: Record<RightType, string> = {
   HEBERGEMENT: "Hébergement",
 };
 
-export const LITIGATION_TYPE_OPTIONS: { value: LitigationType; label: string }[] = [
-  LitigationType.INDEMNITAIRE,
-  LitigationType.REFERE,
-  LitigationType.INJONCTION,
-  LitigationType.EXCES_DE_POUVOIR,
-].map((value) => ({ value, label: LITIGATION_TYPE_LABELS[value] }));
+const LITIGATION_TYPE_ORDER = [
+  "INDEMNITAIRE",
+  "REFERE",
+  "INJONCTION",
+  "EXCES_DE_POUVOIR",
+] as const satisfies readonly LitigationType[];
 
-export const RIGHT_TYPE_OPTIONS: { value: RightType; label: string }[] = [
-  RightType.LOGEMENT,
-  RightType.HEBERGEMENT,
-].map((value) => ({ value, label: RIGHT_TYPE_LABELS[value] }));
+const RIGHT_TYPE_ORDER = ["LOGEMENT", "HEBERGEMENT"] as const satisfies readonly RightType[];
+
+export const LITIGATION_TYPE_OPTIONS: { value: LitigationType; label: string }[] =
+  LITIGATION_TYPE_ORDER.map((value) => ({ value, label: LITIGATION_TYPE_LABELS[value] }));
+
+export const RIGHT_TYPE_OPTIONS: { value: RightType; label: string }[] = RIGHT_TYPE_ORDER.map(
+  (value) => ({ value, label: RIGHT_TYPE_LABELS[value] }),
+);
 
 export function litigationTypeLabel(value: LitigationType | null | undefined): string | undefined {
   return value ? LITIGATION_TYPE_LABELS[value] : undefined;
