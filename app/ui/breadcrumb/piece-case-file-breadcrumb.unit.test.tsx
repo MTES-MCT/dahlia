@@ -26,7 +26,7 @@ describe("PieceCaseFileBreadcrumb", () => {
     );
     expect(
       screen.getByRole("link", { name: "TA069-2026-001 - Requête DALO" }).getAttribute("href"),
-    ).toBe("/case_files/TA069-2026-001");
+    ).toBe("/case_files/TA069-2026-001#case-file-details");
     expect(screen.getByText("Pièce 1")).toBeTruthy();
   });
 
@@ -62,6 +62,6 @@ describe("PieceCaseFileBreadcrumb", () => {
     );
     expect(
       screen.getByRole("link", { name: "TA069-2026-001 - Requête DALO" }).getAttribute("href"),
-    ).toBe("/case_files/TA069-2026-001?tab=pieces&pcSort=date");
+    ).toBe("/case_files/TA069-2026-001?tab=pieces&pcSort=date#case-file-details");
   });
 });

@@ -1,14 +1,12 @@
 import { fr } from "@codegouvfr/react-dsfr";
+import clsx from "clsx";
 import { formatDateFr, getActorDisplayName } from "@/app/lib/case-file-format";
 import { type CaseFileEventListRow } from "@/app/lib/data/case-file-events";
 import { fetchCaseFileDebugSnapshot, type CaseFileDetail } from "@/app/lib/data/case-files";
 import { fetchCaseFileEventsTableData } from "@/app/lib/data/case-file-events";
 import { fetchCaseFilePiecesFiltered } from "@/app/lib/data/attached-files";
 import { HISTORIQUE_FACET_KEYS, HISTORIQUE_PARAMS } from "@/app/lib/historique-table";
-import {
-  PIECES_DEFAULT_ORDER,
-  PIECES_DEFAULT_SORT_BY,
-} from "@/app/lib/pieces-table";
+import { PIECES_DEFAULT_ORDER, PIECES_DEFAULT_SORT_BY } from "@/app/lib/pieces-table";
 import { type CaseFileTabId } from "@/app/lib/case-file-tabs";
 import { type CarriedSearchParams } from "@/app/lib/carried-search-params";
 import { buildTableSearchContext } from "@/app/lib/table-search-context";
@@ -97,46 +95,50 @@ export async function CaseFileTabs({ caseFile, tab, searchParams }: Props) {
     })) ?? null;
 
   return (
-    <CaseFileTabNav selectedTabId={tab}>
-      {tab === "pieces" && workspacePieces && (
-        <PiecesWorkspace caseFileNumber={caseFileNumber} pieces={workspacePieces} />
-      )}
+    <div
+      className={clsx("flex", "min-h-0", "flex-1", "flex-col", tab === "pieces" && "pieces-fill")}
+    >
+      <CaseFileTabNav selectedTabId={tab}>
+        {tab === "pieces" && workspacePieces && (
+          <PiecesWorkspace caseFileNumber={caseFileNumber} pieces={workspacePieces} />
+        )}
 
-      {tab === "historique" && historiqueTable && (
-        <DataTable
-          columns={HISTORIQUE_COLUMNS}
-          rows={historiqueTable.rows}
-          totalCount={historiqueTable.totalCount}
-          totalPages={historiqueTable.totalPages}
-          currentPage={historiqueTable.currentPage}
-          pageSize={historiqueTable.pageSize}
-          params={HISTORIQUE_PARAMS}
-          tableId="historique"
-          facetKeys={HISTORIQUE_FACET_KEYS}
-          caption={(count) => `${count} événement${count > 1 ? "s" : ""}`}
-          search={{
-            ...buildTableSearchContext(searchParams, HISTORIQUE_PARAMS, caseFilePath),
-            label: "Rechercher un événement",
-            placeholder: "ex. « audience » ou « evenement:requête »",
-          }}
-        />
-      )}
-
-      {tab === "debug" && debugSnapshot && (
-        <>
-          <RefreshCaseFileButton caseFile={caseFile} />
-          <pre
-            className={fr.cx("fr-p-2w")}
-            style={{
-              overflowX: "auto",
-              backgroundColor: "var(--background-alt-grey)",
-              borderRadius: "0.5rem",
+        {tab === "historique" && historiqueTable && (
+          <DataTable
+            columns={HISTORIQUE_COLUMNS}
+            rows={historiqueTable.rows}
+            totalCount={historiqueTable.totalCount}
+            totalPages={historiqueTable.totalPages}
+            currentPage={historiqueTable.currentPage}
+            pageSize={historiqueTable.pageSize}
+            params={HISTORIQUE_PARAMS}
+            tableId="historique"
+            facetKeys={HISTORIQUE_FACET_KEYS}
+            caption={(count) => `${count} événement${count > 1 ? "s" : ""}`}
+            search={{
+              ...buildTableSearchContext(searchParams, HISTORIQUE_PARAMS, caseFilePath),
+              label: "Rechercher un événement",
+              placeholder: "ex. « audience » ou « evenement:requête »",
             }}
-          >
-            {JSON.stringify(debugSnapshot, null, 2)}
-          </pre>
-        </>
-      )}
-    </CaseFileTabNav>
+          />
+        )}
+
+        {tab === "debug" && debugSnapshot && (
+          <>
+            <RefreshCaseFileButton caseFile={caseFile} />
+            <pre
+              className={fr.cx("fr-p-2w")}
+              style={{
+                overflowX: "auto",
+                backgroundColor: "var(--background-alt-grey)",
+                borderRadius: "0.5rem",
+              }}
+            >
+              {JSON.stringify(debugSnapshot, null, 2)}
+            </pre>
+          </>
+        )}
+      </CaseFileTabNav>
+    </div>
   );
 }

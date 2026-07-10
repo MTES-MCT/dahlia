@@ -87,15 +87,16 @@ export function PiecesWorkspace({ caseFileNumber, pieces }: Props) {
   }
 
   return (
-    <div className={clsx(fr.cx("fr-grid-row"), "items-stretch")}>
+    <div className={clsx("flex", "min-h-0", "flex-1", "flex-col", "md:flex-row")}>
       <div
         className={clsx(
-          fr.cx("fr-col-12", "fr-col-md-3"),
           "flex",
+          "w-full",
           "min-h-0",
           "flex-col",
           "border-r",
           "border-(--border-default-grey)",
+          "md:w-1/4",
         )}
       >
         <PiecesSidebar
@@ -111,7 +112,7 @@ export function PiecesWorkspace({ caseFileNumber, pieces }: Props) {
         />
       </div>
 
-      <div className={clsx(fr.cx("fr-col-12", "fr-col-md-9"), fr.cx("fr-p-3w"), "self-stretch")}>
+      <div className={clsx(fr.cx("fr-p-3w"), "flex", "min-h-0", "flex-1", "flex-col")}>
         {current ? (
           <PieceDetail
             key={current.encodedFileId}
@@ -198,7 +199,10 @@ function PiecesSidebar({
   }
 
   return (
-    <nav aria-label="Liste des pièces" className={clsx("flex", "h-full", "min-h-0", "flex-col")}>
+    <nav
+      aria-label="Liste des pièces"
+      className={clsx("flex", "h-full", "min-h-0", "flex-col", "overflow-hidden")}
+    >
       <div
         className={clsx(
           "flex",
@@ -261,16 +265,16 @@ function PiecesSidebar({
                   type="button"
                   onClick={() => onSelectPiece(id)}
                   aria-current={isCurrent ? "true" : undefined}
-                  className="text-left"
-                  style={{
-                    flex: 1,
-                    minWidth: 0,
-                    border: "none",
-                    padding: 0,
-                    cursor: "pointer",
-                    backgroundColor: "transparent",
-                    color: "inherit",
-                  }}
+                  className={clsx(
+                    "flex-1",
+                    "min-w-0",
+                    "border-none",
+                    "p-0",
+                    "cursor-pointer",
+                    "bg-transparent",
+                    "text-inherit",
+                    "text-left",
+                  )}
                 >
                   <span
                     className={clsx(
@@ -283,8 +287,12 @@ function PiecesSidebar({
                   </span>
                   {piece.dahliaName && (
                     <span
-                      className={clsx(fr.cx("fr-text--xs", "fr-mb-0"), "text-grey")}
-                      style={{ display: "block", wordBreak: "break-word" }}
+                      className={clsx(
+                        fr.cx("fr-text--xs", "fr-mb-0"),
+                        "text-grey",
+                        "block",
+                        "wrap-break-word",
+                      )}
                     >
                       {piece.originalFileName}
                     </span>
@@ -335,11 +343,11 @@ function PieceDetail({ piece, editing, onEdit, onCancel, onSaved }: DetailProps)
   const name = piece.dahliaName ?? piece.originalFileName;
 
   return (
-    <div>
+    <div className={clsx("flex", "h-full", "min-h-0", "flex-col")}>
       {editing ? (
         <PieceDetailForm piece={piece} onCancel={onCancel} onSaved={onSaved} />
       ) : (
-        <div className={fr.cx("fr-mb-3w")}>
+        <div className={clsx("shrink-0", fr.cx("fr-mb-3w"))}>
           <div className={clsx("flex", "items-baseline", "gap-2", fr.cx("fr-mb-1w"))}>
             {piece.number && <strong>{piece.number}</strong>}
             <h2 className={fr.cx("fr-h5", "fr-mb-0")}>{name}</h2>
@@ -356,11 +364,13 @@ function PieceDetail({ piece, editing, onEdit, onCancel, onSaved }: DetailProps)
         </div>
       )}
 
-      <PieceViewer
-        dataUrl={piece.dataUrl}
-        mimeType={piece.viewerMimeType}
-        fileName={pieceDownloadFileName(piece)}
-      />
+      <div className={clsx("flex", "min-h-0", "flex-1", "flex-col")}>
+        <PieceViewer
+          dataUrl={piece.dataUrl}
+          mimeType={piece.viewerMimeType}
+          fileName={pieceDownloadFileName(piece)}
+        />
+      </div>
     </div>
   );
 }
@@ -404,7 +414,7 @@ function PieceDetailForm({ piece, onCancel, onSaved }: FormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className={fr.cx("fr-mb-3w")}>
+    <form onSubmit={handleSubmit} className={clsx("shrink-0", fr.cx("fr-mb-3w"))}>
       <div className={fr.cx("fr-grid-row", "fr-grid-row--gutters")}>
         <Input
           label="Numéro"

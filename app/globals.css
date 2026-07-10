@@ -1,1 +1,35 @@
 @import "tailwindcss";
+
+/* Full-height pièces workspace.
+   The DSFR Tabs component lays its parts out as a wrap row with a JS-driven
+   `--tabs-height`, which prevents the panel from filling a bounded height.
+   Scoped to `.pieces-fill`, we turn `fr-tabs` into a height-filling flex column
+   so the pièces panel (and its sidebar list / viewer) can scroll internally
+   instead of growing the page. */
+.pieces-fill .fr-tabs {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  height: 100% !important;
+  overflow: hidden;
+}
+
+/* Decorative border box relies on the default overlap positioning we undo below. */
+.pieces-fill .fr-tabs::before {
+  display: none;
+}
+
+.pieces-fill .fr-tabs__list {
+  flex: 0 0 auto;
+}
+
+.pieces-fill .fr-tabs__panel {
+  position: static;
+  left: auto;
+  margin-right: 0;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}

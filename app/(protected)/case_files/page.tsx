@@ -48,7 +48,9 @@ function dashboardColumns(detailQueryString: string): DataTableColumn<CaseFileDa
     render: (caseFile) => {
       if (column.key === "caseFileNumber") {
         return (
-          <Link href={`/case_files/${encodeURIComponent(caseFile.caseFileNumber)}${suffix}`}>
+          <Link
+            href={`/case_files/${encodeURIComponent(caseFile.caseFileNumber)}${suffix}#case-file-details`}
+          >
             {caseFile.caseFileNumber}
           </Link>
         );

@@ -30,7 +30,7 @@ export function CaseFileTabNav({ selectedTabId, children }: Props) {
         { tabId: "historique", label: "Historique" },
         { tabId: "debug", label: "Debug" },
       ]}
-      className={fr.cx("fr-mb-3w")}
+      className={fr.cx("fr-mb-1w")}
       classes={{
         panel: selectedTabId === "pieces" ? clsx("!p-0") : undefined,
       }}
