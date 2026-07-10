@@ -81,7 +81,7 @@ const mockCaseFile = {
   estimatedHearingPeriod: null,
   earliestInstructionClosingDate: null,
   directoryReference: null,
-  directoryComplementaryEmails: [],
+  directoryComplementaryEmails: null,
   keywords: [],
   recipientContactCount: null,
   assignedToLegalEntityDivisionId: 1,

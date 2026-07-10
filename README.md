@@ -115,6 +115,26 @@ ciblé (`<JURIDICTION>_…`) :
 3. **Phase C** _(sautée si `--skipEnrichment`)_ — crée les liens entre dossiers liés
    (`related-case-files`) pour les mêmes dossiers cibles.
 
+### Suivi de synchronisation Télérecours
+
+À la fin de chaque enrichissement (Phase B ou rafraîchissement depuis l'UI),
+`enrichCaseFile` met à jour trois champs de suivi sur le dossier. Ils sont
+distincts de `updatedAt` (géré par Prisma et modifié à chaque écriture en base,
+y compris les mises à jour locales dans l'application) :
+
+| Champ                    | Mis à jour quand…                                                                     | Rôle                                                                                                                                   |
+| ------------------------ | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `telerecoursSyncAt`      | À **chaque** synchronisation avec Télérecours, qu'il y ait eu changement ou non.      | Indique la dernière fois que le scraper (ou l'UI) a interrogé Télérecours pour ce dossier.                                             |
+| `telerecoursUpdatedAt`   | Uniquement lorsque le contenu scrapé **a réellement changé** depuis la dernière fois. | Indique la dernière fois que Télérecours a apporté une modification détectable (détail, audiences, mesures ou pièces).                 |
+| `telerecoursContentHash` | En même temps que `telerecoursUpdatedAt`.                                             | Empreinte SHA-256 du payload scrapé (détail + audiences + mesures + pièces), utilisée pour comparer deux synchronisations successives. |
+
+Le détecteur de changement calcule un hash du payload complet renvoyé par
+Télérecours (voir `data/persistence/content-hash.ts`). Les collections sont triées
+par identifiant stable avant hachage, de sorte qu'un simple réordonnancement ne
+soit pas interprété comme une modification. Si le hash est identique à celui déjà
+stocké, seul `telerecoursSyncAt` est rafraîchi ; `telerecoursUpdatedAt` et
+`telerecoursContentHash` restent inchangés.
+
 ### Exemples
 
 ```sh
@@ -237,6 +257,9 @@ erDiagram
         int lastProducerId FK "nullable"
         DateTime createdAt
         DateTime updatedAt
+        DateTime telerecoursSyncAt "nullable"
+        DateTime telerecoursUpdatedAt "nullable"
+        string telerecoursContentHash "nullable"
     }
 
     LegalEntityDivision {

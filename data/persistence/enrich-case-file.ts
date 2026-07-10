@@ -7,6 +7,7 @@ import {
   Hearing,
   LastDecisionReading,
 } from "../telerecours/types";
+import { computeContentHash } from "./content-hash";
 import { paginate } from "./paginate";
 import { upsertActor, upsertCaseFile } from "./upsert-case-file";
 
@@ -107,10 +108,11 @@ async function upsertCaseFileDetail(prisma: PrismaClient, detail: CaseFileDetail
       estimatedHearingPeriod: detail.estimatedHearingPeriod ?? null,
       earliestInstructionClosingDate: parseDate(detail.earliestInstructionClosingDate),
       directoryReference: detail.directory?.reference ?? null,
-      directoryComplementaryEmails: detail.directory?.complementaryRecipientEmails ?? [],
+      directoryComplementaryEmails: detail.directory?.complementaryRecipientEmails ?? null,
       keywords: detail.keywords ?? [],
       recipientContactCount: detail.recipientContactCount ?? null,
       chamberId: detail.chamber?.id ?? null,
+      isDeleted: false,
     },
   });
 
@@ -313,44 +315,34 @@ export async function enrichCaseFile(
   await upsertCaseFileDetail(prisma, detail);
 
   // 2. All hearings
-  let hearingsCount = 0;
+  const hearings: Hearing[] = [];
   for await (const hearing of paginate<Hearing>((page) =>
     client.getCaseFileHearings(caseFileNumber, jurisdiction, page),
   )) {
     await upsertHearingForCaseFile(prisma, caseFileNumber, hearing);
-    hearingsCount++;
+    hearings.push(hearing);
   }
+  const hearingsCount = hearings.length;
 
   // 3. All events (measures)
-  let eventsCount = 0;
   const events: CaseFileEvent[] = [];
   for await (const event of paginate<CaseFileEvent>((page) =>
     client.getCaseFileMeasures(caseFileNumber, jurisdiction, page),
   )) {
     await upsertCaseFileEvent(prisma, caseFileNumber, event, anonymize);
     events.push(event);
-    eventsCount++;
   }
-
-  // Derive the last producer (actor of the most recent "reception…" event)
-  // from the freshly upserted events.
-  await prisma.caseFile.update({
-    where: { caseFileNumber },
-    data: { lastProducerId: findLastProducerId(events) },
-  });
+  const eventsCount = events.length;
 
   // 4. All attached files
   let filesCount = 0;
   let filesSkipped = 0;
+  const files: AttachedFile[] = [];
   for await (const file of paginate<AttachedFile>((page) =>
     client.getCaseFileAttachedFiles(caseFileNumber, jurisdiction, page),
   )) {
-    const result = await upsertAttachedFile(
-      prisma,
-      caseFileNumber,
-      file,
-      updatePieceNumbers,
-    );
+    const result = await upsertAttachedFile(prisma, caseFileNumber, file, updatePieceNumbers);
+    files.push(file);
     if (result.upserted) {
       filesCount++;
     } else {
@@ -358,6 +350,36 @@ export async function enrichCaseFile(
       console.warn(`  ⚠ Attached file ${file.encodedFileId} skipped: ${result.reason}`);
     }
   }
+
+  // Fingerprint the whole scraped payload (detail + linked elements) so we can
+  // tell whether anything changed since the previous scrape. Collections are
+  // sorted by their stable id so a mere reordering never looks like a change.
+  const contentHash = computeContentHash({
+    detail,
+    hearings: [...hearings].sort((a, b) => a.hearingId.localeCompare(b.hearingId)),
+    events: [...events].sort((a, b) => a.id - b.id),
+    files: [...files].sort((a, b) => a.encodedFileId.localeCompare(b.encodedFileId)),
+  });
+  const existing = await prisma.caseFile.findUnique({
+    where: { caseFileNumber },
+    select: { telerecoursContentHash: true },
+  });
+  const hasChanged = existing?.telerecoursContentHash !== contentHash;
+  const now = new Date();
+
+  // Derive the last producer (actor of the most recent "reception…" event) from
+  // the freshly upserted events, and maintain the Telerecours sync fields.
+  //   - telerecoursSyncAt is always refreshed (a sync happened).
+  //   - telerecoursUpdatedAt (and the stored hash) only move when the payload
+  //     actually changed. `updatedAt` is left to Prisma and never touched here.
+  await prisma.caseFile.update({
+    where: { caseFileNumber },
+    data: {
+      lastProducerId: findLastProducerId(events),
+      telerecoursSyncAt: now,
+      ...(hasChanged ? { telerecoursUpdatedAt: now, telerecoursContentHash: contentHash } : {}),
+    },
+  });
 
   const safeCaseFileNumberForLog = caseFileNumber.replace(/[\r\n]/g, "");
   console.log(
