@@ -1,7 +1,6 @@
 import { fr } from "@codegouvfr/react-dsfr";
 import { Breadcrumb } from "@codegouvfr/react-dsfr/Breadcrumb";
 import { buildBackParams, type CarriedSearchParams } from "@/app/lib/carried-search-params";
-
 export type CaseFileForBreadcrumb = {
   caseFileNumber: string;
   title: string | null;

@@ -7,8 +7,10 @@ Il s'agit de questions techniques.
 
 ### Scapper
 
-- Est-ce qu'on veut que le code du scrapper soit open source ?
-- est-ce qu'il est prévu une double authentification ?
+- (Est-ce qu'on veut que le code du scrapper soit open source ?)
+- (Est-ce qu'il est prévu une double authentification ?)
+
+- Attention : tout changement de méthode d'authentification a un fort impact (voir un impact descructeur) sur notre outil DAHLIA
 
 ### API
 
@@ -42,6 +44,13 @@ Il existe déjà une API utilisée par l'interface
 - Gestion des utilisateurs et des habilitations
   - Gestion des utilisateurs : est-ce possible de récupérer les autorisations assignées aux utilisateurs ?
   - entity -> pas toujours renvoyé lors de la récupération de la liste des case-files
+  - Est-ce qu'on pourrait utiliser télérecours comme SSO ? pour récupérer l'identité et les droits 'utilisateur'
+- Récupérer d'une manière ou d'une autre le producteur de la pièce jointe, ex : dans quel évenement elle a été partagée en premier
+- Avoir une route qui permet de récupérer les pièces jointes sans générer d'acusé de lecture (dans le cas d'un prétraitement machine) et avec accusé de lecture (dans le cas de la visualisation par un utilisateur)
+
+Quastion :
+
+- Est-ce que l'accusé de lecture est assigné à un utilisateur ?
 
 Note : une API en lecture seule est suffisante pour les besoins de notre première itération. Selon la trajectoire de DAHLIA, nous aurons peut-être un jour besoin de déposer des pièces dans un dossier
 
@@ -49,7 +58,6 @@ Note : une API en lecture seule est suffisante pour les besoins de notre premiè
 
 - Comment Télérecours détermine qu'un utilisateur à les droits pour visualider les dossiers du tribunal administartif du Rhône (TA069)
 - Est-ce qu'on pourrait utiliser télérecours comme SSO ? pour récupérer l'identité et les droits 'utilisateur'
-- ⚠️ Le producteur est toujours le.la "Prefet.e", ce comportement est hérité de télérecours
 
 ## Ministère de l'interieur / ASTREE
 
@@ -190,3 +198,36 @@ Nous avons tout intérêt à s'aligner sur nos pratiques tant que faire se peut 
 LITIJ est l'application en aval de DALH'ia qui gère le suivi des contentions au niveau du MATTE (pas uniquement le droit au logement et à l'hébergement)
 
 - Est-ce qu'il y a une API ? Est-ce qu'elle permet de déposer des documents
+
+Utilisateurs
+
+- Central
+- Départements
+
+A quoi ça sert
+
+Quand il y a une affaire saisie, les agents du greffe ajoute
+Pas de synchro
+4 greffes ui copient à la main
+copier coller des infos de base
+puis c'est les juristes d la DAJ qui prennent la suite
+ils complètent le dossier
+utilisation de partaj pour consulter les experts
+Greffe -> recopie colle les information sur télérecours
+
+Gain :
+-> Interface avec Télérecours
+-> Interface avec Partaj
+Meilleur granularité
+
+LITIJ remplace le SIG
+
+- framework interne PASTA (nest.js + vuejs)
+
+PASTA -> qu'est-ce que ça apporte
+
+- Interfacage avec la brique d'authentification
+- administration
+- pièces jointes
+- CRUD over http
+- Ajout d'une surcouche au DSFR

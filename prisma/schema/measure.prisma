@@ -1,13 +1,13 @@
 // Catalogue des mesures (types d'événements) Télérecours.
 // `code` est l'identifiant string fourni par l'API (ex. "RECMEM", "ORDCLOT").
 model Measure {
-  code        String  @id
-  label       String
+  code            String  @id
+  label           String
   // Computed column: lower(f_unaccent(label)) — accent-insensitive search.
   labelNormalized String?
-  type        String
-  isImportant Boolean
-  family      String?
+  type            String
+  isImportant     Boolean
+  family          String?
 
   caseFileEvents CaseFileEvent[]
 

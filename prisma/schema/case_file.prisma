@@ -11,7 +11,7 @@ model CaseFile {
   estimatedHearingPeriod         String?
   earliestInstructionClosingDate DateTime?
   directoryReference             String?
-  directoryComplementaryEmails   String[]  @default([])
+  directoryComplementaryEmails   String?
   keywords                       String[]  @default([])
   recipientContactCount          Int?
 
@@ -63,6 +63,19 @@ model CaseFile {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Telerecours synchronization tracking (distinct from `updatedAt`, which is
+  // Prisma-managed and changes on any write). Both are maintained by the scraper
+  // during the enrichment phase.
+  //   - telerecoursSyncAt: last time the case file was synced with Telerecours
+  //     (updated on every scrape, regardless of any change).
+  //   - telerecoursUpdatedAt: last time a scrape actually changed the case file
+  //     or one of its linked elements (unchanged when nothing changed).
+  // `telerecoursContentHash` is the fingerprint of the last scraped payload,
+  // used to detect whether anything changed between two scrapes.
+  telerecoursSyncAt      DateTime?
+  telerecoursUpdatedAt   DateTime?
+  telerecoursContentHash String?
 
   @@map("case_files")
 }
