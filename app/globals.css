@@ -14,7 +14,8 @@
   overflow: hidden;
 }
 
-/* Decorative border box relies on the default overlap positioning we undo below. */
+/* The default DSFR border box (::before) relies on panel overlap positioning
+   we undo below; hide it and draw the same inset borders on the panel instead. */
 .pieces-fill .fr-tabs::before {
   display: none;
 }
@@ -32,4 +33,17 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  box-shadow:
+    inset 0 1px 0 0 var(--border-default-grey),
+    inset 1px 0 0 0 var(--border-default-grey),
+    inset -1px 0 0 0 var(--border-default-grey);
+}
+
+/* Case file details modal: wider than react-dsfr "large" (lg-8 / 8 cols).
+   Scope to the modal shell only (.fr-grid-row--center), not inner form grids. */
+@media (min-width: 62em) {
+  #case-file-details-modal .fr-grid-row--center > div {
+    flex: 0 0 91.6666666667%;
+    max-width: 91.6666666667%;
+  }
 }

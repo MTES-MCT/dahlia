@@ -1,6 +1,10 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
-import { renderPieceCommentCell, renderPieceNameCell, renderPieceTypeCell } from "./piece-table-cells";
+import {
+  renderPieceCommentCell,
+  renderPieceNameCell,
+  renderPieceTypeCell,
+} from "./piece-table-cells";
 import type { CaseFilePiece } from "@/app/lib/data/attached-files";
 
 vi.mock("@/app/lib/prisma", () => ({ prisma: {} }));
@@ -13,7 +17,7 @@ function renderCell(node: React.ReactNode) {
 
 const basePiece = {
   encodedFileId: "f1",
-  originalFileName: "requete.pdf",
+  fileName: "requete.pdf",
   fileTypeLabel: "Requête",
   eventCreationDate: new Date("2026-01-15T10:00:00"),
 } as Piece;

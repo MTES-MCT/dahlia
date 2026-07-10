@@ -19,7 +19,7 @@ import { parseTableQueryState } from "@/app/lib/table-query-state";
 
 const PIECES_LIST_SELECT = {
   encodedFileId: true,
-  originalFileName: true,
+  fileName: true,
   dahliaName: true,
   number: true,
   comment: true,
@@ -34,10 +34,7 @@ type AttachedFileListRow = Prisma.AttachedFileGetPayload<{ select: typeof PIECES
 
 function pieceNameSearchWordFilter(word: string): Prisma.AttachedFileWhereInput {
   return {
-    OR: [
-      { dahliaNameNormalized: { contains: word } },
-      { originalFileNameNormalized: { contains: word } },
-    ],
+    OR: [{ dahliaNameNormalized: { contains: word } }, { fileNameNormalized: { contains: word } }],
   };
 }
 
@@ -56,7 +53,7 @@ function buildPiecesOrderBy(
 ): Prisma.AttachedFileOrderByWithRelationInput {
   switch (sortBy) {
     case "nom":
-      return { originalFileName: direction };
+      return { fileName: direction };
     case "type":
       return { fileTypeLabel: direction };
     case "date":
@@ -79,7 +76,7 @@ function buildPiecesWhere(
       conditions.push({
         OR: [
           { dahliaNameNormalized: { contains: normalized } },
-          { originalFileNameNormalized: { contains: normalized } },
+          { fileNameNormalized: { contains: normalized } },
           { fileTypeLabelNormalized: { contains: normalized } },
           { fileFamilyTypeLabelNormalized: { contains: normalized } },
         ],

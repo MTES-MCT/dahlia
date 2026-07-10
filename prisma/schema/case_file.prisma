@@ -1,9 +1,10 @@
 // Type de contentieux du dossier, saisi manuellement par l'utilisateur.
 enum LitigationType {
-  INDEMNITAIRE // Recours indemnitaire
-  REFERE // Référé
+  LIQUIDATION_ASTREINTE // Liquidation d'astreinte
   INJONCTION // Recours injonction
-  EXCES_DE_POUVOIR // Recours en excès de pouvoir
+  INDEMNITAIRE // Recours indemnitaire
+  EXCES_DE_POUVOIR // Recours en excès de pouvoir (REP)
+  REFERE // Référé
 }
 
 // Type de droit concerné (DALO / DAHO), saisi manuellement par l'utilisateur.

@@ -3,14 +3,19 @@ import { statusLabelForCount } from "@/app/lib/status-label-plural";
 
 const STATUS_CAPTIONS = [
   {
-    dbLabel: "Clôture d'instruction",
-    singular: "en clôture d'instruction",
-    plural: "en clôture d'instruction",
+    dbLabel: "Demande d'exécution",
+    singular: "en cours de demande d'exécution",
+    plural: "en cours de demande d'exécution",
   },
   {
-    dbLabel: "Demande d'execution",
-    singular: "en cours de demande d'exécution",
-    plural: "en cours de demandes d'exécution",
+    dbLabel: "Dossier rayé",
+    singular: "rayé",
+    plural: "rayés",
+  },
+  {
+    dbLabel: "Dossier transmis suite recours",
+    singular: "transmis suite recours",
+    plural: "transmis suite recours",
   },
   {
     dbLabel: "En cours d'instruction",
@@ -18,34 +23,19 @@ const STATUS_CAPTIONS = [
     plural: "en cours d'instruction",
   },
   {
+    dbLabel: "En cours de déliberé",
+    singular: "en cours de déliberé",
+    plural: "en cours de déliberé",
+  },
+  {
     dbLabel: "En cours de régularisation",
     singular: "en cours de régularisation",
     plural: "en cours de régularisation",
   },
   {
-    dbLabel: "En délibéré",
-    singular: "en délibéré",
-    plural: "en délibéré",
-  },
-  {
-    dbLabel: "Enregistré",
-    singular: "enregistré",
-    plural: "enregistrés",
-  },
-  {
-    dbLabel: "Expertise en cours",
-    singular: "expertise en cours",
-    plural: "expertises en cours",
-  },
-  {
-    dbLabel: "Inscrit au rôle d'une audience",
-    singular: "inscrit au rôle d'une audience",
-    plural: "inscrits au rôle d'une audience",
-  },
-  {
-    dbLabel: "Recours en appel ou en cassation",
-    singular: "en recours en appel ou en cassation",
-    plural: "en recours en appel ou en cassation",
+    dbLabel: "Recours en appel",
+    singular: "en recours en appel",
+    plural: "en recours en appel",
   },
   {
     dbLabel: "Terminé",

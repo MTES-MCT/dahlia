@@ -7,15 +7,11 @@ import {
 
 describe("pieceDisplayLabel", () => {
   it("returns dahliaName when set", () => {
-    expect(pieceDisplayLabel({ dahliaName: "Pièce 1", originalFileName: "requete.pdf" })).toBe(
-      "Pièce 1",
-    );
+    expect(pieceDisplayLabel({ dahliaName: "Pièce 1", fileName: "requete.pdf" })).toBe("Pièce 1");
   });
 
-  it("falls back to originalFileName when dahliaName is null", () => {
-    expect(pieceDisplayLabel({ dahliaName: null, originalFileName: "requete.pdf" })).toBe(
-      "requete.pdf",
-    );
+  it("falls back to fileName when dahliaName is null", () => {
+    expect(pieceDisplayLabel({ dahliaName: null, fileName: "requete.pdf" })).toBe("requete.pdf");
   });
 });
 
@@ -25,13 +21,13 @@ describe("pieceDownloadFileName", () => {
       pieceDownloadFileName({
         dahliaName: "Pièce introductive",
         number: "1",
-        originalFileName: "scan_requete.pdf",
+        fileName: "scan_requete.pdf",
       }),
     ).toBe("1 - Pièce introductive.pdf");
   });
 
-  it("keeps originalFileName when dahliaName is unset", () => {
-    expect(pieceDownloadFileName({ dahliaName: null, originalFileName: "requete.pdf" })).toBe(
+  it("keeps fileName when dahliaName is unset", () => {
+    expect(pieceDownloadFileName({ dahliaName: null, fileName: "requete.pdf" })).toBe(
       "requete.pdf",
     );
   });
@@ -40,7 +36,7 @@ describe("pieceDownloadFileName", () => {
     expect(
       pieceDownloadFileName({
         dahliaName: "Pièce sans extension",
-        originalFileName: "sans_ext",
+        fileName: "sans_ext",
       }),
     ).toBe("Pièce sans extension");
   });

@@ -21,7 +21,7 @@ vi.mock("next/headers", () => ({
 
 const mockPiece = {
   encodedFileId: "ENC-1",
-  originalFileName: "memoire.pdf",
+  fileName: "memoire.pdf",
   dahliaName: null,
   number: null,
   fileTypeLabel: "Mémoire en défense",
@@ -40,7 +40,7 @@ describe("piecesSearchForTests.buildPiecesWhere", () => {
         {
           OR: [
             { dahliaNameNormalized: { contains: "memoire" } },
-            { originalFileNameNormalized: { contains: "memoire" } },
+            { fileNameNormalized: { contains: "memoire" } },
             { fileTypeLabelNormalized: { contains: "memoire" } },
             { fileFamilyTypeLabelNormalized: { contains: "memoire" } },
           ],
@@ -60,13 +60,13 @@ describe("piecesSearchForTests.buildPiecesWhere", () => {
             {
               OR: [
                 { dahliaNameNormalized: { contains: "requete" } },
-                { originalFileNameNormalized: { contains: "requete" } },
+                { fileNameNormalized: { contains: "requete" } },
               ],
             },
             {
               OR: [
                 { dahliaNameNormalized: { contains: "introductive" } },
-                { originalFileNameNormalized: { contains: "introductive" } },
+                { fileNameNormalized: { contains: "introductive" } },
               ],
             },
           ],

@@ -39,7 +39,7 @@ export default async function Page({ params, searchParams }: Props) {
         className={clsx(
           "flex",
           "flex-col",
-          isPieces ? clsx("h-screen", "overflow-hidden") : clsx("min-h-0", "flex-1"),
+          isPieces ? clsx("h-screen", "min-h-0") : clsx("min-h-0", "flex-1"),
         )}
       >
         <CaseFileDetailsCard caseFile={caseFile} />

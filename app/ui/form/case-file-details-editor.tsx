@@ -4,13 +4,18 @@ import { useActionState, useState } from "react";
 import clsx from "clsx";
 import { fr } from "@codegouvfr/react-dsfr";
 import { Badge } from "@codegouvfr/react-dsfr/Badge";
+import { RadioButtons } from "@codegouvfr/react-dsfr/RadioButtons";
 import { Select } from "@codegouvfr/react-dsfr/Select";
 import { Input } from "@codegouvfr/react-dsfr/Input";
 import { Button } from "@codegouvfr/react-dsfr/Button";
 import { Alert } from "@codegouvfr/react-dsfr/Alert";
 import { createModal } from "@codegouvfr/react-dsfr/Modal";
 import type { LitigationType, RightType } from "@prisma/client";
-import { LITIGATION_TYPE_OPTIONS, RIGHT_TYPE_OPTIONS } from "@/app/lib/case-file-enums";
+import {
+  LITIGATION_TYPE_OPTIONS,
+  RIGHT_TYPE_OPTIONS,
+  RIGHT_TYPE_UNDEFINED_VALUE,
+} from "@/app/lib/case-file-enums";
 import { updateCaseFileDetailsFormAction } from "@/app/(protected)/case_files/[caseFileNumber]/actions";
 
 const caseFileDetailsModal = createModal({
@@ -141,18 +146,21 @@ export function CaseFileDetailsModal({
             ))}
           </Select>
 
-          <Select
-            label="Type de droit"
-            nativeSelectProps={{ name: "rightType", defaultValue: rightType ?? "" }}
-            className={fr.cx("fr-col-12", "fr-col-md-6", "fr-mb-1w")}
-          >
-            <option value="">—</option>
-            {RIGHT_TYPE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </Select>
+          <div className={fr.cx("fr-col-12", "fr-col-md-6", "fr-mb-1w")}>
+            <RadioButtons
+              legend="Droit Opposable"
+              name="rightType"
+              orientation="horizontal"
+              options={RIGHT_TYPE_OPTIONS.map((option) => ({
+                label: option.label,
+                nativeInputProps: {
+                  value: option.value,
+                  defaultChecked:
+                    (rightType ?? RIGHT_TYPE_UNDEFINED_VALUE) === option.value,
+                },
+              }))}
+            />
+          </div>
         </div>
 
         <Input

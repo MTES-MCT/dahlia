@@ -14,7 +14,7 @@ describe("PieceCaseFileBreadcrumb", () => {
       <PieceCaseFileBreadcrumb
         piece={{
           dahliaName: "Pièce 1",
-          originalFileName: "requete.pdf",
+          fileName: "requete.pdf",
           caseFile,
         }}
         searchParams={{}}
@@ -30,12 +30,12 @@ describe("PieceCaseFileBreadcrumb", () => {
     expect(screen.getByText("Pièce 1")).toBeTruthy();
   });
 
-  it("falls back to originalFileName when dahliaName is null", () => {
+  it("falls back to fileName when dahliaName is null", () => {
     render(
       <PieceCaseFileBreadcrumb
         piece={{
           dahliaName: null,
-          originalFileName: "requete.pdf",
+          fileName: "requete.pdf",
           caseFile,
         }}
         searchParams={{}}
@@ -50,7 +50,7 @@ describe("PieceCaseFileBreadcrumb", () => {
       <PieceCaseFileBreadcrumb
         piece={{
           dahliaName: "Pièce 1",
-          originalFileName: "requete.pdf",
+          fileName: "requete.pdf",
           caseFile,
         }}
         searchParams={{ tab: "pieces", pcSort: "date" }}

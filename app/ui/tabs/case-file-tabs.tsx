@@ -81,7 +81,7 @@ export async function CaseFileTabs({ caseFile, tab, searchParams }: Props) {
     pieces?.map((piece) => ({
       encodedFileId: piece.encodedFileId,
       number: piece.number,
-      originalFileName: piece.originalFileName,
+      fileName: piece.fileName,
       dahliaName: piece.dahliaName,
       comment: piece.comment,
       typeLabel: piece.fileFamilyTypeLabel ?? piece.fileTypeLabel,
@@ -96,7 +96,13 @@ export async function CaseFileTabs({ caseFile, tab, searchParams }: Props) {
 
   return (
     <div
-      className={clsx("flex", "min-h-0", "flex-1", "flex-col", tab === "pieces" && "pieces-fill")}
+      className={clsx(
+        "flex",
+        "min-h-0",
+        "flex-1",
+        "flex-col",
+        tab === "pieces" && clsx("overflow-hidden", "pieces-fill"),
+      )}
     >
       <CaseFileTabNav selectedTabId={tab}>
         {tab === "pieces" && workspacePieces && (

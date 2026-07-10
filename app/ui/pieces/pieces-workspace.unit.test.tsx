@@ -11,7 +11,7 @@ const pieces: WorkspacePiece[] = [
   {
     encodedFileId: "f1",
     number: "001",
-    originalFileName: "requete.pdf",
+    fileName: "requete.pdf",
     dahliaName: "Requête introductive",
     comment: "À vérifier",
     typeLabel: "Requête",
@@ -21,7 +21,7 @@ const pieces: WorkspacePiece[] = [
   {
     encodedFileId: "f2",
     number: null,
-    originalFileName: "annexe.pdf",
+    fileName: "annexe.pdf",
     dahliaName: null,
     comment: null,
     typeLabel: "Mémoire",
@@ -63,7 +63,7 @@ describe("PiecesWorkspace", () => {
   it("sélectionne uniquement la pièce cliquée et l'affiche à droite", () => {
     renderWorkspace();
 
-    fireEvent.click(screen.getByRole("button", { name: "annexe.pdf" }));
+    fireEvent.click(screen.getByRole("button", { name: /annexe\.pdf/ }));
 
     expect(screen.getByRole("heading", { name: "annexe.pdf" })).toBeTruthy();
 

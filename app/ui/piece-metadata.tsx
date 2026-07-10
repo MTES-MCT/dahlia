@@ -1,6 +1,7 @@
 import { fr } from "@codegouvfr/react-dsfr";
 import { formatDateFr } from "@/app/lib/case-file-format";
 import type { AttachedFileDetail } from "@/app/lib/data/attached-files";
+import clsx from "clsx";
 
 type Props = {
   file: NonNullable<AttachedFileDetail>;
@@ -19,8 +20,8 @@ export function PieceMetadata({ file }: Props) {
   return (
     <>
       <h3>Métadonnées de la pièce</h3>
-      <ul className={fr.cx("fr-mb-3w")} style={{ listStyle: "none", paddingLeft: 0 }}>
-        <MetadataItem label="Nom original du fichier" value={file.originalFileName} />
+      <ul className={clsx(fr.cx("fr-mb-3w", "fr-p-0"), "list-none")}>
+        <MetadataItem label="Nom original du fichier" value={file.fileName} />
         <MetadataItem label="Type de pièce" value={file.fileTypeLabel} />
         <MetadataItem label="Famille de pièce" value={file.fileFamilyType.label} />
         <MetadataItem label="Type de document" value={file.documentType} />

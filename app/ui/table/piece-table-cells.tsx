@@ -8,7 +8,7 @@ type PieceWithFamily = Pick<
   CaseFilePiece,
   | "encodedFileId"
   | "number"
-  | "originalFileName"
+  | "fileName"
   | "dahliaName"
   | "fileTypeLabel"
   | "fileFamilyType"
@@ -36,16 +36,14 @@ export function renderPieceNameCell(
         <Link href={href} className={fr.cx("fr-link")}>
           {pieceDisplayLabel(file)}
         </Link>
-        <div className={clsx(fr.cx("fr-text--sm"), "text-grey", "italic")}>
-          {file.originalFileName}
-        </div>
+        <div className={clsx(fr.cx("fr-text--sm"), "text-grey", "italic")}>{file.fileName}</div>
       </div>
     );
   }
 
   return (
     <Link href={href} className={fr.cx("fr-link")}>
-      {file.originalFileName}
+      {file.fileName}
     </Link>
   );
 }

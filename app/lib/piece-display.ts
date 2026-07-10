@@ -1,6 +1,6 @@
 export type PieceLabelInput = {
   number?: string | null;
-  originalFileName: string;
+  fileName: string;
   dahliaName?: string | null;
 };
 
@@ -8,7 +8,7 @@ export type PieceLabelInput = {
 export function pieceDisplayLabel(piece: PieceLabelInput): string {
   return piece.dahliaName
     ? (piece.number ? `${piece.number} - ` : "") + piece.dahliaName
-    : piece.originalFileName;
+    : piece.fileName;
 }
 
 function fileExtension(fileName: string): string {
@@ -19,7 +19,7 @@ function fileExtension(fileName: string): string {
 // Suggested filename when downloading: display label + extension from the original file.
 export function pieceDownloadFileName(piece: PieceLabelInput): string {
   const label = pieceDisplayLabel(piece);
-  const ext = fileExtension(piece.originalFileName);
+  const ext = fileExtension(piece.fileName);
   if (!ext || label.toLowerCase().endsWith(ext.toLowerCase())) {
     return label;
   }

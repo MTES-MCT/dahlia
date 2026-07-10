@@ -9,33 +9,30 @@ const STATUS_LABEL_PLURAL: Record<string, StatusCaptionLabels> = {
     singular: "en cours de demande d'exécution",
     plural: "en cours de demande d'exécution",
   },
+  "Dossier rayé": {
+    singular: "rayé",
+    plural: "rayés",
+  },
+  "Dossier transmis suite recours": {
+    singular: "transmis suite recours",
+    plural: "transmis suite recours",
+  },
   "En cours d'instruction": {
     singular: "en cours d'instruction",
     plural: "en cours d'instruction",
   },
+  "En cours de déliberé": {
+    singular: "en cours de déliberé",
+    plural: "en cours de déliberé",
+  },
+
   "En cours de régularisation": {
     singular: "en cours de régularisation",
     plural: "en cours de régularisation",
   },
-  "En cours de délibéré": {
-    singular: "en cours de délibéré",
-    plural: "en cours de délibéré",
-  },
-  Enregistré: {
-    singular: "enregistré",
-    plural: "enregistrés",
-  },
-  "Expertise en cours": {
-    singular: "expertise en cours",
-    plural: "expertises en cours",
-  },
-  "Inscrit au rôle d'une audience": {
-    singular: "inscrit au rôle d'une audience",
-    plural: "inscrits au rôle d'une audience",
-  },
-  "Recours en appel ou en cassation": {
-    singular: "en recours en appel ou en cassation",
-    plural: "en recours en appel ou en cassation",
+  "Recours en appel": {
+    singular: "en recours en appel",
+    plural: "en recours en appel",
   },
   Terminé: {
     singular: "terminé",

@@ -16,7 +16,7 @@ import { PieceViewer } from "@/app/ui/piece-viewer";
 export type WorkspacePiece = {
   encodedFileId: string;
   number: string | null;
-  originalFileName: string;
+  fileName: string;
   dahliaName: string | null;
   comment: string | null;
   // Pièce type shown as a tag on the sidebar card (family label, falling back to
@@ -294,7 +294,7 @@ function PiecesSidebar({
                         "wrap-break-word",
                       )}
                     >
-                      {piece.originalFileName}
+                      {piece.fileName}
                     </span>
                   )}
                   {piece.typeLabel && (
@@ -340,7 +340,7 @@ type DetailProps = {
 };
 
 function PieceDetail({ piece, editing, onEdit, onCancel, onSaved }: DetailProps) {
-  const name = piece.dahliaName ?? piece.originalFileName;
+  const name = piece.dahliaName ?? piece.fileName;
 
   return (
     <div className={clsx("flex", "h-full", "min-h-0", "flex-col")}>
@@ -354,7 +354,7 @@ function PieceDetail({ piece, editing, onEdit, onCancel, onSaved }: DetailProps)
           </div>
           {piece.dahliaName && (
             <p className={clsx(fr.cx("fr-text--sm", "fr-mb-1w"), "text-grey", "italic")}>
-              {piece.originalFileName}
+              {piece.fileName}
             </p>
           )}
           <p className={fr.cx("fr-mb-2w")}>{piece.comment || "Aucun commentaire"}</p>
@@ -382,7 +382,7 @@ type FormProps = {
 };
 
 function PieceDetailForm({ piece, onCancel, onSaved }: FormProps) {
-  const [dahliaName, setDahliaName] = useState(piece.dahliaName ?? piece.originalFileName);
+  const [dahliaName, setDahliaName] = useState(piece.dahliaName ?? piece.fileName);
   const [number, setNumber] = useState(piece.number ?? "");
   const [comment, setComment] = useState(piece.comment ?? "");
   const [isPending, startTransition] = useTransition();
@@ -393,8 +393,7 @@ function PieceDetailForm({ piece, onCancel, onSaved }: FormProps) {
     setError(null);
     startTransition(async () => {
       const trimmedDahliaName = dahliaName.trim();
-      const dahliaNameToSave =
-        trimmedDahliaName !== piece.originalFileName.trim() ? trimmedDahliaName : "";
+      const dahliaNameToSave = trimmedDahliaName !== piece.fileName.trim() ? trimmedDahliaName : "";
 
       const result = await savePieceMetadataAction(piece.encodedFileId, {
         dahliaName: dahliaNameToSave,

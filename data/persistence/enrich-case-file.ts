@@ -278,7 +278,7 @@ async function upsertAttachedFile(
     eventId: file.eventId,
     fileFamilyTypeCode: file.fileFamilyType,
   };
-  const pieceNumber = leadingNumber(file.originalFileName);
+  const pieceNumber = leadingNumber(file.fileName);
   await prisma.attachedFile.upsert({
     where: { encodedFileId: file.encodedFileId },
     // `update` leaves user-editable fields (dahliaName, number, comment)

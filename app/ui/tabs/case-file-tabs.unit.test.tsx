@@ -42,7 +42,7 @@ vi.mock("next/navigation", () => ({
 const pieces = [
   {
     encodedFileId: "f1",
-    originalFileName: "requete.pdf",
+    fileName: "requete.pdf",
     dahliaName: null,
     number: null,
     comment: null,

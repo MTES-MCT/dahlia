@@ -5,7 +5,7 @@ import { PieceMetadata } from "./piece-metadata";
 
 const baseFile = {
   encodedFileId: "ENC-123",
-  originalFileName: "scan_requete.pdf",
+  fileName: "scan_requete.pdf",
   fileTypeLabel: "Requête",
   fileFamilyType: { label: "Requête introductive" },
   documentType: "REQUETE",
