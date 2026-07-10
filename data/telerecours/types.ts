@@ -64,7 +64,7 @@ export interface CaseFileDetail extends CaseFile {
   lastDecisionReading?: LastDecisionReading | null;
   directory?: {
     reference?: string | null;
-    complementaryRecipientEmails?: string[] | null;
+    complementaryRecipientEmails?: string | null;
   } | null;
   keywords?: string[] | null;
   recipientContactCount?: number | null;

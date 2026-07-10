@@ -97,8 +97,56 @@ describe("enrichCaseFile", () => {
     expect(prisma.attachedFile.upsert).toHaveBeenCalledOnce();
     // lastProducer derived from the "Réception mémoire" event (actor 1001).
     expect(prisma.caseFile.update).toHaveBeenCalledWith(
-      expect.objectContaining({ data: { lastProducerId: 1001 } }),
+      expect.objectContaining({ data: expect.objectContaining({ lastProducerId: 1001 }) }),
     );
+  });
+
+  it("stamps telerecoursUpdatedAt and telerecoursSyncAt on first sync (no prior hash)", async () => {
+    prisma.caseFileEvent.findUnique.mockResolvedValue({ id: 90001 } as never);
+    prisma.fileFamilyType.upsert.mockResolvedValue({ code: "REQ", label: "Requête" } as never);
+    // No existing case file → no stored hash → the payload counts as changed.
+    prisma.caseFile.findUnique.mockResolvedValue(null);
+
+    const client = fakeTelerecoursClient({
+      getCaseFileDetail: vi.fn().mockResolvedValue(caseFileDetailFixture()),
+      getCaseFileHearings: vi.fn().mockResolvedValue(page([hearingFixture()])),
+      getCaseFileMeasures: vi.fn().mockResolvedValue(page([eventFixture()])),
+      getCaseFileAttachedFiles: vi.fn().mockResolvedValue(page([attachedFileFixture()])),
+    });
+
+    await enrichCaseFile(prisma, client, "TA069-001", "TA069", true);
+
+    const data = prisma.caseFile.update.mock.calls.at(-1)![0].data as Record<string, unknown>;
+    expect(data.telerecoursSyncAt).toBeInstanceOf(Date);
+    expect(data.telerecoursUpdatedAt).toBeInstanceOf(Date);
+    expect(typeof data.telerecoursContentHash).toBe("string");
+  });
+
+  it("refreshes only telerecoursSyncAt when the scraped payload is unchanged", async () => {
+    prisma.caseFileEvent.findUnique.mockResolvedValue({ id: 90001 } as never);
+    prisma.fileFamilyType.upsert.mockResolvedValue({ code: "REQ", label: "Requête" } as never);
+    prisma.caseFile.findUnique.mockResolvedValue(null);
+
+    const client = fakeTelerecoursClient({
+      getCaseFileDetail: vi.fn().mockResolvedValue(caseFileDetailFixture()),
+      getCaseFileHearings: vi.fn().mockResolvedValue(page([hearingFixture()])),
+      getCaseFileMeasures: vi.fn().mockResolvedValue(page([eventFixture()])),
+      getCaseFileAttachedFiles: vi.fn().mockResolvedValue(page([attachedFileFixture()])),
+    });
+
+    // First scrape computes the hash of this exact payload.
+    await enrichCaseFile(prisma, client, "TA069-001", "TA069", true);
+    const firstData = prisma.caseFile.update.mock.calls.at(-1)![0].data as Record<string, unknown>;
+    const hash = firstData.telerecoursContentHash as string;
+
+    // Second scrape sees the same stored hash → nothing changed.
+    prisma.caseFile.findUnique.mockResolvedValue({ telerecoursContentHash: hash } as never);
+    await enrichCaseFile(prisma, client, "TA069-001", "TA069", true);
+
+    const secondData = prisma.caseFile.update.mock.calls.at(-1)![0].data as Record<string, unknown>;
+    expect(secondData.telerecoursSyncAt).toBeInstanceOf(Date);
+    expect(secondData.telerecoursUpdatedAt).toBeUndefined();
+    expect(secondData.telerecoursContentHash).toBeUndefined();
   });
 
   it("skips an attached file whose event is not in DB", async () => {

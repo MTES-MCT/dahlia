@@ -237,6 +237,9 @@ erDiagram
         int lastProducerId FK "nullable"
         DateTime createdAt
         DateTime updatedAt
+        DateTime telerecoursSyncAt "nullable"
+        DateTime telerecoursUpdatedAt "nullable"
+        string telerecoursContentHash "nullable"
     }
 
     LegalEntityDivision {
