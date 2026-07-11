@@ -239,6 +239,7 @@ function PiecesSidebar({
         {pieces.map((piece) => {
           const id = piece.encodedFileId;
           const isCurrent = id === currentId;
+          const label = pieceDisplayLabel(piece);
           return (
             <li key={id}>
               <div
@@ -258,7 +259,7 @@ function PiecesSidebar({
                     onChange={() => onToggleOne(id)}
                   />
                   <label className="fr-label" htmlFor={`piece-select-${id}`}>
-                    <span className="fr-sr-only">Sélectionner {pieceDisplayLabel(piece)}</span>
+                    <span className="fr-sr-only">Sélectionner {label}</span>
                   </label>
                 </div>
                 <button
@@ -280,10 +281,12 @@ function PiecesSidebar({
                     className={clsx(
                       fr.cx("fr-text--sm", "fr-mb-0"),
                       "block",
+                      "truncate",
                       isCurrent ? "font-bold" : "font-medium",
                     )}
+                    title={label}
                   >
-                    {pieceDisplayLabel(piece)}
+                    {label}
                   </span>
                   {piece.dahliaName && (
                     <span

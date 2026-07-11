@@ -24,6 +24,8 @@ const mockPiece = {
   fileName: "memoire.pdf",
   dahliaName: null,
   number: null,
+  comment: null,
+  mimeType: "application/pdf",
   fileTypeLabel: "Mémoire en défense",
   fileFamilyTypeLabel: "Mémoire",
   fileFamilyType: { label: "Mémoire" },

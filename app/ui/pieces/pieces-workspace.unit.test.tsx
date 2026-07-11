@@ -50,8 +50,8 @@ describe("PiecesWorkspace", () => {
   it("liste toutes les pièces avec le libellé DAHLIA ou le nom original", () => {
     renderWorkspace();
     const nav = sidebar();
-    expect(within(nav).getByText("001 - Requête introductive")).toBeTruthy();
-    expect(within(nav).getByText("annexe.pdf")).toBeTruthy();
+    expect(within(nav).getByRole("button", { name: /001 - Requête introductive/ })).toBeTruthy();
+    expect(within(nav).getByRole("button", { name: /annexe\.pdf/ })).toBeTruthy();
   });
 
   it("affiche la première pièce dans le panneau de détail par défaut", () => {

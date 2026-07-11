@@ -135,7 +135,7 @@ describe("MemoryDeadlineCell", () => {
     expect(screen.getByText("Urgent")).toBeTruthy();
   });
 
-  it('affiche une infobulle sur le badge "Urgent"', () => {
+  it('affiche une infobulle native sur le badge "Urgent"', () => {
     render(
       <MemoryDeadlineCell
         date={new Date("2026-06-15T13:00:00")}
@@ -144,10 +144,10 @@ describe("MemoryDeadlineCell", () => {
       />,
     );
 
-    expect(screen.getByRole("tooltip").textContent).toBe("Échéance dans moins de 2 semaines");
+    expect(screen.getByTitle("Échéance dans moins de 2 semaines")).toBeTruthy();
   });
 
-  it('affiche une infobulle sur le badge "Très urgent"', () => {
+  it('affiche une infobulle native sur le badge "Très urgent"', () => {
     render(
       <MemoryDeadlineCell
         date={new Date("2026-06-10T13:00:00")}
@@ -156,7 +156,7 @@ describe("MemoryDeadlineCell", () => {
       />,
     );
 
-    expect(screen.getByRole("tooltip").textContent).toBe("Échéance dans moins de 2 jours ouvrés");
+    expect(screen.getByTitle("Échéance dans moins de 2 jours ouvrés")).toBeTruthy();
   });
 
   it("n'affiche pas d'infobulle sur le badge Passé", () => {
@@ -169,7 +169,7 @@ describe("MemoryDeadlineCell", () => {
     );
 
     expect(screen.getByText("Passé")).toBeTruthy();
-    expect(screen.queryByRole("tooltip")).toBeNull();
+    expect(screen.queryByTitle(/Échéance/)).toBeNull();
   });
 
   it('affiche le badge "Mise en demeure" pour une échéance saisie manuellement', () => {

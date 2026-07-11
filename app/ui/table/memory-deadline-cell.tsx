@@ -1,6 +1,5 @@
 import { fr } from "@codegouvfr/react-dsfr";
 import { Badge, type BadgeProps } from "@codegouvfr/react-dsfr/Badge";
-import { Tooltip } from "@codegouvfr/react-dsfr/Tooltip";
 import { differenceInBusinessDays } from "date-fns";
 import { formatDateFr } from "@/app/lib/case-file-format";
 import {
@@ -76,9 +75,9 @@ export function MemoryDeadlineCell({
       {badgeLabel && (
         <div className={fr.cx("fr-mt-1v")}>
           {badgeTooltip ? (
-            <Tooltip title={badgeTooltip}>
+            <span title={badgeTooltip}>
               <Badge severity={badgeSeverity}>{badgeLabel}</Badge>
-            </Tooltip>
+            </span>
           ) : (
             <Badge severity={badgeSeverity}>{badgeLabel}</Badge>
           )}
