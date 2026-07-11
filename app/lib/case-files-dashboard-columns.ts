@@ -16,10 +16,46 @@ export type CaseFileDashboardRow = Prisma.CaseFileGetPayload<{
   include: typeof CASE_FILES_DASHBOARD_INCLUDE;
 }>;
 
-// Sort key for the memory-production deadline column: the convocation date of
-// the last hearing. It lives on the `lastHearing` relation, so it needs a
-// dedicated nested orderBy (see buildOrderBy in case-files.ts).
+// Sort key for the memory-production deadline column. The URL param is kept as
+// `convocationDate` for backward compatibility; sorting uses the generated
+// `memoryDeadlineDate` column in Postgres (see migration case_file_memory_deadline_date).
 export const HEARING_CONVOCATION_SORT_KEY = "convocationDate";
+
+export const MEMORY_DEADLINE_SOURCE_LABELS = {
+  hearing: "Audience",
+  MISE_EN_DEMEURE_DE_PRODUIRE: "Mise en demeure",
+  CLOTURE_INSTRUCTION: "Clôture d'instruction",
+} as const;
+
+export type MemoryDeadlineSource = keyof typeof MEMORY_DEADLINE_SOURCE_LABELS;
+
+export function getMemoryDeadlineDate(
+  caseFile: Pick<CaseFileDashboardRow, "memoryDeadlineDate">,
+): Date | null {
+  return caseFile.memoryDeadlineDate;
+}
+
+export function getMemoryDeadlineSource(
+  caseFile: Pick<
+    CaseFileDashboardRow,
+    "productionDeadlineDate" | "productionDeadlineType" | "lastHearing"
+  >,
+): MemoryDeadlineSource | null {
+  if (caseFile.productionDeadlineDate) {
+    if (caseFile.productionDeadlineType === "CLOTURE_INSTRUCTION") {
+      return "CLOTURE_INSTRUCTION";
+    }
+    if (caseFile.productionDeadlineType === "MISE_EN_DEMEURE_DE_PRODUIRE") {
+      return "MISE_EN_DEMEURE_DE_PRODUIRE";
+    }
+  }
+
+  if (caseFile.lastHearing?.convocationDate) {
+    return "hearing";
+  }
+
+  return null;
+}
 
 export type CaseFileDashboardColumnDef = {
   key: string;
@@ -84,6 +120,6 @@ export const CASE_FILES_DASHBOARD_COLUMNS: CaseFileDashboardColumnDef[] = [
     label: "Date limite de production de mémoire",
     sortable: true,
     defaultOrder: "ascending",
-    exportValue: (caseFile) => formatDateFr(caseFile.lastHearing?.convocationDate),
+    exportValue: (caseFile) => formatDateFr(getMemoryDeadlineDate(caseFile)),
   },
 ];

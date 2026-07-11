@@ -13,6 +13,12 @@ enum RightType {
   HEBERGEMENT // Hébergement
 }
 
+// Type d'échéance à produire, saisi manuellement pour les dossiers en cours d'instruction.
+enum ProductionDeadlineType {
+  MISE_EN_DEMEURE_DE_PRODUIRE // Mise en demeure de produire
+  CLOTURE_INSTRUCTION // Clôture d'instruction
+}
+
 model CaseFile {
   caseFileNumber String @id
 
@@ -54,6 +60,17 @@ model CaseFile {
   rightType      RightType?
   // Short free-text label (a few words) characterizing the case; shown as "Raison".
   summary        String?
+
+  // Production deadline tracked for case files under instruction (null = none).
+  productionDeadlineType ProductionDeadlineType?
+  productionDeadlineDate DateTime?
+
+  // Denormalized convocation date of `lastHearing`, maintained by the scraper so
+  // the dashboard can sort on the effective memory deadline without a join.
+  lastHearingConvocationDate DateTime?
+  // Generated in Postgres: COALESCE(productionDeadlineDate, lastHearingConvocationDate).
+  // Prisma 7 does not model generated columns; declared as a plain nullable field.
+  memoryDeadlineDate DateTime?
 
   // Set to true when a case file present in DB is no longer returned by the
   // Telerecours list scrape within the same perimeter (see scrape-telerecours

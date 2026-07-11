@@ -10,12 +10,18 @@ import { Input } from "@codegouvfr/react-dsfr/Input";
 import { Button } from "@codegouvfr/react-dsfr/Button";
 import { Alert } from "@codegouvfr/react-dsfr/Alert";
 import { createModal } from "@codegouvfr/react-dsfr/Modal";
+import { useIsModalOpen } from "@codegouvfr/react-dsfr/Modal/useIsModalOpen";
 import type { LitigationType, RightType } from "@prisma/client";
 import {
   LITIGATION_TYPE_OPTIONS,
+  PRODUCTION_DEADLINE_TYPE_OPTIONS,
+  PRODUCTION_DEADLINE_TYPE_UNDEFINED_VALUE,
   RIGHT_TYPE_OPTIONS,
   RIGHT_TYPE_UNDEFINED_VALUE,
+  UNDER_INSTRUCTION_STATUS_LABEL,
+  type ProductionDeadlineType,
 } from "@/app/lib/case-file-enums";
+import { formatDateInputValue } from "@/app/lib/case-file-format";
 import { updateCaseFileDetailsFormAction } from "@/app/(protected)/case_files/[caseFileNumber]/actions";
 
 const caseFileDetailsModal = createModal({
@@ -30,6 +36,8 @@ export type CaseFileDetailsEditorProps = {
   litigationType: LitigationType | null;
   rightType: RightType | null;
   summary: string | null;
+  productionDeadlineType: ProductionDeadlineType | null;
+  productionDeadlineDate: Date | null;
   mainClaimantName: string;
   mainDefenderName: string;
   depositDateLabel: string;
@@ -49,6 +57,53 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
         {value || "—"}
       </span>
     </div>
+  );
+}
+
+function ProductionDeadlineFields({
+  productionDeadlineType,
+  productionDeadlineDate,
+}: Pick<CaseFileDetailsEditorProps, "productionDeadlineType" | "productionDeadlineDate">) {
+  const initialType = productionDeadlineType ?? PRODUCTION_DEADLINE_TYPE_UNDEFINED_VALUE;
+  const [selectedType, setSelectedType] = useState(initialType);
+  const hasDeadlineType = selectedType !== PRODUCTION_DEADLINE_TYPE_UNDEFINED_VALUE;
+
+  return (
+    <>
+      <input type="hidden" name="hasProductionDeadlineFields" value="true" />
+
+      <div
+        className={clsx(
+          fr.cx("fr-mb-1w"),
+          "flex flex-wrap items-start justify-start gap-x-4 gap-y-2",
+        )}
+      >
+        <RadioButtons
+          legend="Échéance à produire"
+          name="productionDeadlineType"
+          orientation="horizontal"
+          options={PRODUCTION_DEADLINE_TYPE_OPTIONS.map((option) => ({
+            label: option.label,
+            nativeInputProps: {
+              value: option.value,
+              defaultChecked: initialType === option.value,
+              onChange: () => setSelectedType(option.value),
+            },
+          }))}
+        />
+
+        <Input
+          label="Date limite de production"
+          disabled={!hasDeadlineType}
+          nativeInputProps={{
+            type: "date",
+            name: "productionDeadlineDate",
+            defaultValue: formatDateInputValue(productionDeadlineDate),
+          }}
+          className="shrink-0"
+        />
+      </div>
+    </>
   );
 }
 
@@ -103,15 +158,36 @@ export function CaseFileDetailsHeader({
 // action that revalidates the page so the card reflects the change.
 export function CaseFileDetailsModal({
   caseFileNumber,
+  statusLabel,
   litigationType,
   rightType,
   summary,
+  productionDeadlineType,
+  productionDeadlineDate,
   mainClaimantName,
   mainDefenderName,
   depositDateLabel,
   chamberName,
-}: Omit<CaseFileDetailsEditorProps, "title" | "statusLabel">) {
+}: Omit<CaseFileDetailsEditorProps, "title">) {
   const [result, formAction, isPending] = useActionState(updateCaseFileDetailsFormAction, null);
+  const showProductionDeadlineFields = statusLabel === UNDER_INSTRUCTION_STATUS_LABEL;
+
+  // Remount the form on each modal open so uncontrolled fields reset to the latest
+  // caseFile values instead of keeping unsaved edits from a previous session.
+  const [formOpenGeneration, setFormOpenGeneration] = useState(0);
+  useIsModalOpen(caseFileDetailsModal, {
+    onDisclose: () => {
+      setFormOpenGeneration((generation) => generation + 1);
+    },
+  });
+  const formKey = [
+    formOpenGeneration,
+    litigationType ?? "",
+    rightType ?? RIGHT_TYPE_UNDEFINED_VALUE,
+    summary ?? "",
+    productionDeadlineType ?? "",
+    formatDateInputValue(productionDeadlineDate),
+  ].join("\0");
 
   // Close the modal once a save succeeds. Handling the new result during render
   // (guarded against re-runs) avoids a setState-in-effect cascade.
@@ -129,7 +205,7 @@ export function CaseFileDetailsModal({
       iconId="fr-icon-folder-2-line"
       size="large"
     >
-      <form action={formAction} className={fr.cx("fr-mb-3w")}>
+      <form key={formKey} action={formAction} className={fr.cx("fr-mb-3w")}>
         <input type="hidden" name="caseFileNumber" value={caseFileNumber} />
 
         <div className={fr.cx("fr-grid-row", "fr-grid-row--gutters")}>
@@ -155,8 +231,7 @@ export function CaseFileDetailsModal({
                 label: option.label,
                 nativeInputProps: {
                   value: option.value,
-                  defaultChecked:
-                    (rightType ?? RIGHT_TYPE_UNDEFINED_VALUE) === option.value,
+                  defaultChecked: (rightType ?? RIGHT_TYPE_UNDEFINED_VALUE) === option.value,
                 },
               }))}
             />
@@ -168,6 +243,13 @@ export function CaseFileDetailsModal({
           nativeInputProps={{ name: "summary", defaultValue: summary ?? "" }}
           className={fr.cx("fr-mb-1w")}
         />
+
+        {showProductionDeadlineFields && (
+          <ProductionDeadlineFields
+            productionDeadlineType={productionDeadlineType}
+            productionDeadlineDate={productionDeadlineDate}
+          />
+        )}
 
         <Button type="submit" disabled={isPending} iconId="fr-icon-save-line">
           {isPending ? "Enregistrement…" : "Enregistrer"}

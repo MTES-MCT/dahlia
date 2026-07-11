@@ -30,11 +30,7 @@ function buildOrderBy(
     return { [sortBy]: { displayName: { sort: direction, nulls: "last" } } };
   }
   if (sortBy === HEARING_CONVOCATION_SORT_KEY) {
-    // `convocationDate` is a required field, so the `nulls` option is not allowed
-    // here. Case files without a last hearing (null relation) are sorted NULLS
-    // LAST by Postgres in ascending order — which is our default — so they end up
-    // last as intended.
-    return { lastHearing: { convocationDate: direction } };
+    return { memoryDeadlineDate: { sort: direction, nulls: "last" } };
   }
   return { [sortBy]: direction };
 }
@@ -117,6 +113,7 @@ async function fetchCaseFiles(
 ): Promise<CaseFileWithRelations[]> {
   const direction: Prisma.SortOrder = sortOrder === "ascending" ? "asc" : "desc";
   const where = buildWhere(query, statusLabel);
+
   return prisma.caseFile.findMany({
     include: CASE_FILES_DASHBOARD_INCLUDE,
     where,
@@ -208,6 +205,7 @@ export async function fetchAllCaseFilesForExport(
 ): Promise<CaseFileWithRelations[]> {
   const direction: Prisma.SortOrder = sortOrder === "ascending" ? "asc" : "desc";
   const where = buildWhere(query, statusLabel);
+
   return prisma.caseFile.findMany({
     include: CASE_FILES_DASHBOARD_INCLUDE,
     where,

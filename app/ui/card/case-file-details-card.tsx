@@ -20,6 +20,8 @@ export function CaseFileDetailsCard({ caseFile }: Props) {
     litigationType: caseFile.litigationType,
     rightType: caseFile.rightType,
     summary: caseFile.summary,
+    productionDeadlineType: caseFile.productionDeadlineType,
+    productionDeadlineDate: caseFile.productionDeadlineDate,
     mainClaimantName: getActorDisplayName(caseFile.mainClaimant),
     mainDefenderName: getActorDisplayName(caseFile.mainDefender),
     depositDateLabel: formatDateFr(caseFile.depositDate),
@@ -52,9 +54,12 @@ export function CaseFileDetailsCard({ caseFile }: Props) {
       {/* Rendered outside the sticky section so the modal backdrop covers the header. */}
       <CaseFileDetailsModal
         caseFileNumber={editorProps.caseFileNumber}
+        statusLabel={editorProps.statusLabel}
         litigationType={editorProps.litigationType}
         rightType={editorProps.rightType}
         summary={editorProps.summary}
+        productionDeadlineType={editorProps.productionDeadlineType}
+        productionDeadlineDate={editorProps.productionDeadlineDate}
         mainClaimantName={editorProps.mainClaimantName}
         mainDefenderName={editorProps.mainDefenderName}
         depositDateLabel={editorProps.depositDateLabel}

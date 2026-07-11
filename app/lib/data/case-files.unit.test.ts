@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { getActorDisplayName } from "@/app/lib/case-file-format";
-import { CASE_FILES_DASHBOARD_INCLUDE } from "@/app/lib/case-files-dashboard-columns";
+import { CASE_FILES_DASHBOARD_INCLUDE, HEARING_CONVOCATION_SORT_KEY } from "@/app/lib/case-files-dashboard-columns";
 import { fetchCaseFilesTableData, fetchUsedStatusLabels } from "./case-files";
 import { prisma } from "@/app/lib/prisma";
 
@@ -228,15 +228,15 @@ describe("case-files", () => {
       );
     });
 
-    it("sorts by the lastHearing convocationDate through the relation", async () => {
+    it("sorts by the generated memoryDeadlineDate column", async () => {
       vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
       vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
 
-      await fetchCaseFilesTableData(1, 10, "convocationDate", "ascending");
+      await fetchCaseFilesTableData(1, 10, HEARING_CONVOCATION_SORT_KEY, "ascending");
 
       expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
         expect.objectContaining({
-          orderBy: { lastHearing: { convocationDate: "asc" } },
+          orderBy: { memoryDeadlineDate: { sort: "asc", nulls: "last" } },
         }),
       );
     });

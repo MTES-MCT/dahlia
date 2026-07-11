@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { LitigationType, RightType } from "@prisma/client";
+import type { ProductionDeadlineType } from "@prisma/client";
+import { PRODUCTION_DEADLINE_TYPE_VALUES } from "@/app/lib/case-file-enums";
 import { prisma } from "@/app/lib/prisma";
 import { describeError } from "@/data/telerecours/http";
 import { getTelerecoursClient } from "@/app/lib/telerecours";
@@ -44,6 +46,39 @@ function parseEnumValue<T extends Record<string, string>>(
   return { value: null, invalid: true };
 }
 
+function parseAllowedValue<T extends string>(
+  allowed: readonly T[],
+  raw: string,
+): { value: T | null; invalid: boolean } {
+  if (!raw) {
+    return { value: null, invalid: false };
+  }
+  if (allowed.includes(raw as T)) {
+    return { value: raw as T, invalid: false };
+  }
+  return { value: null, invalid: true };
+}
+
+function parseProductionDeadlineDate(raw: string): Date | null | "invalid" {
+  if (!raw) {
+    return null;
+  }
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+  if (!match) {
+    return "invalid";
+  }
+  const [, year, month, day] = match;
+  const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+  if (
+    date.getFullYear() !== Number(year) ||
+    date.getMonth() !== Number(month) - 1 ||
+    date.getDate() !== Number(day)
+  ) {
+    return "invalid";
+  }
+  return date;
+}
+
 // Persist the user-managed classification fields of a case file (type de
 // contentieux, type de droit, raison/summary) edited from the details card.
 export async function updateCaseFileDetailsFormAction(
@@ -55,7 +90,10 @@ export async function updateCaseFileDetailsFormAction(
     return { ok: false, error: "Numéro de dossier manquant." };
   }
 
-  const litigation = parseEnumValue(LitigationType, String(formData.get("litigationType") ?? "").trim());
+  const litigation = parseEnumValue(
+    LitigationType,
+    String(formData.get("litigationType") ?? "").trim(),
+  );
   if (litigation.invalid) {
     return { ok: false, error: "Type de contentieux invalide." };
   }
@@ -65,6 +103,34 @@ export async function updateCaseFileDetailsFormAction(
   }
   const summary = String(formData.get("summary") ?? "").trim();
 
+  const hasProductionDeadlineFields = formData.get("hasProductionDeadlineFields") === "true";
+  let productionDeadlineType: ProductionDeadlineType | null = null;
+  let productionDeadlineDate: Date | null = null;
+
+  if (hasProductionDeadlineFields) {
+    const deadlineType = parseAllowedValue(
+      PRODUCTION_DEADLINE_TYPE_VALUES,
+      String(formData.get("productionDeadlineType") ?? "").trim(),
+    );
+    if (deadlineType.invalid) {
+      return { ok: false, error: "Type d'échéance à produire invalide." };
+    }
+    productionDeadlineType = deadlineType.value;
+
+    if (productionDeadlineType) {
+      const parsedDate = parseProductionDeadlineDate(
+        String(formData.get("productionDeadlineDate") ?? "").trim(),
+      );
+      if (parsedDate === "invalid") {
+        return { ok: false, error: "Date limite de production invalide." };
+      }
+      if (!parsedDate) {
+        return { ok: false, error: "Date limite de production requise." };
+      }
+      productionDeadlineDate = parsedDate;
+    }
+  }
+
   try {
     await prisma.caseFile.update({
       where: { caseFileNumber },
@@ -72,6 +138,12 @@ export async function updateCaseFileDetailsFormAction(
         litigationType: litigation.value,
         rightType: right.value,
         summary: summary || null,
+        ...(hasProductionDeadlineFields
+          ? {
+              productionDeadlineType,
+              productionDeadlineDate,
+            }
+          : {}),
       },
     });
 

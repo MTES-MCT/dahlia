@@ -173,6 +173,11 @@ async function upsertHearingForCaseFile(
       caseFileNumber,
     },
   });
+
+  await prisma.caseFile.updateMany({
+    where: { lastHearingId: hearing.hearingId },
+    data: { lastHearingConvocationDate: new Date(hearing.convocationDate) },
+  });
 }
 
 async function upsertCaseFileEvent(
