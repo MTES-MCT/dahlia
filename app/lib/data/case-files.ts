@@ -131,18 +131,6 @@ async function fetchCaseFilesCount(
   return prisma.caseFile.count({ where });
 }
 
-// Status labels actually used by at least one case file — source of truth for the filter dropdown and server-side validation.
-// Sometimes several `Status` lines share the same `label` (cf. Telerecours catalogue): we deduplicate on the label.
-export async function fetchUsedStatusLabels(): Promise<string[]> {
-  const statuses = await prisma.status.findMany({
-    where: { caseFiles: { some: { isDeleted: false } as Prisma.CaseFileWhereInput } },
-    select: { label: true },
-    distinct: ["label"],
-    orderBy: { label: "asc" },
-  });
-  return statuses.map((s) => s.label);
-}
-
 // case-file detail with all its relations, for the detail page.
 // Load the complete tree (actors, status, hearings → conclusions,
 // events → measures/files, related case files) to display it in JSON.

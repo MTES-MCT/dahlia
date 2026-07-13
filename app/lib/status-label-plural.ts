@@ -4,7 +4,7 @@ type StatusCaptionLabels = {
 };
 
 // Status labels as stored in `statuses.label` → caption wording after « X dossier(s) ».
-const STATUS_LABEL_PLURAL: Record<string, StatusCaptionLabels> = {
+export const STATUS_LABEL_PLURAL: Record<string, StatusCaptionLabels> = {
   "Demande d'exécution": {
     singular: "en cours de demande d'exécution",
     plural: "en cours de demande d'exécution",
@@ -25,10 +25,13 @@ const STATUS_LABEL_PLURAL: Record<string, StatusCaptionLabels> = {
     singular: "en cours de déliberé",
     plural: "en cours de déliberé",
   },
-
   "En cours de régularisation": {
     singular: "en cours de régularisation",
     plural: "en cours de régularisation",
+  },
+  "Inscrit au rôle d'une audience": {
+    singular: "inscrit au rôle d'une audience",
+    plural: "inscrits au rôle d'une audience",
   },
   "Recours en appel": {
     singular: "en recours en appel",
@@ -39,6 +42,11 @@ const STATUS_LABEL_PLURAL: Record<string, StatusCaptionLabels> = {
     plural: "terminés",
   },
 };
+
+// Sorted status labels for the dashboard filter dropdown.
+export const STATUS_FILTER_OPTIONS = Object.keys(STATUS_LABEL_PLURAL).sort((a, b) =>
+  a.localeCompare(b, "fr"),
+);
 
 export function statusLabelForCount(count: number, statusLabel: string): string {
   const captions = STATUS_LABEL_PLURAL[statusLabel];

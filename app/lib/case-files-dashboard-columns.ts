@@ -32,11 +32,15 @@ export const MEMORY_DEADLINE_SOURCE_LABELS: Record<MemoryDeadlineSource, string>
   ...PRODUCTION_DEADLINE_TYPE_LABELS,
 };
 
+type MemoryDeadlineSourceInput = Pick<
+  CaseFileDashboardRow,
+  "productionDeadlineDate" | "productionDeadlineType"
+> & {
+  lastHearing: { convocationDate: Date | null } | null;
+};
+
 export function getMemoryDeadlineSource(
-  caseFile: Pick<
-    CaseFileDashboardRow,
-    "productionDeadlineDate" | "productionDeadlineType" | "lastHearing"
-  >,
+  caseFile: MemoryDeadlineSourceInput,
 ): MemoryDeadlineSource | null {
   if (caseFile.productionDeadlineDate) {
     const deadlineType = caseFile.productionDeadlineType;

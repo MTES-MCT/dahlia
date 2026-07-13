@@ -3,7 +3,6 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import {
   fetchCaseFilesTableData,
-  fetchUsedStatusLabels,
   HEARING_CONVOCATION_SORT_KEY,
 } from "@/app/lib/data/case-files";
 import {
@@ -106,17 +105,14 @@ export default async function Page({ searchParams }: Props) {
     DEFAULT_TABLE_PAGE_SIZES.dashboard,
   );
 
-  const [{ rows, totalPages, totalCount }, statusOptions] = await Promise.all([
-    fetchCaseFilesTableData(
-      tableState.page,
-      pageSize,
-      tableState.sortBy,
-      tableState.sortOrder,
-      tableState.query,
-      currentStatut,
-    ),
-    fetchUsedStatusLabels(),
-  ]);
+  const { rows, totalPages, totalCount } = await fetchCaseFilesTableData(
+    tableState.page,
+    pageSize,
+    tableState.sortBy,
+    tableState.sortOrder,
+    tableState.query,
+    currentStatut,
+  );
 
   const currentParams = new URLSearchParams();
   if (pageParam) currentParams.set("page", String(tableState.page));
@@ -139,7 +135,6 @@ export default async function Page({ searchParams }: Props) {
 
       <DataTable
         search={buildCaseFilesSearchConfig({
-          statusOptions,
           defaultStatut: DEFAULT_STATUT,
           currentQuery: tableState.query ?? "",
           statutParam,
