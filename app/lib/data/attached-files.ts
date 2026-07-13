@@ -1,27 +1,17 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/app/lib/prisma";
 import { normalizeForSearch, parseSearchQuery } from "@/app/lib/case-file-search";
-import {
-  PIECES_DEFAULT_ORDER,
-  PIECES_DEFAULT_SORT_BY,
-  PIECES_FACET_KEYS,
-  PIECES_PARAMS,
-  type PiecesFacetKey,
-} from "@/app/lib/pieces-table";
+import { PIECES_FACET_KEYS, type PiecesFacetKey } from "@/app/lib/pieces-table";
 import { buildWordAndFilter, combineAnd, facetSearchWords } from "@/app/lib/search-where";
-import {
-  fetchPaginatedTableData,
-  resolveTablePageSize,
-  type PaginatedTableData,
-} from "@/app/lib/fetch-paginated-table-data";
 import { type SortOrder } from "@/app/lib/table-sort";
-import { parseTableQueryState } from "@/app/lib/table-query-state";
 
 const PIECES_LIST_SELECT = {
   encodedFileId: true,
-  originalFileName: true,
+  fileName: true,
   dahliaName: true,
   number: true,
+  comment: true,
+  mimeType: true,
   fileTypeLabel: true,
   fileFamilyTypeLabel: true,
   fileFamilyType: { select: { label: true } },
@@ -32,10 +22,7 @@ type AttachedFileListRow = Prisma.AttachedFileGetPayload<{ select: typeof PIECES
 
 function pieceNameSearchWordFilter(word: string): Prisma.AttachedFileWhereInput {
   return {
-    OR: [
-      { dahliaNameNormalized: { contains: word } },
-      { originalFileNameNormalized: { contains: word } },
-    ],
+    OR: [{ dahliaNameNormalized: { contains: word } }, { fileNameNormalized: { contains: word } }],
   };
 }
 
@@ -54,7 +41,7 @@ function buildPiecesOrderBy(
 ): Prisma.AttachedFileOrderByWithRelationInput {
   switch (sortBy) {
     case "nom":
-      return { originalFileName: direction };
+      return { fileName: direction };
     case "type":
       return { fileTypeLabel: direction };
     case "date":
@@ -77,7 +64,7 @@ function buildPiecesWhere(
       conditions.push({
         OR: [
           { dahliaNameNormalized: { contains: normalized } },
-          { originalFileNameNormalized: { contains: normalized } },
+          { fileNameNormalized: { contains: normalized } },
           { fileTypeLabelNormalized: { contains: normalized } },
           { fileFamilyTypeLabelNormalized: { contains: normalized } },
         ],
@@ -111,57 +98,11 @@ function buildPiecesWhere(
 
 export type CaseFilePiece = AttachedFileListRow;
 
-export type CaseFilePiecesTableData = PaginatedTableData<CaseFilePiece>;
-
 function toSortOrder(sortOrder: SortOrder): Prisma.SortOrder {
   return sortOrder === "ascending" ? "asc" : "desc";
 }
 
-async function fetchCaseFilePiecesPage(
-  caseFileNumber: string,
-  page: number,
-  pageSize: number,
-  sortBy: string,
-  sortOrder: SortOrder,
-  query: string | null,
-): Promise<AttachedFileListRow[]> {
-  const where = buildPiecesWhere(caseFileNumber, query);
-  return prisma.attachedFile.findMany({
-    where,
-    select: PIECES_LIST_SELECT,
-    orderBy: buildPiecesOrderBy(sortBy, toSortOrder(sortOrder)),
-    skip: (page - 1) * pageSize,
-    take: pageSize,
-  });
-}
-
-async function fetchCaseFilePiecesCount(
-  caseFileNumber: string,
-  query: string | null,
-): Promise<number> {
-  return prisma.attachedFile.count({ where: buildPiecesWhere(caseFileNumber, query) });
-}
-
-export async function fetchCaseFilePiecesTableData(
-  caseFileNumber: string,
-  searchParams: Record<string, string | string[] | undefined>,
-): Promise<CaseFilePiecesTableData> {
-  const { page, sortBy, sortOrder, query } = parseTableQueryState(searchParams, PIECES_PARAMS, {
-    defaultSortBy: PIECES_DEFAULT_SORT_BY,
-    defaultOrder: PIECES_DEFAULT_ORDER,
-  });
-  const pageSize = await resolveTablePageSize("pieces");
-
-  return fetchPaginatedTableData({
-    page,
-    pageSize,
-    fetchPage: () =>
-      fetchCaseFilePiecesPage(caseFileNumber, page, pageSize, sortBy, sortOrder, query),
-    fetchCount: () => fetchCaseFilePiecesCount(caseFileNumber, query),
-  });
-}
-
-// Full filtered/sorted list for the pièce edition navigator (no pagination).
+// Full filtered/sorted list for the pièces workspace sidebar.
 export async function fetchCaseFilePiecesFiltered(
   caseFileNumber: string,
   sortBy: string,
@@ -176,15 +117,10 @@ export async function fetchCaseFilePiecesFiltered(
   });
 }
 
-// Fetch a single attached file (pièce) with its file-family label and the
-// minimal case-file info needed for the breadcrumb. Returns null when unknown.
+// Fetch a single attached file (pièce). Returns null when unknown.
 export async function fetchAttachedFile(encodedFileId: string) {
   return prisma.attachedFile.findUnique({
     where: { encodedFileId },
-    include: {
-      fileFamilyType: true,
-      caseFile: { select: { caseFileNumber: true, title: true } },
-    },
   });
 }
 

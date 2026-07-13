@@ -1,8 +1,11 @@
 import { fr } from "@codegouvfr/react-dsfr";
 import { Badge, type BadgeProps } from "@codegouvfr/react-dsfr/Badge";
-import { Tooltip } from "@codegouvfr/react-dsfr/Tooltip";
 import { differenceInBusinessDays } from "date-fns";
 import { formatDateFr } from "@/app/lib/case-file-format";
+import {
+  MEMORY_DEADLINE_SOURCE_LABELS,
+  type MemoryDeadlineSource,
+} from "@/app/lib/case-files-dashboard-columns";
 import { normalizeForSearch } from "@/app/lib/case-file-search";
 
 // Number of business days before the deadline under which it is flagged as
@@ -22,8 +25,16 @@ const MEMORY_DEADLINE_STATUS = normalizeForSearch("Inscrit au rôle d'une audien
 // - "Passé" when the date is already in the past,
 // - "Très urgent" when it falls within the next 2 business days,
 // - "Urgent" when it falls within the next 10 business days.
-export function MemoryDeadlineCell({ date, status }: { date: Date | null; status: string }) {
-  if (!date) return null;
+export function MemoryDeadlineCell({
+  date,
+  source,
+  status,
+}: {
+  date: Date | null;
+  source: MemoryDeadlineSource | null;
+  status: string;
+}) {
+  if (!date || !source) return null;
 
   // Compare calendar days only: startOfDay normalizes both dates to local
   // midnight so the time component (and any timezone offset on the stored
@@ -56,12 +67,17 @@ export function MemoryDeadlineCell({ date, status }: { date: Date | null; status
   return (
     <>
       {formatDateFr(date)}
+      <div className={fr.cx("fr-mt-1v")}>
+        <Badge as="span" noIcon severity="info">
+          {MEMORY_DEADLINE_SOURCE_LABELS[source]}
+        </Badge>
+      </div>
       {badgeLabel && (
         <div className={fr.cx("fr-mt-1v")}>
           {badgeTooltip ? (
-            <Tooltip title={badgeTooltip}>
+            <span title={badgeTooltip}>
               <Badge severity={badgeSeverity}>{badgeLabel}</Badge>
-            </Tooltip>
+            </span>
           ) : (
             <Badge severity={badgeSeverity}>{badgeLabel}</Badge>
           )}

@@ -43,7 +43,7 @@ export default function Home() {
             desc="Retrouvez vos démarches sur service-public.fr."
             pictogram={<Community />}
             linkProps={{
-              href: "https://www.service-public.fr",
+              href: "https://www.service-public.gouv.fr/particuliers/vosdroits/F18005",
               rel: "noopener noreferrer",
               target: "_self",
             }}

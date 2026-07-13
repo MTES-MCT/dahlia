@@ -139,14 +139,10 @@ export async function fetchCaseFileEventsTableData(
   caseFileNumber: string,
   searchParams: Record<string, string | string[] | undefined>,
 ): Promise<CaseFileEventsTableData> {
-  const { page, sortBy, sortOrder, query } = parseTableQueryState(
-    searchParams,
-    HISTORIQUE_PARAMS,
-    {
-      defaultSortBy: HISTORIQUE_DEFAULT_SORT_BY,
-      defaultOrder: HISTORIQUE_DEFAULT_ORDER,
-    },
-  );
+  const { page, sortBy, sortOrder, query } = parseTableQueryState(searchParams, HISTORIQUE_PARAMS, {
+    defaultSortBy: HISTORIQUE_DEFAULT_SORT_BY,
+    defaultOrder: HISTORIQUE_DEFAULT_ORDER,
+  });
   const pageSize = await resolveTablePageSize("historique");
 
   return fetchPaginatedTableData({

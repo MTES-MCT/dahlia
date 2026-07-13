@@ -18,6 +18,9 @@ export type DataTableColumn<T> = {
   // Search grammar facet key when it differs from `key` (e.g. dashboard `dossier`
   // column sorts on `caseFileNumber` but filters with `dossier:`).
   facetKey?: string;
+  // Fixed column width (any CSS length, e.g. "9rem"). Columns without a width
+  // share the remaining space equally (table-layout: fixed).
+  width?: string;
   render: (row: T) => React.ReactNode;
 };
 
@@ -47,6 +50,13 @@ export type DataTableProps<T> = {
   // When set, a "download" button (flush right of the pagination) exports every
   // matching row to this route, preserving the current filter and sort.
   exportPath?: string;
+  // When set, prepends an extra column (e.g. a selection checkbox) to the left
+  // of the table, both in the header and in every row.
+  leadingColumn?: {
+    header: React.ReactNode;
+    width?: string;
+    render: (row: T) => React.ReactNode;
+  };
 };
 
 // Unified server-rendered table: search bar, column headers (sort + facet),
@@ -66,27 +76,55 @@ export function DataTable<T>({
   search,
   preserveParams,
   exportPath,
+  leadingColumn,
 }: DataTableProps<T>) {
+  const headers = [
+    ...(leadingColumn ? [<span key="__leading">{leadingColumn.header}</span>] : []),
+    ...columns.map((column) => (
+      <ColumnHeader
+        key={column.key}
+        label={column.label}
+        sortKey={column.sortable ? column.key : undefined}
+        defaultOrder={column.defaultOrder}
+        facetKey={column.facet ? (column.facetKey ?? column.key) : undefined}
+        params={params}
+        facetKeys={facetKeys}
+      />
+    )),
+  ];
+
+  // Per-column fixed widths applied via nth-child rules scoped to this table.
+  // Under table-layout: fixed, sized columns keep their width and the rest split
+  // the remaining space equally.
+  const columnWidths = [
+    ...(leadingColumn ? [leadingColumn.width] : []),
+    ...columns.map((column) => column.width),
+  ];
+  const widthsClassName = `dt-widths-${tableId}`;
+  const widthCss = columnWidths
+    .map((width, index) =>
+      width
+        ? `.${widthsClassName} th:nth-child(${index + 1}),` +
+          `.${widthsClassName} td:nth-child(${index + 1}){width:${width};}`
+        : null,
+    )
+    .filter(Boolean)
+    .join("\n");
+
   return (
     <>
       <TableSearchForm params={params} {...search} />
 
+      {widthCss && <style>{widthCss}</style>}
       <Table
         caption={caption(totalCount)}
         fixed
-        headers={columns.map((column) => (
-          <ColumnHeader
-            key={column.key}
-            label={column.label}
-            sortKey={column.sortable ? column.key : undefined}
-            defaultOrder={column.defaultOrder}
-            facetKey={column.facet ? (column.facetKey ?? column.key) : undefined}
-            params={params}
-            facetKeys={facetKeys}
-          />
-        ))}
-        data={rows.map((row) => columns.map((column) => column.render(row)))}
-        className={clsx(fr.cx("fr-mb-2w"))}
+        headers={headers}
+        data={rows.map((row) => [
+          ...(leadingColumn ? [leadingColumn.render(row)] : []),
+          ...columns.map((column) => column.render(row)),
+        ])}
+        className={clsx(fr.cx("fr-mb-2w"), widthCss && widthsClassName)}
       />
 
       <DataTableFooter

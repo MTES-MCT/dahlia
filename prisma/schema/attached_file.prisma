@@ -29,7 +29,7 @@ model AttachedFile {
 
   // Computed columns for accent-insensitive search (cf. migration table_search_normalized).
   dahliaNameNormalized          String?
-  originalFileNameNormalized    String?
+  fileNameNormalized            String?
   fileTypeLabelNormalized       String?
   fileFamilyTypeLabelNormalized String?
 

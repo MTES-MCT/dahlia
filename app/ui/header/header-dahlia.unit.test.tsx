@@ -30,6 +30,26 @@ describe("HeaderDahlia", () => {
     expect(screen.queryAllByText(/Se déconnecter/)).toHaveLength(0);
   });
 
+  it("redirige vers l'accueil quand aucun utilisateur n'est fourni", () => {
+    render(<HeaderDahlia />);
+
+    const homeLinks = screen.getAllByRole("link", { name: /DAHLIA/ });
+    expect(homeLinks.length).toBeGreaterThan(0);
+    expect(homeLinks[0].getAttribute("href")).toBe("/");
+    expect(homeLinks[0].getAttribute("title")).toBe("Accueil - DAHLIA (Ministères du logement)");
+  });
+
+  it("redirige vers le tableau de bord quand un utilisateur est connecté", () => {
+    render(<HeaderDahlia user={{ firstName: "Jean", lastName: "Dupont" }} />);
+
+    const homeLinks = screen.getAllByRole("link", { name: /DAHLIA/ });
+    expect(homeLinks.length).toBeGreaterThan(0);
+    expect(homeLinks[0].getAttribute("href")).toBe("/case_files");
+    expect(homeLinks[0].getAttribute("title")).toBe(
+      "Tableau de bord - DAHLIA (Ministères du logement)",
+    );
+  });
+
   it("affiche les prénom et nom de l'utilisateur connecté et « Se déconnecter »", () => {
     render(<HeaderDahlia user={{ firstName: "Jean", lastName: "Dupont" }} />);
 

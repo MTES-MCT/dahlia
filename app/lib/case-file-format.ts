@@ -7,6 +7,15 @@ import type { Prisma } from "@prisma/client";
 
 type ActorForDisplay = Prisma.ActorGetPayload<object> | null;
 
+// Format a date as yyyy-mm-dd for HTML date inputs; empty string when absent.
+export function formatDateInputValue(date: Date | null | undefined): string {
+  if (!date) return "";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 // Format a date as dd/mm/yyyy (French format); empty string when absent.
 export function formatDateFr(date: Date | null | undefined): string {
   if (!date) return "";

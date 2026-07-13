@@ -53,7 +53,7 @@ export default async function RootLayout({
         <HeaderDahlia user={user} />
 
         <DsfrProvider lang={lang}>
-          <main className={`${fr.cx("fr-container")} ${clsx("flex-1")}`}>{children}</main>
+          <main className={`${fr.cx("fr-mx-3w")} ${clsx("flex-1")}`}>{children}</main>
         </DsfrProvider>
 
         <Footer

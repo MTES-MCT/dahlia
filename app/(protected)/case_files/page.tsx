@@ -3,11 +3,11 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import {
   fetchCaseFilesTableData,
-  fetchUsedStatusLabels,
   HEARING_CONVOCATION_SORT_KEY,
 } from "@/app/lib/data/case-files";
 import {
   CASE_FILES_DASHBOARD_COLUMNS,
+  getMemoryDeadlineSource,
   type CaseFileDashboardRow,
 } from "@/app/lib/case-files-dashboard-columns";
 import { FACET_KEYS, DASHBOARD_TABLE_PARAMS } from "@/app/lib/case-file-search";
@@ -48,7 +48,9 @@ function dashboardColumns(detailQueryString: string): DataTableColumn<CaseFileDa
     render: (caseFile) => {
       if (column.key === "caseFileNumber") {
         return (
-          <Link href={`/case_files/${encodeURIComponent(caseFile.caseFileNumber)}${suffix}`}>
+          <Link
+            href={`/case_files/${encodeURIComponent(caseFile.caseFileNumber)}${suffix}#case-file-details`}
+          >
             {caseFile.caseFileNumber}
           </Link>
         );
@@ -56,7 +58,8 @@ function dashboardColumns(detailQueryString: string): DataTableColumn<CaseFileDa
       if (column.key === HEARING_CONVOCATION_SORT_KEY) {
         return (
           <MemoryDeadlineCell
-            date={caseFile.lastHearing?.convocationDate ?? null}
+            date={caseFile.memoryDeadlineDate}
+            source={getMemoryDeadlineSource(caseFile)}
             status={caseFile.lastStatus.label}
           />
         );
@@ -102,17 +105,14 @@ export default async function Page({ searchParams }: Props) {
     DEFAULT_TABLE_PAGE_SIZES.dashboard,
   );
 
-  const [{ rows, totalPages, totalCount }, statusOptions] = await Promise.all([
-    fetchCaseFilesTableData(
-      tableState.page,
-      pageSize,
-      tableState.sortBy,
-      tableState.sortOrder,
-      tableState.query,
-      currentStatut,
-    ),
-    fetchUsedStatusLabels(),
-  ]);
+  const { rows, totalPages, totalCount } = await fetchCaseFilesTableData(
+    tableState.page,
+    pageSize,
+    tableState.sortBy,
+    tableState.sortOrder,
+    tableState.query,
+    currentStatut,
+  );
 
   const currentParams = new URLSearchParams();
   if (pageParam) currentParams.set("page", String(tableState.page));
@@ -135,7 +135,6 @@ export default async function Page({ searchParams }: Props) {
 
       <DataTable
         search={buildCaseFilesSearchConfig({
-          statusOptions,
           defaultStatut: DEFAULT_STATUT,
           currentQuery: tableState.query ?? "",
           statutParam,

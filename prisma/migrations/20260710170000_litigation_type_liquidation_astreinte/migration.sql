@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "LitigationType" ADD VALUE 'LIQUIDATION_ASTREINTE';

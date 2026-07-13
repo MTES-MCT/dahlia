@@ -1,4 +1,8 @@
 import { type Prisma } from "@prisma/client";
+import {
+  PRODUCTION_DEADLINE_TYPE_LABELS,
+  type ProductionDeadlineType,
+} from "@/app/lib/case-file-enums";
 import { formatDateFr, getActorDisplayName } from "@/app/lib/case-file-format";
 import { type SortOrder } from "@/app/lib/table-sort";
 
@@ -16,10 +20,41 @@ export type CaseFileDashboardRow = Prisma.CaseFileGetPayload<{
   include: typeof CASE_FILES_DASHBOARD_INCLUDE;
 }>;
 
-// Sort key for the memory-production deadline column: the convocation date of
-// the last hearing. It lives on the `lastHearing` relation, so it needs a
-// dedicated nested orderBy (see buildOrderBy in case-files.ts).
+// Sort key for the memory-production deadline column. The URL param is kept as
+// `convocationDate` for backward compatibility; sorting uses the generated
+// `memoryDeadlineDate` column in Postgres (see migration case_file_memory_deadline_date).
 export const HEARING_CONVOCATION_SORT_KEY = "convocationDate";
+
+export type MemoryDeadlineSource = "hearing" | ProductionDeadlineType;
+
+export const MEMORY_DEADLINE_SOURCE_LABELS: Record<MemoryDeadlineSource, string> = {
+  hearing: "Audience",
+  ...PRODUCTION_DEADLINE_TYPE_LABELS,
+};
+
+type MemoryDeadlineSourceInput = Pick<
+  CaseFileDashboardRow,
+  "productionDeadlineDate" | "productionDeadlineType"
+> & {
+  lastHearing: { convocationDate: Date | null } | null;
+};
+
+export function getMemoryDeadlineSource(
+  caseFile: MemoryDeadlineSourceInput,
+): MemoryDeadlineSource | null {
+  if (caseFile.productionDeadlineDate) {
+    const deadlineType = caseFile.productionDeadlineType;
+    if (deadlineType && deadlineType in PRODUCTION_DEADLINE_TYPE_LABELS) {
+      return deadlineType;
+    }
+  }
+
+  if (caseFile.lastHearing?.convocationDate) {
+    return "hearing";
+  }
+
+  return null;
+}
 
 export type CaseFileDashboardColumnDef = {
   key: string;
@@ -84,6 +119,6 @@ export const CASE_FILES_DASHBOARD_COLUMNS: CaseFileDashboardColumnDef[] = [
     label: "Date limite de production de mémoire",
     sortable: true,
     defaultOrder: "ascending",
-    exportValue: (caseFile) => formatDateFr(caseFile.lastHearing?.convocationDate),
+    exportValue: (caseFile) => formatDateFr(caseFile.memoryDeadlineDate),
   },
 ];

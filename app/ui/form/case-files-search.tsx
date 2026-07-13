@@ -1,5 +1,6 @@
 import clsx from "clsx";
 import { DASHBOARD_TABLE_PARAMS } from "@/app/lib/case-file-search";
+import { STATUS_FILTER_OPTIONS } from "@/app/lib/status-label-plural";
 import { buildDashboardSortHiddenParams } from "@/app/lib/table-search-context";
 import { CaseFilesSearchByStatus } from "@/app/ui/form/case-files-search-by-status";
 import { TableSearchBar } from "@/app/ui/form/table-search-bar";
@@ -8,8 +9,7 @@ import { type DataTableSearchConfig } from "@/app/ui/table/data-table";
 const PLACEHOLDER = 'ex. « dupont » ou « requerant:prefet defendeur:"jean dupont" »';
 
 export type CaseFilesSearchProps = {
-  // Status options and the label preselected when `statut` is absent from the URL.
-  statusOptions: string[];
+  // Label preselected when `statut` is absent from the URL.
   defaultStatut: string;
   // Current text query, used as the input default value.
   currentQuery: string;
@@ -22,11 +22,10 @@ export type CaseFilesSearchProps = {
 };
 
 function caseFilesSearchSlot({
-  statusOptions,
   defaultStatut,
   currentQuery,
   statutParam,
-}: Pick<CaseFilesSearchProps, "statusOptions" | "defaultStatut" | "currentQuery" | "statutParam">) {
+}: Pick<CaseFilesSearchProps, "defaultStatut" | "currentQuery" | "statutParam">) {
   return (
     <div className={clsx("flex", "flex-row", "gap-2", "items-end")}>
       <CaseFilesSearchByStatus
@@ -34,7 +33,7 @@ function caseFilesSearchSlot({
         // <select> picks up its new defaultValue on client navigation (e.g.
         // the reset link); without this, React keeps the stale DOM value.
         key={`statut-${statutParam ?? "__default__"}`}
-        options={statusOptions}
+        options={STATUS_FILTER_OPTIONS}
         defaultStatut={defaultStatut}
         statutParam={statutParam}
       />
@@ -51,7 +50,6 @@ function caseFilesSearchSlot({
 }
 
 export function buildCaseFilesSearchConfig({
-  statusOptions,
   defaultStatut,
   currentQuery,
   statutParam,
@@ -66,7 +64,6 @@ export function buildCaseFilesSearchConfig({
     label: "Rechercher un dossier",
     placeholder: PLACEHOLDER,
     searchSlot: caseFilesSearchSlot({
-      statusOptions,
       defaultStatut,
       currentQuery,
       statutParam,

@@ -198,6 +198,9 @@ export async function upsertCaseFile(
       mainClaimantId: caseFile.mainClaimant.id,
       mainDefenderId: caseFile.mainDefender?.id,
       lastHearingId: caseFile.lastHearing?.hearingId,
+      lastHearingConvocationDate: caseFile.lastHearing
+        ? new Date(caseFile.lastHearing.convocationDate)
+        : null,
     },
     create: {
       caseFileNumber: caseFile.caseFileNumber,
@@ -209,6 +212,9 @@ export async function upsertCaseFile(
       mainClaimantId: caseFile.mainClaimant.id,
       mainDefenderId: caseFile.mainDefender?.id,
       lastHearingId: caseFile.lastHearing?.hearingId,
+      lastHearingConvocationDate: caseFile.lastHearing
+        ? new Date(caseFile.lastHearing.convocationDate)
+        : null,
     },
   });
 

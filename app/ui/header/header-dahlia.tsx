@@ -1,6 +1,7 @@
 import { fr } from "@codegouvfr/react-dsfr";
 import { Badge } from "@codegouvfr/react-dsfr/Badge";
 import { Header, type HeaderProps } from "@codegouvfr/react-dsfr/Header";
+import clsx from "clsx";
 
 // Minimal shape of the authenticated user needed to render the header.
 export type HeaderDahliaUser = {
@@ -44,8 +45,10 @@ export function HeaderDahlia({ user }: { user?: HeaderDahliaUser | null }) {
         </>
       }
       homeLinkProps={{
-        href: "/",
-        title: "Accueil - DAHLIA (Ministères du logement)",
+        href: user ? "/case_files" : "/",
+        title: user
+          ? "Tableau de bord - DAHLIA (Ministères du logement)"
+          : "Accueil - DAHLIA (Ministères du logement)",
       }}
       id="fr-header-simple-header-with-service-title-and-tagline"
       serviceTagline="Aide au traitement des contentieux du droit au logement et à l'hébergement opposable"
@@ -58,6 +61,10 @@ export function HeaderDahlia({ user }: { user?: HeaderDahliaUser | null }) {
         </>
       }
       quickAccessItems={quickAccessItems}
+      classes={{
+        // Align header content with <main> (fr-mx-3w); fr-container cannot be removed via props.
+        container: clsx("!max-w-none", "!px-3w"),
+      }}
     />
   );
 }

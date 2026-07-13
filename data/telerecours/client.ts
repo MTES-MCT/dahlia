@@ -197,10 +197,7 @@ class TelerecoursCaseFileClient implements TelerecoursClient {
   }
 
   getCaseFileDetail(caseFileNumber: string, jurisdiction: string): Promise<CaseFileDetail> {
-    return this.get(
-      `/api/case-file/${encodeCaseFileNumberSegment(caseFileNumber)}`,
-      jurisdiction,
-    );
+    return this.get(`/api/case-file/${encodeCaseFileNumberSegment(caseFileNumber)}`, jurisdiction);
   }
 
   getCaseFileHearings(

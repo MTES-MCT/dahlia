@@ -8,7 +8,6 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
 }));
 
-const OPTIONS = ["En cours d'instruction", "Terminé"];
 const DEFAULT_STATUT = "En cours d'instruction";
 
 function getForm(): HTMLFormElement {
@@ -21,9 +20,7 @@ function hiddenValue(form: HTMLFormElement, name: string): string | undefined {
   return field?.value;
 }
 
-function renderDashboardSearch(
-  props: Parameters<typeof buildCaseFilesSearchConfig>[0],
-) {
+function renderDashboardSearch(props: Parameters<typeof buildCaseFilesSearchConfig>[0]) {
   render(
     <TableSearchForm params={DASHBOARD_TABLE_PARAMS} {...buildCaseFilesSearchConfig(props)} />,
   );
@@ -36,7 +33,6 @@ describe("buildCaseFilesSearchConfig", () => {
 
   it("est un form GET vers /case_files sans champ page", () => {
     renderDashboardSearch({
-      statusOptions: OPTIONS,
       defaultStatut: DEFAULT_STATUT,
       currentQuery: "",
     });
@@ -50,7 +46,6 @@ describe("buildCaseFilesSearchConfig", () => {
 
   it("englobe le filtre statut et le champ texte", () => {
     renderDashboardSearch({
-      statusOptions: OPTIONS,
       defaultStatut: DEFAULT_STATUT,
       currentQuery: "dupont",
       statutParam: "Terminé",
@@ -70,7 +65,6 @@ describe("buildCaseFilesSearchConfig", () => {
 
   it("affiche un bouton « Rechercher » et un lien de réinitialisation", () => {
     renderDashboardSearch({
-      statusOptions: OPTIONS,
       defaultStatut: DEFAULT_STATUT,
       currentQuery: "",
     });
@@ -84,7 +78,6 @@ describe("buildCaseFilesSearchConfig", () => {
 
   it("rend les champs cachés sortBy/sortOrder quand ils sont fournis", () => {
     renderDashboardSearch({
-      statusOptions: OPTIONS,
       defaultStatut: DEFAULT_STATUT,
       currentQuery: "",
       sortByParam: "caseFileNumber",
@@ -98,7 +91,6 @@ describe("buildCaseFilesSearchConfig", () => {
 
   it("n'émet pas de tri caché tant que sortBy est absent", () => {
     renderDashboardSearch({
-      statusOptions: OPTIONS,
       defaultStatut: DEFAULT_STATUT,
       currentQuery: "",
       sortOrderParam: "ascending",

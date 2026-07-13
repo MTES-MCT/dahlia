@@ -1,19 +1,20 @@
 import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 import { CaseFileTabs } from "./case-file-tabs";
-import { fetchCaseFilePiecesTableData } from "@/app/lib/data/attached-files";
+import { fetchCaseFilePiecesFiltered } from "@/app/lib/data/attached-files";
 import { fetchCaseFileEventsTableData } from "@/app/lib/data/case-file-events";
-import {
-  fetchCaseFileDebugSnapshot,
-  type CaseFileDetail,
-} from "@/app/lib/data/case-files";
-import type { CaseFilePiecesTableData } from "@/app/lib/data/attached-files";
+import { fetchCaseFileDebugSnapshot, type CaseFileDetail } from "@/app/lib/data/case-files";
+import type { CaseFilePiece } from "@/app/lib/data/attached-files";
 import type { CaseFileEventsTableData } from "@/app/lib/data/case-file-events";
 
 vi.mock("@/app/lib/prisma", () => ({ prisma: {} }));
 
 vi.mock("@/app/lib/data/attached-files", () => ({
-  fetchCaseFilePiecesTableData: vi.fn(),
+  fetchCaseFilePiecesFiltered: vi.fn(),
+}));
+
+vi.mock("@/app/(protected)/case_files/[caseFileNumber]/pieces/[encodedFileId]/actions", () => ({
+  savePieceMetadataAction: vi.fn(),
 }));
 
 vi.mock("@/app/lib/data/case-file-events", () => ({
@@ -38,24 +39,20 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(""),
 }));
 
-const piecesTable = {
-  rows: [
-    {
-      encodedFileId: "f1",
-      originalFileName: "requete.pdf",
-      dahliaName: null,
-      number: null,
-      fileTypeLabel: "Requête",
-      fileFamilyTypeLabel: "Requête",
-      fileFamilyType: { label: "Requête" },
-      eventCreationDate: new Date("2026-01-15T10:00:00"),
-    },
-  ],
-  totalCount: 1,
-  totalPages: 1,
-  currentPage: 1,
-  pageSize: 10,
-} satisfies CaseFilePiecesTableData;
+const pieces = [
+  {
+    encodedFileId: "f1",
+    fileName: "requete.pdf",
+    dahliaName: null,
+    number: null,
+    comment: null,
+    mimeType: "application/pdf",
+    fileTypeLabel: "Requête",
+    fileFamilyTypeLabel: "Requête",
+    fileFamilyType: { label: "Requête" },
+    eventCreationDate: new Date("2026-01-15T10:00:00"),
+  },
+] satisfies CaseFilePiece[];
 
 const historiqueTable = {
   rows: [
@@ -94,9 +91,7 @@ const historiqueTable = {
   pageSize: 10,
 } satisfies CaseFileEventsTableData;
 
-type CaseFileDebugSnapshot = NonNullable<
-  Awaited<ReturnType<typeof fetchCaseFileDebugSnapshot>>
->;
+type CaseFileDebugSnapshot = NonNullable<Awaited<ReturnType<typeof fetchCaseFileDebugSnapshot>>>;
 
 const debugSnapshot = {
   caseFileNumber: "TA069-2026-001",
@@ -113,14 +108,16 @@ const baseProps = {
   searchParams: {},
 };
 
-async function renderCaseFileTabs(props: typeof baseProps & { tab: "pieces" | "historique" | "debug" }) {
+async function renderCaseFileTabs(
+  props: typeof baseProps & { tab: "pieces" | "historique" | "debug" },
+) {
   render(await CaseFileTabs(props));
 }
 
 describe("CaseFileTabs", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(fetchCaseFilePiecesTableData).mockResolvedValue(piecesTable);
+    vi.mocked(fetchCaseFilePiecesFiltered).mockResolvedValue(pieces);
     vi.mocked(fetchCaseFileEventsTableData).mockResolvedValue(historiqueTable);
     vi.mocked(fetchCaseFileDebugSnapshot).mockResolvedValue(debugSnapshot);
   });
@@ -132,8 +129,10 @@ describe("CaseFileTabs", () => {
   it("affiche l'onglet Pièces par défaut", async () => {
     await renderCaseFileTabs({ ...baseProps, tab: "pieces" });
 
-    expect(screen.getByText("requete.pdf")).toBeTruthy();
-    expect(screen.getByText("Requête")).toBeTruthy();
+    // Le nom apparaît dans la sidebar et dans le panneau de détail.
+    expect(screen.getAllByText("requete.pdf").length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "Télécharger" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Éditer/ })).toBeTruthy();
   });
 
   it("affiche l'historique des événements quand tab=historique", async () => {
@@ -143,16 +142,22 @@ describe("CaseFileTabs", () => {
     expect(screen.getByText("Commentaire de test")).toBeTruthy();
   });
 
-  it("affiche le JSON brut quand tab=debug", async () => {
-    await renderCaseFileTabs({ ...baseProps, tab: "debug" });
+  it("affiche le JSON brut quand tab=debug et le paramètre debug est présent", async () => {
+    await renderCaseFileTabs({ ...baseProps, tab: "debug", searchParams: { debug: "1" } });
 
     expect(screen.getByText(/"caseFileNumber": "TA069-2026-001"/)).toBeTruthy();
+  });
+
+  it("n'affiche pas l'onglet Debug sans le paramètre debug dans l'URL", async () => {
+    await renderCaseFileTabs({ ...baseProps, tab: "pieces" });
+
+    expect(screen.queryByRole("tab", { name: "Debug" })).toBeNull();
   });
 
   it("ne charge que les données de l'onglet actif", async () => {
     await renderCaseFileTabs({ ...baseProps, tab: "pieces" });
 
-    expect(fetchCaseFilePiecesTableData).toHaveBeenCalledTimes(1);
+    expect(fetchCaseFilePiecesFiltered).toHaveBeenCalledTimes(1);
     expect(fetchCaseFileEventsTableData).not.toHaveBeenCalled();
     expect(fetchCaseFileDebugSnapshot).not.toHaveBeenCalled();
   });

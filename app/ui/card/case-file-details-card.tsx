@@ -1,47 +1,70 @@
 import { fr } from "@codegouvfr/react-dsfr";
+import clsx from "clsx";
 import { formatDateFr, getActorDisplayName } from "@/app/lib/case-file-format";
 import { type CaseFileDetail } from "@/app/lib/data/case-files";
+import {
+  CaseFileDetailsHeader,
+  CaseFileDetailsModal,
+  type CaseFileDetailsEditorProps,
+} from "@/app/ui/form/case-file-details-editor";
 
 type Props = {
   caseFile: NonNullable<CaseFileDetail>;
 };
 
-function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className={fr.cx("fr-mb-2w")}>
-      <span className={fr.cx("fr-text--sm", "fr-text--bold", "fr-mb-0")}>{label} : </span>
-      <span className={fr.cx("fr-mb-0", "fr-ml-0")}>{value || "—"}</span>
-    </div>
-  );
-}
-
 export function CaseFileDetailsCard({ caseFile }: Props) {
-  return (
-    <section
-      className={fr.cx("fr-p-3w", "fr-mb-3w")}
-      style={{
-        border: "1px solid var(--border-default-grey)",
-        borderRadius: "0.5rem",
-        backgroundColor: "var(--background-default-grey)",
-      }}
-    >
-      <h2 className={fr.cx("fr-h4", "fr-mb-1v")}>
-        {caseFile.caseFileNumber + (caseFile.title ? ` - ${caseFile.title}` : "")}
-      </h2>
-      <p className={fr.cx("fr-text--lead", "fr-text--sm", "fr-mb-3w")}>
-        {caseFile.lastStatus.label}
-      </p>
+  const editorProps: CaseFileDetailsEditorProps = {
+    caseFileNumber: caseFile.caseFileNumber,
+    title: caseFile.title,
+    statusLabel: caseFile.lastStatus.label,
+    litigationType: caseFile.litigationType,
+    rightType: caseFile.rightType,
+    summary: caseFile.summary,
+    productionDeadlineType: caseFile.productionDeadlineType,
+    productionDeadlineDate: caseFile.productionDeadlineDate,
+    mainClaimantName: getActorDisplayName(caseFile.mainClaimant),
+    mainDefenderName: getActorDisplayName(caseFile.mainDefender),
+    depositDateLabel: formatDateFr(caseFile.depositDate),
+    chamberName: caseFile.chamber?.name,
+  };
 
-      <div className={fr.cx("fr-grid-row", "fr-grid-row--gutters")}>
-        <dl className={fr.cx("fr-col-12", "fr-col-md-6", "fr-mb-0")}>
-          <DetailRow label="Requérant" value={getActorDisplayName(caseFile.mainClaimant)} />
-          <DetailRow label="Date de réception" value={formatDateFr(caseFile.depositDate)} />
-        </dl>
-        <dl className={fr.cx("fr-col-12", "fr-col-md-6", "fr-mb-0")}>
-          <DetailRow label="Défendeur" value={getActorDisplayName(caseFile.mainDefender)} />
-          <DetailRow label="Chambre" value={caseFile.chamber?.name} />
-        </dl>
-      </div>
-    </section>
+  return (
+    <>
+      <section
+        className={clsx(
+          fr.cx("fr-p-1w", "fr-mb-3w"),
+          "shrink-0",
+          "sticky",
+          "top-0",
+          "z-10",
+          "bg-(--background-default-grey)",
+          "border-0",
+          "border-l-4",
+          "border-solid",
+          "border-l-(--border-active-blue-france)",
+        )}
+      >
+        <CaseFileDetailsHeader
+          caseFileNumber={editorProps.caseFileNumber}
+          title={editorProps.title}
+          statusLabel={editorProps.statusLabel}
+        />
+      </section>
+
+      {/* Rendered outside the sticky section so the modal backdrop covers the header. */}
+      <CaseFileDetailsModal
+        caseFileNumber={editorProps.caseFileNumber}
+        statusLabel={editorProps.statusLabel}
+        litigationType={editorProps.litigationType}
+        rightType={editorProps.rightType}
+        summary={editorProps.summary}
+        productionDeadlineType={editorProps.productionDeadlineType}
+        productionDeadlineDate={editorProps.productionDeadlineDate}
+        mainClaimantName={editorProps.mainClaimantName}
+        mainDefenderName={editorProps.mainDefenderName}
+        depositDateLabel={editorProps.depositDateLabel}
+        chamberName={editorProps.chamberName}
+      />
+    </>
   );
 }
