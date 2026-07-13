@@ -46,7 +46,8 @@ export const LITIGATION_TYPE_OPTIONS: { value: LitigationType; label: string }[]
 export const RIGHT_TYPE_OPTIONS: { value: RightTypeFormValue; label: string }[] =
   RIGHT_TYPE_ORDER.map((value) => ({
     value,
-    label: value === RIGHT_TYPE_UNDEFINED_VALUE ? RIGHT_TYPE_UNDEFINED_LABEL : RIGHT_TYPE_LABELS[value],
+    label:
+      value === RIGHT_TYPE_UNDEFINED_VALUE ? RIGHT_TYPE_UNDEFINED_LABEL : RIGHT_TYPE_LABELS[value],
   }));
 
 export function litigationTypeLabel(value: LitigationType | null | undefined): string | undefined {
