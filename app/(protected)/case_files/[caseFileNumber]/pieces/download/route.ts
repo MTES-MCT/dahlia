@@ -14,15 +14,15 @@ type RouteContext = {
 
 // Ensure every entry has a unique name inside the archive: append " (2)", " (3)"…
 // before the extension when the same display name shows up more than once.
-function uniqueName(name: string, used: Set<string>): string {
+export function uniqueName(name: string, used: Set<string>): string {
   if (!used.has(name)) {
     used.add(name);
     return name;
   }
-  const dot = name.lastIndexOf(".");
+  const dot = name.indexOf(".");
   const base = dot > 0 ? name.slice(0, dot) : name;
   const ext = dot > 0 ? name.slice(dot) : "";
-  let index = 2;
+  let index = 1;
   let candidate = `${base} (${index})${ext}`;
   while (used.has(candidate)) {
     index += 1;
