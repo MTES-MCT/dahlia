@@ -25,19 +25,3 @@ export function pieceDownloadFileName(piece: PieceLabelInput): string {
   }
   return `${label}${ext}`;
 }
-
-type PieceEditionHrefInput = {
-  caseFileNumber: string;
-  encodedFileId: string;
-  queryString?: string;
-};
-
-// Route to the pièce edition page, preserving optional search/sort/tab query params.
-export function pieceEditionHref({
-  caseFileNumber,
-  encodedFileId,
-  queryString,
-}: PieceEditionHrefInput): string {
-  const suffix = queryString ? `?${queryString}` : "";
-  return `/case_files/${encodeURIComponent(caseFileNumber)}/pieces/${encodeURIComponent(encodedFileId)}${suffix}`;
-}

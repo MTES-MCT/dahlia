@@ -7,7 +7,7 @@ import { fetchCaseFileEventsTableData } from "@/app/lib/data/case-file-events";
 import { fetchCaseFilePiecesFiltered } from "@/app/lib/data/attached-files";
 import { HISTORIQUE_FACET_KEYS, HISTORIQUE_PARAMS } from "@/app/lib/historique-table";
 import { PIECES_DEFAULT_ORDER, PIECES_DEFAULT_SORT_BY } from "@/app/lib/pieces-table";
-import { type CaseFileTabId } from "@/app/lib/case-file-tabs";
+import { isDebugTabEnabled, type CaseFileTabId } from "@/app/lib/case-file-tabs";
 import { type CarriedSearchParams } from "@/app/lib/carried-search-params";
 import { buildTableSearchContext } from "@/app/lib/table-search-context";
 import { CaseFileTabNav } from "@/app/ui/tabs/case-file-tab-nav";
@@ -61,6 +61,7 @@ const HISTORIQUE_COLUMNS: DataTableColumn<CaseFileEventListRow>[] = [
 
 export async function CaseFileTabs({ caseFile, tab, searchParams }: Props) {
   const { caseFileNumber } = caseFile;
+  const showDebugTab = isDebugTabEnabled(searchParams);
 
   const [pieces, historiqueTable, debugSnapshot] = await Promise.all([
     tab === "pieces"
@@ -104,7 +105,7 @@ export async function CaseFileTabs({ caseFile, tab, searchParams }: Props) {
         tab === "pieces" && clsx("overflow-hidden", "pieces-fill"),
       )}
     >
-      <CaseFileTabNav selectedTabId={tab}>
+      <CaseFileTabNav selectedTabId={tab} showDebugTab={showDebugTab}>
         {tab === "pieces" && workspacePieces && (
           <PiecesWorkspace caseFileNumber={caseFileNumber} pieces={workspacePieces} />
         )}

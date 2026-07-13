@@ -1,4 +1,8 @@
 import { type Prisma } from "@prisma/client";
+import {
+  PRODUCTION_DEADLINE_TYPE_LABELS,
+  type ProductionDeadlineType,
+} from "@/app/lib/case-file-enums";
 import { formatDateFr, getActorDisplayName } from "@/app/lib/case-file-format";
 import { type SortOrder } from "@/app/lib/table-sort";
 
@@ -21,19 +25,12 @@ export type CaseFileDashboardRow = Prisma.CaseFileGetPayload<{
 // `memoryDeadlineDate` column in Postgres (see migration case_file_memory_deadline_date).
 export const HEARING_CONVOCATION_SORT_KEY = "convocationDate";
 
-export const MEMORY_DEADLINE_SOURCE_LABELS = {
+export type MemoryDeadlineSource = "hearing" | ProductionDeadlineType;
+
+export const MEMORY_DEADLINE_SOURCE_LABELS: Record<MemoryDeadlineSource, string> = {
   hearing: "Audience",
-  MISE_EN_DEMEURE_DE_PRODUIRE: "Mise en demeure",
-  CLOTURE_INSTRUCTION: "Clôture d'instruction",
-} as const;
-
-export type MemoryDeadlineSource = keyof typeof MEMORY_DEADLINE_SOURCE_LABELS;
-
-export function getMemoryDeadlineDate(
-  caseFile: Pick<CaseFileDashboardRow, "memoryDeadlineDate">,
-): Date | null {
-  return caseFile.memoryDeadlineDate;
-}
+  ...PRODUCTION_DEADLINE_TYPE_LABELS,
+};
 
 export function getMemoryDeadlineSource(
   caseFile: Pick<
@@ -42,11 +39,9 @@ export function getMemoryDeadlineSource(
   >,
 ): MemoryDeadlineSource | null {
   if (caseFile.productionDeadlineDate) {
-    if (caseFile.productionDeadlineType === "CLOTURE_INSTRUCTION") {
-      return "CLOTURE_INSTRUCTION";
-    }
-    if (caseFile.productionDeadlineType === "MISE_EN_DEMEURE_DE_PRODUIRE") {
-      return "MISE_EN_DEMEURE_DE_PRODUIRE";
+    const deadlineType = caseFile.productionDeadlineType;
+    if (deadlineType && deadlineType in PRODUCTION_DEADLINE_TYPE_LABELS) {
+      return deadlineType;
     }
   }
 
@@ -120,6 +115,6 @@ export const CASE_FILES_DASHBOARD_COLUMNS: CaseFileDashboardColumnDef[] = [
     label: "Date limite de production de mémoire",
     sortable: true,
     defaultOrder: "ascending",
-    exportValue: (caseFile) => formatDateFr(getMemoryDeadlineDate(caseFile)),
+    exportValue: (caseFile) => formatDateFr(caseFile.memoryDeadlineDate),
   },
 ];

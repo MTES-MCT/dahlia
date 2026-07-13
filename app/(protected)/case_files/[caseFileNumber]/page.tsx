@@ -14,7 +14,7 @@ export default async function Page({ params, searchParams }: Props) {
   const { caseFileNumber } = await params;
   const decodedCaseFileNumber = decodeURIComponent(caseFileNumber);
   const resolvedSearchParams = await searchParams;
-  const tab = parseCaseFileTab(resolvedSearchParams.tab);
+  const tab = parseCaseFileTab(resolvedSearchParams.tab, resolvedSearchParams);
 
   const caseFile = await fetchCaseFileDetail(decodedCaseFileNumber);
 

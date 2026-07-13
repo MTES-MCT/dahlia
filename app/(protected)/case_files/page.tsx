@@ -8,7 +8,6 @@ import {
 } from "@/app/lib/data/case-files";
 import {
   CASE_FILES_DASHBOARD_COLUMNS,
-  getMemoryDeadlineDate,
   getMemoryDeadlineSource,
   type CaseFileDashboardRow,
 } from "@/app/lib/case-files-dashboard-columns";
@@ -60,7 +59,7 @@ function dashboardColumns(detailQueryString: string): DataTableColumn<CaseFileDa
       if (column.key === HEARING_CONVOCATION_SORT_KEY) {
         return (
           <MemoryDeadlineCell
-            date={getMemoryDeadlineDate(caseFile)}
+            date={caseFile.memoryDeadlineDate}
             source={getMemoryDeadlineSource(caseFile)}
             status={caseFile.lastStatus.label}
           />

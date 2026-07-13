@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  pieceDisplayLabel,
-  pieceDownloadFileName,
-  pieceEditionHref,
-} from "@/app/lib/piece-display";
+import { pieceDisplayLabel, pieceDownloadFileName } from "@/app/lib/piece-display";
 
 describe("pieceDisplayLabel", () => {
   it("returns dahliaName when set", () => {
@@ -39,26 +35,5 @@ describe("pieceDownloadFileName", () => {
         fileName: "sans_ext",
       }),
     ).toBe("Pièce sans extension");
-  });
-});
-
-describe("pieceEditionHref", () => {
-  it("builds the edition route with encoded path segments", () => {
-    expect(
-      pieceEditionHref({
-        caseFileNumber: "TA069/2024/001",
-        encodedFileId: "abc+123",
-      }),
-    ).toBe("/case_files/TA069%2F2024%2F001/pieces/abc%2B123");
-  });
-
-  it("appends the query string when provided", () => {
-    expect(
-      pieceEditionHref({
-        caseFileNumber: "TA069/2024/001",
-        encodedFileId: "abc",
-        queryString: "tab=pieces&pcSort=date",
-      }),
-    ).toBe("/case_files/TA069%2F2024%2F001/pieces/abc?tab=pieces&pcSort=date");
   });
 });

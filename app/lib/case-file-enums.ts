@@ -59,7 +59,7 @@ export function rightTypeLabel(value: RightType | null | undefined): string | un
 }
 
 export const PRODUCTION_DEADLINE_TYPE_LABELS: Record<ProductionDeadlineType, string> = {
-  MISE_EN_DEMEURE_DE_PRODUIRE: "Mise en demeure de produire",
+  MISE_EN_DEMEURE_DE_PRODUIRE: "Mise en demeure",
   CLOTURE_INSTRUCTION: "Clôture d'instruction",
 };
 

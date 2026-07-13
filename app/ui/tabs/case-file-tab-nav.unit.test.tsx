@@ -25,7 +25,7 @@ describe("CaseFileTabNav", () => {
     cleanup();
   });
 
-  it("affiche les trois onglets", () => {
+  it("affiche les onglets Pièces et Historique par défaut", () => {
     render(
       <CaseFileTabNav selectedTabId="pieces">
         <p>Contenu</p>
@@ -34,6 +34,16 @@ describe("CaseFileTabNav", () => {
 
     expect(screen.getByRole("tab", { name: "Pièces" })).toBeTruthy();
     expect(screen.getByRole("tab", { name: "Historique" })).toBeTruthy();
+    expect(screen.queryByRole("tab", { name: "Debug" })).toBeNull();
+  });
+
+  it("affiche l'onglet Debug quand showDebugTab est activé", () => {
+    render(
+      <CaseFileTabNav selectedTabId="pieces" showDebugTab>
+        <p>Contenu</p>
+      </CaseFileTabNav>,
+    );
+
     expect(screen.getByRole("tab", { name: "Debug" })).toBeTruthy();
   });
 
@@ -74,10 +84,10 @@ describe("CaseFileTabNav", () => {
   });
 
   it("conserve les autres paramètres d'URL au changement d'onglet", () => {
-    setSearchParams("pcSort=nom&hiq=audience");
+    setSearchParams("pcSort=nom&hiq=audience&debug=1");
 
     render(
-      <CaseFileTabNav selectedTabId="pieces">
+      <CaseFileTabNav selectedTabId="pieces" showDebugTab>
         <p>Contenu</p>
       </CaseFileTabNav>,
     );
@@ -88,6 +98,7 @@ describe("CaseFileTabNav", () => {
     expect(pushedUrl).toContain("tab=debug");
     expect(pushedUrl).toContain("pcSort=nom");
     expect(pushedUrl).toContain("hiq=audience");
+    expect(pushedUrl).toContain("debug=1");
     expect(mockPush).toHaveBeenCalledWith(expect.any(String), { scroll: false });
   });
 });

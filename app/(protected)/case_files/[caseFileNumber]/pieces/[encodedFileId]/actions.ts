@@ -35,8 +35,6 @@ async function persistPieceMetadata(
     });
 
     const encodedCaseFileNumber = encodeURIComponent(file.caseFileNumber);
-    revalidatePath(`/case_files/${encodedCaseFileNumber}/pieces/${encodeURIComponent(encodedFileId)}`);
-    // The case-file page embeds the pièces workspace, so its cache must refresh too.
     revalidatePath(`/case_files/${encodedCaseFileNumber}`);
     return { ok: true };
   } catch (error) {
@@ -55,20 +53,4 @@ export async function savePieceMetadataAction(
     return { ok: false, error: "Identifiant de pièce manquant." };
   }
   return persistPieceMetadata(trimmed, input);
-}
-
-export async function updatePieceMetadataFormAction(
-  _prevState: UpdatePieceResult | null,
-  formData: FormData,
-): Promise<UpdatePieceResult> {
-  const encodedFileId = String(formData.get("encodedFileId") ?? "").trim();
-  if (!encodedFileId) {
-    return { ok: false, error: "Identifiant de pièce manquant." };
-  }
-
-  return persistPieceMetadata(encodedFileId, {
-    dahliaName: String(formData.get("dahliaName") ?? ""),
-    number: String(formData.get("number") ?? ""),
-    comment: String(formData.get("comment") ?? ""),
-  });
 }
