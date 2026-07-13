@@ -71,6 +71,8 @@ applique aussitôt et échoue avant qu'on puisse corriger le SQL.
 - **Accès données** : fonctions dans `app/lib/data/*.ts`, appelées depuis les Server Components (`app/**/page.tsx`). Les pages `await searchParams` (Next 16).
 - **Composants client** : `'use client'` uniquement quand nécessaire (ex. `app/ui/sortable-column-header.tsx` qui utilise `useRouter`/`useSearchParams`). Le tri/pagination passent par les query params de l'URL.
 - **DSFR** : utiliser les composants `@codegouvfr/react-dsfr/*` et `fr.cx(...)` pour les classes. Bootstrap DSFR dans `src/dsfr-bootstrap/` et `app/layout.tsx`.
+- **Tailwind** : utiliser Tailwind v4 en complément du DSFR lorsque le DSFR ne propose pas la classe voulue ou pour personnaliser. Combiner avec `fr.cx(...)` et `clsx(...)` si besoin.
+- **Styles** : éviter au maximum l'attribut `style` ; préférer des classes DSFR ou Tailwind. Si l'attribut `style` est nécessaire, demander confirmation à l'utilisateur en justifiant pourquoi les classes ne conviennent pas.
 - **TypeScript** : toujours vérifier que les contrôles TypeScript passent et utiliser les types générés par Prisma (ex. `Prisma.CaseFileGetPayload`) pour le code de la couche données.
 
 ## Tests

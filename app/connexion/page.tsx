@@ -12,7 +12,7 @@ export default async function ConnexionPage() {
   }
 
   return (
-    <div className={fr.cx("fr-container", "fr-py-6w")}>
+    <div className={fr.cx("fr-mx-3w", "fr-py-6w")}>
       <h1>Connexion</h1>
       <p>Connectez-vous avec ProConnect pour accéder à DAHL&apos;ia.</p>
       <ProConnectLoginButton />

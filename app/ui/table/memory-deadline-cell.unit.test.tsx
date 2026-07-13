@@ -17,29 +17,50 @@ describe("MemoryDeadlineCell", () => {
   });
 
   it("ne rend rien quand la date est nulle", () => {
-    const { container } = render(<MemoryDeadlineCell date={null} status={SCHEDULED_STATUS} />);
+    const { container } = render(
+      <MemoryDeadlineCell date={null} source={null} status={SCHEDULED_STATUS} />,
+    );
 
     expect(container.innerHTML).toBe("");
   });
 
-  it("affiche la date formatee sans badge quand elle est lointaine", () => {
-    render(<MemoryDeadlineCell date={new Date("2026-08-01T13:00:00")} status={SCHEDULED_STATUS} />);
+  it("affiche la date formatee sans badge d'urgence quand elle est lointaine", () => {
+    render(
+      <MemoryDeadlineCell
+        date={new Date("2026-08-01T13:00:00")}
+        source="hearing"
+        status={SCHEDULED_STATUS}
+      />,
+    );
 
     expect(screen.getByText("01/08/2026")).toBeTruthy();
+    expect(screen.getByText("Audience")).toBeTruthy();
     expect(screen.queryByText("Urgent")).toBeNull();
     expect(screen.queryByText("Passé")).toBeNull();
   });
 
   it('affiche le badge "Urgent" quand la date est dans les deux prochaines semaines', () => {
-    render(<MemoryDeadlineCell date={new Date("2026-06-15T13:00:00")} status={SCHEDULED_STATUS} />);
+    render(
+      <MemoryDeadlineCell
+        date={new Date("2026-06-15T13:00:00")}
+        source="hearing"
+        status={SCHEDULED_STATUS}
+      />,
+    );
 
     expect(screen.getByText("15/06/2026")).toBeTruthy();
+    expect(screen.getByText("Audience")).toBeTruthy();
     expect(screen.getByText("Urgent")).toBeTruthy();
   });
 
   it('affiche le badge "Très urgent" quand la date est a moins de 3 jours ouvres + 1 jour', () => {
-    // today (2026-06-09, tuesday) + 1 business days = wednesday 2026-06-10.
-    render(<MemoryDeadlineCell date={new Date("2026-06-10T13:00:00")} status={SCHEDULED_STATUS} />);
+    render(
+      <MemoryDeadlineCell
+        date={new Date("2026-06-10T13:00:00")}
+        source="hearing"
+        status={SCHEDULED_STATUS}
+      />,
+    );
 
     expect(screen.getByText("10/06/2026")).toBeTruthy();
     expect(screen.getByText("Très urgent")).toBeTruthy();
@@ -47,8 +68,13 @@ describe("MemoryDeadlineCell", () => {
   });
 
   it('affiche le badge "Très urgent" quand la date est a moins de 3 jours ouvres + 2 jours', () => {
-    // today (2026-06-09, tuesday) + 1 business days = wednesday 2026-06-10.
-    render(<MemoryDeadlineCell date={new Date("2026-06-11T13:00:00")} status={SCHEDULED_STATUS} />);
+    render(
+      <MemoryDeadlineCell
+        date={new Date("2026-06-11T13:00:00")}
+        source="hearing"
+        status={SCHEDULED_STATUS}
+      />,
+    );
 
     expect(screen.getByText("11/06/2026")).toBeTruthy();
     expect(screen.getByText("Très urgent")).toBeTruthy();
@@ -56,30 +82,42 @@ describe("MemoryDeadlineCell", () => {
   });
 
   it('affiche le badge "Passé" quand la date est anterieure a aujourd\'hui', () => {
-    render(<MemoryDeadlineCell date={new Date("2026-06-01T13:00:00")} status={SCHEDULED_STATUS} />);
+    render(
+      <MemoryDeadlineCell
+        date={new Date("2026-06-01T13:00:00")}
+        source="hearing"
+        status={SCHEDULED_STATUS}
+      />,
+    );
 
     expect(screen.getByText("01/06/2026")).toBeTruthy();
     expect(screen.getByText("Passé")).toBeTruthy();
   });
 
   it("considere une date juste a la limite des deux semaines comme non urgente", () => {
-    // today (2026-06-09) + 11 business days = 2026-06-24 → not strictly inferior, so no badge.
-    render(<MemoryDeadlineCell date={new Date("2026-06-24T00:00:00")} status={SCHEDULED_STATUS} />);
+    render(
+      <MemoryDeadlineCell
+        date={new Date("2026-06-24T00:00:00")}
+        source="hearing"
+        status={SCHEDULED_STATUS}
+      />,
+    );
 
     expect(screen.queryByText("Urgent")).toBeNull();
     expect(screen.queryByText("Passé")).toBeNull();
   });
 
-  it("n'affiche aucun badge quand le statut n'est pas « Inscrit au rôle d'une audience »", () => {
-    // Same urgent date as above, but a different status: only the date shows.
+  it("n'affiche aucun badge d'urgence quand le statut n'est pas « Inscrit au rôle d'une audience »", () => {
     render(
       <MemoryDeadlineCell
         date={new Date("2026-06-10T13:00:00")}
+        source="hearing"
         status="Clôture de l'instruction"
       />,
     );
 
     expect(screen.getByText("10/06/2026")).toBeTruthy();
+    expect(screen.getByText("Audience")).toBeTruthy();
     expect(screen.queryByText("Très urgent")).toBeNull();
     expect(screen.queryByText("Urgent")).toBeNull();
     expect(screen.queryByText("Passé")).toBeNull();
@@ -89,6 +127,7 @@ describe("MemoryDeadlineCell", () => {
     render(
       <MemoryDeadlineCell
         date={new Date("2026-06-15T13:00:00")}
+        source="hearing"
         status="inscrit au role d'une audience"
       />,
     );
@@ -96,22 +135,66 @@ describe("MemoryDeadlineCell", () => {
     expect(screen.getByText("Urgent")).toBeTruthy();
   });
 
-  it('affiche une infobulle sur le badge "Urgent"', () => {
-    render(<MemoryDeadlineCell date={new Date("2026-06-15T13:00:00")} status={SCHEDULED_STATUS} />);
+  it('affiche une infobulle native sur le badge "Urgent"', () => {
+    render(
+      <MemoryDeadlineCell
+        date={new Date("2026-06-15T13:00:00")}
+        source="hearing"
+        status={SCHEDULED_STATUS}
+      />,
+    );
 
-    expect(screen.getByRole("tooltip").textContent).toBe("Échéance dans moins de 2 semaines");
+    expect(screen.getByTitle("Échéance dans moins de 2 semaines")).toBeTruthy();
   });
 
-  it('affiche une infobulle sur le badge "Très urgent"', () => {
-    render(<MemoryDeadlineCell date={new Date("2026-06-10T13:00:00")} status={SCHEDULED_STATUS} />);
+  it('affiche une infobulle native sur le badge "Très urgent"', () => {
+    render(
+      <MemoryDeadlineCell
+        date={new Date("2026-06-10T13:00:00")}
+        source="hearing"
+        status={SCHEDULED_STATUS}
+      />,
+    );
 
-    expect(screen.getByRole("tooltip").textContent).toBe("Échéance dans moins de 2 jours ouvrés");
+    expect(screen.getByTitle("Échéance dans moins de 2 jours ouvrés")).toBeTruthy();
   });
 
   it("n'affiche pas d'infobulle sur le badge Passé", () => {
-    render(<MemoryDeadlineCell date={new Date("2026-06-01T13:00:00")} status={SCHEDULED_STATUS} />);
+    render(
+      <MemoryDeadlineCell
+        date={new Date("2026-06-01T13:00:00")}
+        source="hearing"
+        status={SCHEDULED_STATUS}
+      />,
+    );
 
     expect(screen.getByText("Passé")).toBeTruthy();
-    expect(screen.queryByRole("tooltip")).toBeNull();
+    expect(screen.queryByTitle(/Échéance/)).toBeNull();
+  });
+
+  it('affiche le badge "Mise en demeure" pour une échéance saisie manuellement', () => {
+    render(
+      <MemoryDeadlineCell
+        date={new Date("2026-07-01T00:00:00")}
+        source="MISE_EN_DEMEURE_DE_PRODUIRE"
+        status="En cours d'instruction"
+      />,
+    );
+
+    expect(screen.getByText("01/07/2026")).toBeTruthy();
+    expect(screen.getByText("Mise en demeure")).toBeTruthy();
+  });
+
+  it('affiche le badge "Clôture d\'instruction" pour une échéance saisie manuellement', () => {
+    render(
+      <MemoryDeadlineCell
+        date={new Date("2026-07-01T00:00:00")}
+        source="CLOTURE_INSTRUCTION"
+        status="En cours d'instruction"
+      />,
+    );
+
+    expect(screen.getByText("01/07/2026")).toBeTruthy();
+    expect(screen.getByText("Clôture d'instruction")).toBeTruthy();
   });
 });

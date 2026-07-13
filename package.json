@@ -21,7 +21,6 @@
     "db:format": "prisma format",
     "scrape:dev": "ts-node -P data/tsconfig.json data/cli/scrape-telerecours.ts",
     "download:dev": "ts-node -P data/tsconfig.json data/telecharge-fichier.ts",
-    "test": "vitest run",
     "test:unit": "vitest run --config vitest.unit.config.mts",
     "test:integration": "vitest run --config vitest.integration.config.mts"
   },
@@ -38,6 +37,7 @@
     "date-fns": "^4.4.0",
     "dotenv": "^17.4.2",
     "exceljs": "^4.4.0",
+    "fflate": "^0.8.3",
     "jose": "^6.2.3",
     "next": "16.2.9",
     "pg": "^8.22.0",

@@ -44,7 +44,7 @@ const baseSearch = {
   hiddenParams: [{ name: "tab", value: "pieces" }],
   resetHref: "/case_files/TA069-2026-001?tab=pieces",
   label: "Rechercher une pièce",
-  placeholder: 'ex. « requête »',
+  placeholder: "ex. « requête »",
 };
 
 const baseProps = {
@@ -75,7 +75,7 @@ describe("DataTable", () => {
     render(<DataTable {...baseProps} />);
 
     expect(screen.getByLabelText("Rechercher une pièce")).toBeTruthy();
-    expect(screen.getByPlaceholderText('ex. « requête »')).toBeTruthy();
+    expect(screen.getByPlaceholderText("ex. « requête »")).toBeTruthy();
   });
 
   it("affiche un contenu de recherche personnalisé quand searchSlot est fourni", () => {

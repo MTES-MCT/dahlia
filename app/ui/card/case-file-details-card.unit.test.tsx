@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { render, screen, cleanup } from "@testing-library/react";
+import { render, screen, cleanup, within } from "@testing-library/react";
 import type { CaseFileDetail } from "@/app/lib/data/case-files";
 import { CaseFileDetailsCard } from "./case-file-details-card";
 
@@ -28,6 +28,15 @@ function caseFileFixture(
   } as NonNullable<CaseFileDetail>;
 }
 
+function getModalMetadata() {
+  const modal = screen.getByRole("dialog", { hidden: true });
+  const heading = within(modal).getByRole("heading", {
+    name: "Informations Télérecours",
+    hidden: true,
+  });
+  return heading.nextElementSibling as HTMLElement;
+}
+
 describe("CaseFileDetailsCard", () => {
   afterEach(() => {
     cleanup();
@@ -37,45 +46,59 @@ describe("CaseFileDetailsCard", () => {
     render(<CaseFileDetailsCard caseFile={caseFileFixture()} />);
 
     expect(
-      screen.getByRole("heading", { level: 2, name: "TA069-2026-001 - Requête DALO" }),
+      screen.getByRole("heading", { level: 1, name: "TA069-2026-001 - Requête DALO" }),
     ).toBeTruthy();
   });
 
   it("affiche uniquement le numéro de dossier quand le titre est absent", () => {
     render(<CaseFileDetailsCard caseFile={caseFileFixture({ title: null })} />);
 
-    expect(screen.getByRole("heading", { level: 2, name: "TA069-2026-001" })).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1, name: "TA069-2026-001" })).toBeTruthy();
   });
 
-  it("affiche le statut, les parties, la date de réception et la chambre", () => {
+  it("affiche le bouton d'édition et le statut dans l'en-tête", () => {
     render(<CaseFileDetailsCard caseFile={caseFileFixture()} />);
 
     expect(screen.getByText("En instruction")).toBeTruthy();
-    expect(screen.getByText(/Requérant/)).toBeTruthy();
-    expect(screen.getByText("Dupont Jean")).toBeTruthy();
-    expect(screen.getByText(/Défendeur/)).toBeTruthy();
-    expect(screen.getByText("Préfecture du Rhône")).toBeTruthy();
-    expect(screen.getByText(/Date de réception/)).toBeTruthy();
-    expect(screen.getByText("15/01/2026")).toBeTruthy();
-    expect(screen.getByText(/Chambre/)).toBeTruthy();
-    expect(screen.getByText("3ème chambre")).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Éditer les détails du dossier" }),
+    ).toBeTruthy();
   });
 
-  it("affiche des tirets pour la chambre et la date de réception absentes", () => {
+  it("affiche les métadonnées Télérecours dans la modale", () => {
+    render(<CaseFileDetailsCard caseFile={caseFileFixture()} />);
+
+    const metadata = within(getModalMetadata());
+
+    expect(metadata.getByText(/Requérant/)).toBeTruthy();
+    expect(metadata.getByText("Dupont Jean")).toBeTruthy();
+    expect(metadata.getByText(/Défendeur/)).toBeTruthy();
+    expect(metadata.getByText("Préfecture du Rhône")).toBeTruthy();
+    expect(metadata.getByText(/Date de réception/)).toBeTruthy();
+    expect(metadata.getByText("15/01/2026")).toBeTruthy();
+    expect(metadata.getByText(/Chambre/)).toBeTruthy();
+    expect(metadata.getByText("3ème chambre")).toBeTruthy();
+  });
+
+  it("affiche des tirets pour la chambre et la date de réception absentes dans la modale", () => {
     render(
       <CaseFileDetailsCard caseFile={caseFileFixture({ chamber: null, depositDate: null })} />,
     );
 
-    expect(screen.getAllByText("—")).toHaveLength(2);
+    const metadata = within(getModalMetadata());
+
+    expect(metadata.getAllByText("—")).toHaveLength(2);
   });
 
-  it("affiche '-' pour les acteurs absents", () => {
+  it("affiche '-' pour les acteurs absents dans la modale", () => {
     render(
       <CaseFileDetailsCard
         caseFile={caseFileFixture({ mainClaimant: undefined, mainDefender: undefined })}
       />,
     );
 
-    expect(screen.getAllByText("-")).toHaveLength(2);
+    const metadata = within(getModalMetadata());
+
+    expect(metadata.getAllByText("-")).toHaveLength(2);
   });
 });

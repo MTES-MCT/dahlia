@@ -27,6 +27,9 @@ export default defineConfig({
     environment: "jsdom",
     include: ["**/*.integration.test.{ts,tsx}"],
     exclude: ["**/node_modules/**", "**/dist/**"],
+    // All integration tests share one Postgres database (dahlia_test); run files
+    // sequentially so reset/seed hooks do not race across test files.
+    fileParallelism: false,
     // Booting the DB + migrations can take a little while on the first run.
     hookTimeout: 60000,
   },

@@ -1,5 +1,6 @@
 "use client";
 
+import clsx from "clsx";
 import { useRouter, useSearchParams } from "next/navigation";
 import { fr } from "@codegouvfr/react-dsfr";
 import { Tabs } from "@codegouvfr/react-dsfr/Tabs";
@@ -7,10 +8,11 @@ import { type CaseFileTabId } from "@/app/lib/case-file-tabs";
 
 type Props = {
   selectedTabId: CaseFileTabId;
+  showDebugTab?: boolean;
   children: React.ReactNode;
 };
 
-export function CaseFileTabNav({ selectedTabId, children }: Props) {
+export function CaseFileTabNav({ selectedTabId, showDebugTab = false, children }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -27,9 +29,12 @@ export function CaseFileTabNav({ selectedTabId, children }: Props) {
       tabs={[
         { tabId: "pieces", label: "Pièces" },
         { tabId: "historique", label: "Historique" },
-        { tabId: "debug", label: "Debug" },
+        ...(showDebugTab ? [{ tabId: "debug" as const, label: "Debug" }] : []),
       ]}
-      className={fr.cx("fr-mb-3w")}
+      className={fr.cx("fr-mb-1w")}
+      classes={{
+        panel: selectedTabId === "pieces" ? clsx("!p-0") : undefined,
+      }}
     >
       {children}
     </Tabs>

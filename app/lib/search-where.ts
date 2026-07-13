@@ -5,10 +5,7 @@ export function facetSearchWords(value: string): string[] {
   return value.trim().split(/\s+/).filter(Boolean);
 }
 
-export function buildWordAndFilter<T>(
-  words: string[],
-  buildContains: (word: string) => T,
-): T {
+export function buildWordAndFilter<T>(words: string[], buildContains: (word: string) => T): T {
   if (words.length <= 1) {
     return buildContains(words[0] ?? "");
   }

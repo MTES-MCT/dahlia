@@ -1,4 +1,5 @@
 import { fr } from "@codegouvfr/react-dsfr";
+import clsx from "clsx";
 
 type Props = {
   // Backend route streaming the binary content of the pièce.
@@ -15,33 +16,34 @@ export function PieceViewer({ dataUrl, mimeType, fileName }: Props) {
 
   return (
     <div
-      style={{
-        border: "1px solid var(--border-default-grey)",
-        borderRadius: "0.5rem",
-        overflow: "hidden",
-        backgroundColor: "var(--background-alt-grey)",
-        height: "90vh",
-      }}
+      className={clsx(
+        "flex",
+        "min-h-0",
+        "flex-1",
+        "flex-col",
+        "overflow-hidden",
+        "rounded-lg",
+        "border",
+        "border-solid",
+        "border-(--border-default-grey)",
+        "bg-(--background-alt-grey)",
+      )}
     >
       {isImage ? (
-        <div
-          style={{
-            height: "100%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "1rem",
-          }}
-        >
+        <div className={clsx("flex", "min-h-0", "flex-1", "items-center", "justify-center", "p-4")}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={dataUrl}
             alt={fileName}
-            style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
+            className={clsx("max-h-full", "max-w-full", "object-contain")}
           />
         </div>
       ) : (
-        <object data={dataUrl} type={mimeType} width="100%" height="100%">
+        <object
+          data={dataUrl}
+          type={mimeType}
+          className={clsx("min-h-0", "w-full", "flex-1")}
+        >
           <div className={fr.cx("fr-p-3w")}>
             <p>Impossible d&apos;afficher cette pièce directement dans le navigateur.</p>
             <a

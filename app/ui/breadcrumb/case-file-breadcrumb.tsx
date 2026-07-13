@@ -22,7 +22,9 @@ export function caseFileLabel({ caseFileNumber, title }: CaseFileForBreadcrumb):
   return caseFileNumber + (title ? ` - ${title}` : "");
 }
 
-export function buildDashboardBreadcrumbSegment(searchParams: CarriedSearchParams): BreadcrumbSegment {
+export function buildDashboardBreadcrumbSegment(
+  searchParams: CarriedSearchParams,
+): BreadcrumbSegment {
   const backParams = buildBackParams(searchParams);
   const queryString = backParams.toString();
   const backHref = `/case_files${queryString ? `?${queryString}` : ""}`;
@@ -47,7 +49,7 @@ export function buildCaseFileBreadcrumbSegment(
   return {
     label: caseFileLabel(caseFile),
     linkProps: {
-      href: `/case_files/${encodeURIComponent(caseFile.caseFileNumber)}${suffix}`,
+      href: `/case_files/${encodeURIComponent(caseFile.caseFileNumber)}${suffix}#case-file-details`,
     },
   };
 }
@@ -62,6 +64,7 @@ export function CaseFileBreadcrumb({
     <Breadcrumb
       currentPageLabel={currentPageLabel ?? caseFileLabel(caseFile)}
       segments={[buildDashboardBreadcrumbSegment(searchParams), ...trailingSegments]}
+      className={fr.cx("fr-mb-1w")}
     />
   );
 }

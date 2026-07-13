@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { getActorDisplayName } from "@/app/lib/case-file-format";
-import { CASE_FILES_DASHBOARD_INCLUDE } from "@/app/lib/case-files-dashboard-columns";
-import { fetchCaseFilesTableData, fetchUsedStatusLabels } from "./case-files";
+import { CASE_FILES_DASHBOARD_INCLUDE, HEARING_CONVOCATION_SORT_KEY } from "@/app/lib/case-files-dashboard-columns";
+import { fetchCaseFilesTableData } from "./case-files";
 import { prisma } from "@/app/lib/prisma";
 
 vi.mock("@/app/lib/prisma", () => ({
@@ -9,9 +9,6 @@ vi.mock("@/app/lib/prisma", () => ({
     caseFile: {
       findMany: vi.fn(),
       count: vi.fn(),
-    },
-    status: {
-      findMany: vi.fn(),
     },
   },
 }));
@@ -228,15 +225,15 @@ describe("case-files", () => {
       );
     });
 
-    it("sorts by the lastHearing convocationDate through the relation", async () => {
+    it("sorts by the generated memoryDeadlineDate column", async () => {
       vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
       vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
 
-      await fetchCaseFilesTableData(1, 10, "convocationDate", "ascending");
+      await fetchCaseFilesTableData(1, 10, HEARING_CONVOCATION_SORT_KEY, "ascending");
 
       expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
         expect.objectContaining({
-          orderBy: { lastHearing: { convocationDate: "asc" } },
+          orderBy: { memoryDeadlineDate: { sort: "asc", nulls: "last" } },
         }),
       );
     });
@@ -543,25 +540,6 @@ describe("case-files", () => {
           },
         }),
       );
-    });
-  });
-
-  describe("fetchUsedStatusLabels", () => {
-    it("returns distinct labels of statuses actually used by case files, sorted", async () => {
-      vi.mocked(prisma.status.findMany).mockResolvedValue([
-        { label: "En cours d'instruction" },
-        { label: "Terminé" },
-      ] as never);
-
-      const result = await fetchUsedStatusLabels();
-
-      expect(result).toEqual(["En cours d'instruction", "Terminé"]);
-      expect(vi.mocked(prisma.status.findMany)).toHaveBeenCalledWith({
-        where: { caseFiles: { some: { isDeleted: false } } },
-        select: { label: true },
-        distinct: ["label"],
-        orderBy: { label: "asc" },
-      });
     });
   });
 });
