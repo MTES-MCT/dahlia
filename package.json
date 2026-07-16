@@ -22,7 +22,8 @@
     "scrape:dev": "ts-node -P data/tsconfig.json data/cli/scrape-telerecours.ts",
     "download:dev": "ts-node -P data/tsconfig.json data/telecharge-fichier.ts",
     "test:unit": "vitest run --config vitest.unit.config.mts",
-    "test:integration": "vitest run --config vitest.integration.config.mts"
+    "test:integration": "vitest run --config vitest.integration.config.mts",
+    "prepare": "husky"
   },
   "dependencies": {
     "@codegouvfr/react-dsfr": "^1.32.4",
@@ -57,6 +58,7 @@
     "@vitejs/plugin-react": "^6.0.3",
     "eslint": "^9.39.4",
     "eslint-config-next": "16.2.9",
+    "husky": "^9.1.7",
     "jsdom": "^29.1.1",
     "postcss": ">=8.5.17",
     "prettier": "3.8.4",
