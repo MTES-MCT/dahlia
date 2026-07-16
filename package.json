@@ -21,6 +21,7 @@
     "db:format": "prisma format",
     "scrape:dev": "ts-node -P data/tsconfig.json data/cli/scrape-telerecours.ts",
     "download:dev": "ts-node -P data/tsconfig.json data/telecharge-fichier.ts",
+    "reschedule-deliberation:dev": "ts-node -P data/tsconfig.json data/cli/reschedule-deliberation-case-files.ts",
     "test:unit": "vitest run --config vitest.unit.config.mts",
     "test:integration": "vitest run --config vitest.integration.config.mts",
     "prepare": "husky"
