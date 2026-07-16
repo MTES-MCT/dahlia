@@ -201,7 +201,7 @@ export function CaseFileDetailsModal({
 
   return (
     <caseFileDetailsModal.Component
-      title="Détails du dossier"
+      title="&nbsp;Détails du dossier"
       iconId="fr-icon-folder-2-line"
       size="large"
     >
@@ -224,7 +224,7 @@ export function CaseFileDetailsModal({
 
           <div className={fr.cx("fr-col-12", "fr-col-md-6", "fr-mb-1w")}>
             <RadioButtons
-              legend="Droit Opposable"
+              legend="Droit opposable"
               name="rightType"
               orientation="horizontal"
               options={RIGHT_TYPE_OPTIONS.map((option) => ({

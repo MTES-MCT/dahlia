@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@codegouvfr/react-dsfr/Button";
 import { Input } from "@codegouvfr/react-dsfr/Input";
@@ -24,6 +24,9 @@ type Props = {
   facetKeys?: readonly string[];
 };
 
+// Matches the popover `minWidth: "16rem"` so we can pick alignment before paint.
+const POPOVER_MIN_WIDTH_REM = 16;
+
 // Per-column filter: an icon button that opens a small popover where the user
 // types a value. Submitting injects/replaces the `facetKey` facet in the shared
 // search field and re-runs the search (client navigation). The sort, status and
@@ -42,6 +45,7 @@ export function ColumnFilterButton({
 
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(currentValue);
+  const [alignPopoverStart, setAlignPopoverStart] = useState(false);
   const containerRef = useRef<HTMLSpanElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverId = useId();
@@ -52,6 +56,18 @@ export function ColumnFilterButton({
     if (!open) setValue(currentValue);
     setOpen((wasOpen) => !wasOpen);
   }
+
+  // Anchor the popover to the left when right-alignment would overflow the viewport.
+  useLayoutEffect(() => {
+    if (!open) return;
+    const container = containerRef.current;
+    if (!container) return;
+
+    const rootFontSize = Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
+    const popoverMinWidth = POPOVER_MIN_WIDTH_REM * rootFontSize;
+    const { right } = container.getBoundingClientRect();
+    setAlignPopoverStart(right - popoverMinWidth < 0);
+  }, [open]);
 
   // Focus the input when the popover opens.
   useEffect(() => {
@@ -112,7 +128,7 @@ export function ColumnFilterButton({
           style={{
             position: "absolute",
             top: "100%",
-            right: 0,
+            ...(alignPopoverStart ? { left: 0 } : { right: 0 }),
             zIndex: 10,
             marginTop: "0.25rem",
             padding: "0.5rem",

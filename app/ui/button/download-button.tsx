@@ -16,6 +16,7 @@ export function DownloadButton({ href, children = "Télécharger les résultats"
         "fr-icon-download-line",
         "fr-btn--icon-left",
         "fr-mb-2w",
+        "fr-btn--sm",
       )}
       href={href}
       download
