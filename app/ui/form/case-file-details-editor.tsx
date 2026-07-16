@@ -241,7 +241,6 @@ export function CaseFileDetailsModal({
         <Input
           label="Quelques mots caractérisant le dossier"
           nativeInputProps={{ name: "summary", defaultValue: summary ?? "" }}
-          className={fr.cx("fr-mb-1w")}
         />
 
         {showProductionDeadlineFields && (
