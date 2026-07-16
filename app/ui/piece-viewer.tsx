@@ -8,6 +8,14 @@ type Props = {
   fileName: string;
 };
 
+// Chromium PDF viewer open parameter: collapse the side navigation pane on load.
+function embeddedDocumentDataUrl(dataUrl: string): string {
+  const [base, hash = ""] = dataUrl.split("#", 2);
+  const params = new URLSearchParams(hash);
+  params.set("navpanes", "0");
+  return `${base}#${params.toString()}`;
+}
+
 // Left-column preview of a pièce. Images are shown with <img>, everything else
 // (PDF mostly) is embedded with <object>; both fall back to a download link when
 // the browser cannot render the content inline.
@@ -40,7 +48,7 @@ export function PieceViewer({ dataUrl, mimeType, fileName }: Props) {
         </div>
       ) : (
         <object
-          data={dataUrl}
+          data={embeddedDocumentDataUrl(dataUrl)}
           type={mimeType}
           className={clsx("min-h-0", "w-full", "flex-1")}
         >

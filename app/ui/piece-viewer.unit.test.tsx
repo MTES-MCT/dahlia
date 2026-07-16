@@ -22,7 +22,7 @@ describe("PieceViewer", () => {
     expect(screen.queryByRole("img")).toBeNull();
 
     const object = container.querySelector("object");
-    expect(object?.getAttribute("data")).toBe("/data/pdf");
+    expect(object?.getAttribute("data")).toBe("/data/pdf#navpanes=0");
     expect(object?.getAttribute("type")).toBe("application/pdf");
 
     const fallbackLink = screen.getByRole("link", { name: /Télécharger/ });

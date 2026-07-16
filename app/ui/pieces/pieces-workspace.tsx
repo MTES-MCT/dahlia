@@ -88,47 +88,30 @@ export function PiecesWorkspace({ caseFileNumber, pieces }: Props) {
 
   return (
     <div className={clsx("flex", "min-h-0", "flex-1", "flex-col", "md:flex-row")}>
-      <div
-        className={clsx(
-          "flex",
-          "w-full",
-          "min-h-0",
-          "flex-col",
-          "border-r",
-          "border-(--border-default-grey)",
-          "md:w-1/4",
-        )}
-      >
-        <PiecesSidebar
-          caseFileNumber={caseFileNumber}
-          pieces={merged}
-          currentId={currentId}
-          selectedIds={selectedIds}
-          allSelected={allSelected}
-          someSelected={someSelected}
-          onSelectPiece={selectPiece}
-          onToggleOne={toggleOne}
-          onToggleAll={toggleAll}
-        />
-      </div>
+      <PiecesSidebar
+        className="min-h-[400px]"
+        caseFileNumber={caseFileNumber}
+        pieces={merged}
+        currentId={currentId}
+        selectedIds={selectedIds}
+        allSelected={allSelected}
+        someSelected={someSelected}
+        onSelectPiece={selectPiece}
+        onToggleOne={toggleOne}
+        onToggleAll={toggleAll}
+      />
 
-      <div className={clsx(fr.cx("fr-p-3w"), "flex", "min-h-0", "flex-1", "flex-col")}>
-        {current ? (
-          <PieceDetail
-            key={current.encodedFileId}
-            piece={current}
-            editing={editing}
-            onEdit={() => setEditing(true)}
-            onCancel={() => setEditing(false)}
-            onSaved={(id, values) => {
-              setOverrides((previous) => ({ ...previous, [id]: values }));
-              setEditing(false);
-            }}
-          />
-        ) : (
-          <p className={fr.cx("fr-text--sm")}>Aucune pièce sélectionnée.</p>
-        )}
-      </div>
+      <PieceDetailPane
+        className="min-h-[400px]"
+        piece={current}
+        editing={editing}
+        onEdit={() => setEditing(true)}
+        onCancel={() => setEditing(false)}
+        onSaved={(id, values) => {
+          setOverrides((previous) => ({ ...previous, [id]: values }));
+          setEditing(false);
+        }}
+      />
     </div>
   );
 }
@@ -136,6 +119,7 @@ export function PiecesWorkspace({ caseFileNumber, pieces }: Props) {
 type MergedPiece = WorkspacePiece;
 
 type SidebarProps = {
+  className?: string;
   caseFileNumber: string;
   pieces: MergedPiece[];
   currentId: string | null;
@@ -148,6 +132,7 @@ type SidebarProps = {
 };
 
 function PiecesSidebar({
+  className,
   caseFileNumber,
   pieces,
   currentId,
@@ -199,138 +184,194 @@ function PiecesSidebar({
   }
 
   return (
-    <nav
-      aria-label="Liste des pièces"
-      className={clsx("flex", "h-full", "min-h-0", "flex-col", "overflow-hidden")}
+    <div
+      className={clsx(
+        "flex",
+        "w-full",
+        "min-h-0",
+        "flex-col",
+        "border-r",
+        "border-(--border-default-grey)",
+        "md:w-1/4",
+        className,
+      )}
     >
-      <div
-        className={clsx(
-          "flex",
-          "shrink-0",
-          "items-center",
-          "justify-between",
-          fr.cx("fr-px-2w", "fr-pt-2w", "fr-pb-1w"),
-          "border-b",
-          "border-(--border-default-grey)",
-        )}
+      <nav
+        aria-label="Liste des pièces"
+        className={clsx("flex", "h-full", "min-h-0", "flex-col", "overflow-hidden")}
       >
-        <div className="fr-checkbox-group fr-checkbox-group--sm">
-          <input
-            type="checkbox"
-            id="pieces-select-all"
-            checked={allSelected}
-            ref={(node) => {
-              if (node) node.indeterminate = someSelected;
-            }}
-            onChange={onToggleAll}
-          />
-          <label className="fr-label" htmlFor="pieces-select-all">
-            Tout sélectionner
-          </label>
+        <div
+          className={clsx(
+            "flex",
+            "shrink-0",
+            "items-center",
+            "justify-between",
+            fr.cx("fr-px-2w", "fr-pt-2w", "fr-pb-1w"),
+            "border-b",
+            "border-(--border-default-grey)",
+          )}
+        >
+          <div className="fr-checkbox-group fr-checkbox-group--sm">
+            <input
+              type="checkbox"
+              id="pieces-select-all"
+              checked={allSelected}
+              ref={(node) => {
+                if (node) node.indeterminate = someSelected;
+              }}
+              onChange={onToggleAll}
+            />
+            <label className="fr-label" htmlFor="pieces-select-all">
+              Tout sélectionner
+            </label>
+          </div>
+          <span className={clsx(fr.cx("fr-text--sm", "fr-mb-0"), "text-grey")}>
+            {pieces.length} pièce{pieces.length > 1 ? "s" : ""}
+          </span>
         </div>
-        <span className={clsx(fr.cx("fr-text--sm", "fr-mb-0"), "text-grey")}>
-          {pieces.length} pièce{pieces.length > 1 ? "s" : ""}
-        </span>
-      </div>
 
-      <ul
-        className={clsx(fr.cx("fr-raw-list"), "m-0", "min-h-0", "flex-1", "overflow-y-auto", "p-0")}
-      >
-        {pieces.map((piece) => {
-          const id = piece.encodedFileId;
-          const isCurrent = id === currentId;
-          const label = pieceDisplayLabel(piece);
-          return (
-            <li key={id}>
-              <div
-                className={clsx(
-                  "flex",
-                  "items-start",
-                  "gap-2",
-                  fr.cx("fr-px-2w", "fr-py-1v"),
-                  isCurrent && "bg-(--background-open-blue-france)",
-                )}
-              >
-                <div className="fr-checkbox-group fr-checkbox-group--sm">
-                  <input
-                    type="checkbox"
-                    id={`piece-select-${id}`}
-                    checked={selectedIds.has(id)}
-                    onChange={() => onToggleOne(id)}
-                  />
-                  <label className="fr-label" htmlFor={`piece-select-${id}`}>
-                    <span className="fr-sr-only">Sélectionner {label}</span>
-                  </label>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => onSelectPiece(id)}
-                  aria-current={isCurrent ? "true" : undefined}
+        <ul
+          className={clsx(
+            fr.cx("fr-raw-list"),
+            "m-0",
+            "min-h-0",
+            "flex-1",
+            "overflow-y-auto",
+            "p-0",
+          )}
+        >
+          {pieces.map((piece) => {
+            const id = piece.encodedFileId;
+            const isCurrent = id === currentId;
+            const label = pieceDisplayLabel(piece);
+            return (
+              <li key={id}>
+                <div
                   className={clsx(
-                    "flex-1",
-                    "min-w-0",
-                    "border-none",
-                    "p-0",
-                    "cursor-pointer",
-                    "bg-transparent",
-                    "text-inherit",
-                    "text-left",
+                    "flex",
+                    "items-start",
+                    "gap-2",
+                    fr.cx("fr-px-2w", "fr-py-1v"),
+                    isCurrent && "bg-(--background-open-blue-france)",
                   )}
                 >
-                  <span
+                  <div className="fr-checkbox-group fr-checkbox-group--sm">
+                    <input
+                      type="checkbox"
+                      id={`piece-select-${id}`}
+                      checked={selectedIds.has(id)}
+                      onChange={() => onToggleOne(id)}
+                    />
+                    <label className="fr-label" htmlFor={`piece-select-${id}`}>
+                      <span className="fr-sr-only">Sélectionner {label}</span>
+                    </label>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onSelectPiece(id)}
+                    aria-current={isCurrent ? "true" : undefined}
                     className={clsx(
-                      fr.cx("fr-text--sm", "fr-mb-0"),
-                      "block",
-                      "truncate",
-                      isCurrent ? "font-bold" : "font-medium",
+                      "flex-1",
+                      "min-w-0",
+                      "border-none",
+                      "p-0",
+                      "cursor-pointer",
+                      "bg-transparent",
+                      "text-inherit",
+                      "text-left",
                     )}
-                    title={label}
                   >
-                    {label}
-                  </span>
-                  {piece.dahliaName && (
                     <span
                       className={clsx(
-                        fr.cx("fr-text--xs", "fr-mb-0"),
-                        "text-grey",
+                        fr.cx("fr-text--sm", "fr-mb-0"),
                         "block",
-                        "wrap-break-word",
+                        "truncate",
+                        isCurrent ? "font-bold" : "font-medium",
                       )}
+                      title={label}
                     >
-                      {piece.fileName}
+                      {label}
                     </span>
-                  )}
-                  {piece.typeLabel && (
-                    <span className={clsx(fr.cx("fr-tag", "fr-tag--sm"), fr.cx("fr-mt-1v"))}>
-                      {piece.typeLabel}
-                    </span>
-                  )}
-                </button>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+                    {piece.dahliaName && (
+                      <span
+                        className={clsx(
+                          fr.cx("fr-text--xs", "fr-mb-0"),
+                          "text-grey",
+                          "block",
+                          "wrap-break-word",
+                        )}
+                      >
+                        {piece.fileName}
+                      </span>
+                    )}
+                    {piece.typeLabel && (
+                      <span className={clsx(fr.cx("fr-tag", "fr-tag--sm"), fr.cx("fr-mt-1v"))}>
+                        {piece.typeLabel}
+                      </span>
+                    )}
+                  </button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
 
-      <div className={clsx("shrink-0", fr.cx("fr-px-2w", "fr-py-2w"))}>
-        <Button
-          iconId="fr-icon-download-line"
-          priority="secondary"
-          onClick={handleDownload}
-          disabled={count === 0 || isPending}
-        >
-          {isPending ? "Préparation…" : "Télécharger"}
-        </Button>
-        {error && (
-          <Alert
-            className={fr.cx("fr-mt-1w")}
-            severity="error"
-            small
-            description={`Échec du téléchargement : ${error}`}
-          />
-        )}
-      </div>
-    </nav>
+        <div className={clsx("shrink-0", fr.cx("fr-px-2w", "fr-py-2w"))}>
+          <Button
+            iconId="fr-icon-download-line"
+            priority="secondary"
+            onClick={handleDownload}
+            disabled={count === 0 || isPending}
+            className={fr.cx("fr-btn--sm")}
+          >
+            {isPending ? "Préparation…" : "Télécharger"}
+          </Button>
+          {error && (
+            <Alert
+              className={fr.cx("fr-mt-1w")}
+              severity="error"
+              small
+              description={`Échec du téléchargement : ${error}`}
+            />
+          )}
+        </div>
+      </nav>
+    </div>
+  );
+}
+
+type DetailPaneProps = {
+  className?: string;
+  piece: MergedPiece | null;
+  editing: boolean;
+  onEdit: () => void;
+  onCancel: () => void;
+  onSaved: (id: string, values: Override) => void;
+};
+
+function PieceDetailPane({
+  className,
+  piece,
+  editing,
+  onEdit,
+  onCancel,
+  onSaved,
+}: DetailPaneProps) {
+  return (
+    <div className={clsx(fr.cx("fr-p-3w"), "flex", "min-h-0", "flex-1", "flex-col", className)}>
+      {piece ? (
+        <PieceDetail
+          key={piece.encodedFileId}
+          piece={piece}
+          editing={editing}
+          onEdit={onEdit}
+          onCancel={onCancel}
+          onSaved={onSaved}
+        />
+      ) : (
+        <p className={fr.cx("fr-text--sm")}>Aucune pièce sélectionnée.</p>
+      )}
+    </div>
   );
 }
 
@@ -361,13 +402,18 @@ function PieceDetail({ piece, editing, onEdit, onCancel, onSaved }: DetailProps)
             </p>
           )}
           <p className={fr.cx("fr-mb-2w")}>{piece.comment || "Aucun commentaire"}</p>
-          <Button priority="secondary" iconId="fr-icon-edit-line" onClick={onEdit}>
+          <Button
+            priority="secondary"
+            iconId="fr-icon-edit-line"
+            onClick={onEdit}
+            className={fr.cx("fr-btn--sm")}
+          >
             Éditer
           </Button>
         </div>
       )}
 
-      <div className={clsx("flex", "min-h-0", "flex-1", "flex-col")}>
+      <div className={clsx("flex", "min-h-[400px]", "flex-1", "flex-col")}>
         <PieceViewer
           dataUrl={piece.dataUrl}
           mimeType={piece.viewerMimeType}

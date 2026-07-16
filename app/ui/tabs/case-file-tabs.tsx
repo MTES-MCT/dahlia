@@ -99,7 +99,6 @@ export async function CaseFileTabs({ caseFile, tab, searchParams }: Props) {
     <div
       className={clsx(
         "flex",
-        "min-h-0",
         "flex-1",
         "flex-col",
         tab === "pieces" && clsx("overflow-hidden", "pieces-fill"),
