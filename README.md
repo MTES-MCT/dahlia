@@ -24,6 +24,38 @@ Installation des librairies JS
 pnpm ci
 ```
 
+### Hooks Git (pre-commit)
+
+Le script `prepare` du `package.json` configure automatiquement
+[Husky](https://typicode.github.io/husky/) lors de `pnpm ci` ou `pnpm install`.
+Git pointe alors vers `.husky/` comme dossier de hooks (`core.hooksPath`).
+
+Avant chaque commit, le hook **pre-commit** exécute :
+
+- `pnpm lint` (ESLint)
+- `pnpm exec tsc --noEmit` (vérification TypeScript)
+
+Si les hooks ne semblent pas actifs après un clone (par exemple si
+`git config core.hooksPath` ne renvoie rien), relancer :
+
+```sh
+pnpm prepare
+```
+
+Pour tester le hook sans committer :
+
+```sh
+.husky/pre-commit
+```
+
+Pour désactiver temporairement le hook (debug uniquement) :
+
+```sh
+HUSKY=0 git commit -m "…"
+```
+
+### Exécution en environnement de développement
+
 Lancement de l'application en envronnement de développement
 
 ```sh
