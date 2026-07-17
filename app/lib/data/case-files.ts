@@ -144,6 +144,7 @@ export async function fetchCaseFileDetail(caseFileNumber: string) {
       lastStatus: true,
       chamber: true,
       assignedToLegalEntityDivision: true,
+      lastDecisionReading: true,
       lastHearing: { include: { lastConclusion: { include: { conclusionOperativePart: true } } } },
       hearings: { include: { lastConclusion: { include: { conclusionOperativePart: true } } } },
       events: {

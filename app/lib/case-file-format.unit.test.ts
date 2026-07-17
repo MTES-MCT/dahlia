@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDateFr, formatDateInputValue } from "@/app/lib/case-file-format";
+import { formatDateFr, formatDateInputValue, formatDateTimeFr } from "@/app/lib/case-file-format";
 
 describe("formatDateInputValue", () => {
   it("retourne une chaîne vide quand la date est absente", () => {
@@ -28,5 +28,20 @@ describe("formatDateFr", () => {
 
   it("ajoute un zéro devant le jour et le mois sur un chiffre", () => {
     expect(formatDateFr(new Date(2024, 0, 5))).toBe("05/01/2024");
+  });
+});
+
+describe("formatDateTimeFr", () => {
+  it("retourne une chaîne vide quand la date est absente", () => {
+    expect(formatDateTimeFr(null)).toBe("");
+    expect(formatDateTimeFr(undefined)).toBe("");
+  });
+
+  it("formate un instant UTC en date et heure de Paris", () => {
+    expect(formatDateTimeFr(new Date("2025-07-14T22:00:00Z"))).toBe("15/07/2025 à 00h00");
+  });
+
+  it("applique l'heure d'hiver hors période d'été", () => {
+    expect(formatDateTimeFr(new Date("2025-01-05T08:30:00Z"))).toBe("05/01/2025 à 09h30");
   });
 });
