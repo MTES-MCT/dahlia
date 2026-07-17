@@ -1,6 +1,6 @@
 import { fr } from "@codegouvfr/react-dsfr";
 import clsx from "clsx";
-import { formatDateFr, getActorDisplayName } from "@/app/lib/case-file-format";
+import { formatDateFr, formatDateTimeFr, getActorDisplayName } from "@/app/lib/case-file-format";
 import { type CaseFileDetail } from "@/app/lib/data/case-files";
 import {
   CaseFileDetailsHeader,
@@ -26,6 +26,9 @@ export function CaseFileDetailsCard({ caseFile }: Props) {
     mainDefenderName: getActorDisplayName(caseFile.mainDefender),
     depositDateLabel: formatDateFr(caseFile.depositDate),
     chamberName: caseFile.chamber?.name,
+    decisionReadingDateLabel: formatDateTimeFr(caseFile.lastDecisionReading?.readingDate),
+    decisionNature: caseFile.lastDecisionReading?.nature ?? null,
+    decisionOperativePart: caseFile.lastDecisionReading?.operativePart ?? null,
   };
 
   return (
@@ -64,6 +67,9 @@ export function CaseFileDetailsCard({ caseFile }: Props) {
         mainDefenderName={editorProps.mainDefenderName}
         depositDateLabel={editorProps.depositDateLabel}
         chamberName={editorProps.chamberName}
+        decisionReadingDateLabel={editorProps.decisionReadingDateLabel}
+        decisionNature={editorProps.decisionNature}
+        decisionOperativePart={editorProps.decisionOperativePart}
       />
     </>
   );
