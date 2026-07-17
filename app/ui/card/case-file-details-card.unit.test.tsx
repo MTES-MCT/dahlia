@@ -28,13 +28,14 @@ function caseFileFixture(
   } as NonNullable<CaseFileDetail>;
 }
 
-function getModalMetadata() {
+function getModalSection(name: string) {
   const modal = screen.getByRole("dialog", { hidden: true });
-  const heading = within(modal).getByRole("heading", {
-    name: "Informations Télérecours",
-    hidden: true,
-  });
+  const heading = within(modal).getByRole("heading", { name, hidden: true });
   return heading.nextElementSibling as HTMLElement;
+}
+
+function getModalMetadata() {
+  return getModalSection("Informations Télérecours");
 }
 
 describe("CaseFileDetailsCard", () => {
@@ -60,9 +61,7 @@ describe("CaseFileDetailsCard", () => {
     render(<CaseFileDetailsCard caseFile={caseFileFixture()} />);
 
     expect(screen.getByText("En instruction")).toBeTruthy();
-    expect(
-      screen.getByRole("button", { name: "Éditer les détails du dossier" }),
-    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Éditer les détails du dossier" })).toBeTruthy();
   });
 
   it("affiche les métadonnées Télérecours dans la modale", () => {
@@ -88,6 +87,41 @@ describe("CaseFileDetailsCard", () => {
     const metadata = within(getModalMetadata());
 
     expect(metadata.getAllByText("—")).toHaveLength(2);
+  });
+
+  it("affiche la décision dans la modale quand elle est renseignée", () => {
+    render(
+      <CaseFileDetailsCard
+        caseFile={caseFileFixture({
+          lastDecisionReading: {
+            caseFileNumber: "TA069-2026-001",
+            readingDate: new Date("2025-07-14T22:00:00.000Z"),
+            notificationDate: new Date("2025-07-15T00:00:00.000Z"),
+            nature: "Jugement",
+            operativePart: "Article 1er : La décision du 20 février 2024 est annulée.",
+          },
+        })}
+      />,
+    );
+
+    const decision = within(getModalSection("Décision"));
+
+    expect(decision.getByText(/Date et heure de la mise à disposition/)).toBeTruthy();
+    expect(decision.getByText("Le 15/07/2025 à 00h00")).toBeTruthy();
+    expect(decision.getByText(/Nature de la décision/)).toBeTruthy();
+    expect(decision.getByText("Jugement")).toBeTruthy();
+    expect(decision.getByText(/Dispositif/)).toBeTruthy();
+    expect(
+      decision.getByText("Article 1er : La décision du 20 février 2024 est annulée."),
+    ).toBeTruthy();
+  });
+
+  it("masque la section décision quand aucune décision n'est renseignée", () => {
+    render(<CaseFileDetailsCard caseFile={caseFileFixture({ lastDecisionReading: null })} />);
+
+    const modal = screen.getByRole("dialog", { hidden: true });
+
+    expect(within(modal).queryByRole("heading", { name: "Décision", hidden: true })).toBeNull();
   });
 
   it("affiche '-' pour les acteurs absents dans la modale", () => {

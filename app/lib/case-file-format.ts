@@ -26,6 +26,24 @@ export function formatDateFr(date: Date | null | undefined): string {
   }).format(date);
 }
 
+// Format a date as dd/mm/yyyy à HHhMM; empty string when absent. Telerecours
+// sends instants in UTC, so the time is rendered in the court's time zone rather
+// than the runtime's (which is UTC in production).
+export function formatDateTimeFr(date: Date | null | undefined): string {
+  if (!date) return "";
+  const parts = new Intl.DateTimeFormat("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/Paris",
+  }).formatToParts(date);
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+  return `${get("day")}/${get("month")}/${get("year")} à ${get("hour")}h${get("minute")}`;
+}
+
 export function getActorDisplayName(actor: ActorForDisplay): string {
   if (!actor) return "-";
   if (actor.legalPersonName) return actor.legalPersonName;

@@ -42,6 +42,11 @@ export type CaseFileDetailsEditorProps = {
   mainDefenderName: string;
   depositDateLabel: string;
   chamberName: string | undefined;
+  // Last decision reading (Telerecours `lastDecisionReading`); absent on case
+  // files where no decision has been read yet.
+  decisionReadingDateLabel: string;
+  decisionNature: string | null;
+  decisionOperativePart: string | null;
 };
 
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
@@ -168,9 +173,15 @@ export function CaseFileDetailsModal({
   mainDefenderName,
   depositDateLabel,
   chamberName,
+  decisionReadingDateLabel,
+  decisionNature,
+  decisionOperativePart,
 }: Omit<CaseFileDetailsEditorProps, "title">) {
   const [result, formAction, isPending] = useActionState(updateCaseFileDetailsFormAction, null);
   const showProductionDeadlineFields = statusLabel === UNDER_INSTRUCTION_STATUS_LABEL;
+  const hasDecisionReading = Boolean(
+    decisionReadingDateLabel || decisionNature || decisionOperativePart,
+  );
 
   // Remount the form on each modal open so uncontrolled fields reset to the latest
   // caseFile values instead of keeping unsaved edits from a previous session.
@@ -272,6 +283,22 @@ export function CaseFileDetailsModal({
         <DetailRow label="Date de réception" value={depositDateLabel} />
         <DetailRow label="Chambre" value={chamberName} />
       </div>
+
+      {hasDecisionReading && (
+        <>
+          <h2 className={fr.cx("fr-h6", "fr-mb-2w")}>Décision</h2>
+          <div className="grid grid-cols-1 gap-x-4 md:grid-cols-2">
+            <DetailRow
+              label="Date et heure de la mise à disposition"
+              value={decisionReadingDateLabel && `Le ${decisionReadingDateLabel}`}
+            />
+            <DetailRow label="Nature de la décision" value={decisionNature} />
+            <div className="md:col-span-2">
+              <DetailRow label="Dispositif" value={decisionOperativePart} />
+            </div>
+          </div>
+        </>
+      )}
     </caseFileDetailsModal.Component>
   );
 }
