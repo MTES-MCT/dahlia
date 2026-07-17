@@ -1,0 +1,34 @@
+// Participation of an actor in a case file. Role flags and quality are scoped
+// to this link (not duplicated on CaseFile or Actor).
+model CaseFileActor {
+  caseFileNumber String
+  caseFile       CaseFile @relation(fields: [caseFileNumber], references: [caseFileNumber], onDelete: Cascade)
+
+  actorId Int
+  actor   Actor @relation(fields: [actorId], references: [id])
+
+  qualityCode String
+  quality     Quality @relation(fields: [qualityCode], references: [code])
+
+  isMainClaimant Boolean @default(false)
+  isMainDefender Boolean @default(false)
+
+  @@id([caseFileNumber, actorId])
+  @@index([actorId])
+  @@map("case_file_actors")
+}
+
+// Representation link within a case file (e.g. lawyer representing a claimant).
+model ActorRepresentation {
+  caseFileNumber String
+  caseFile       CaseFile @relation(fields: [caseFileNumber], references: [caseFileNumber], onDelete: Cascade)
+
+  representedActorId Int
+  representedActor   Actor @relation("RepresentedActor", fields: [representedActorId], references: [id])
+
+  representativeActorId Int
+  representativeActor   Actor @relation("RepresentativeActor", fields: [representativeActorId], references: [id])
+
+  @@id([caseFileNumber, representedActorId, representativeActorId])
+  @@map("actor_representations")
+}

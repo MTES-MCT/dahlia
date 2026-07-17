@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { Actor, CaseFile } from "../telerecours/types";
 import { anonymizeActor } from "../anonymize";
+import { upsertCaseFileActorLink } from "./upsert-case-file-actors";
 
 // The Prisma client is passed in so that this module can be reused both by the
 // standalone scraping script (its own `new PrismaClient`) and by the webapp
@@ -23,7 +24,6 @@ export async function upsertActor(
     legalEntityName: actor.legalEntityName,
     legalEntityId: actor.legalEntityId,
     actorType: actor.actorType as "LEGAL_PERSON" | "NATURAL_PERSON",
-    qualityCode: actor.quality?.code || "R",
   };
   await prisma.actor.upsert({
     where: { id: actor.id },
@@ -33,7 +33,7 @@ export async function upsertActor(
 }
 
 // Upsert the base CaseFile and its directly-referenced entities (qualities,
-// division, urgency, status, last hearing/conclusion, claimant/defender) from a
+// division, urgency, status, last hearing/conclusion, case-file actors) from a
 // list-view payload. Returns false (and skips) when a required field is absent.
 export async function upsertCaseFile(
   prisma: PrismaClient,
@@ -54,27 +54,6 @@ export async function upsertCaseFile(
       `⚠ Skipping case file ${caseFile.caseFileNumber}: missing required field(s) ${missingFields.join(", ")}`,
     );
     return false;
-  }
-
-  if (caseFile.mainClaimant.quality) {
-    await prisma.quality.upsert({
-      where: { code: caseFile.mainClaimant.quality.code },
-      update: { name: caseFile.mainClaimant.quality.name },
-      create: {
-        code: caseFile.mainClaimant.quality.code,
-        name: caseFile.mainClaimant.quality.name,
-      },
-    });
-  }
-  if (caseFile.mainDefender && caseFile.mainDefender.quality) {
-    await prisma.quality.upsert({
-      where: { code: caseFile.mainDefender.quality.code },
-      update: { name: caseFile.mainDefender.quality.name },
-      create: {
-        code: caseFile.mainDefender.quality.code,
-        name: caseFile.mainDefender.quality.name,
-      },
-    });
   }
 
   await prisma.legalEntityDivision.upsert({
@@ -161,9 +140,21 @@ export async function upsertCaseFile(
     }
   }
 
-  await upsertActor(prisma, caseFile.mainClaimant, anonymize);
+  await upsertCaseFileActorLink(
+    prisma,
+    caseFile.caseFileNumber,
+    caseFile.mainClaimant,
+    { isMainClaimant: true, isMainDefender: false },
+    anonymize,
+  );
   if (caseFile.mainDefender) {
-    await upsertActor(prisma, caseFile.mainDefender, anonymize);
+    await upsertCaseFileActorLink(
+      prisma,
+      caseFile.caseFileNumber,
+      caseFile.mainDefender,
+      { isMainClaimant: false, isMainDefender: true },
+      anonymize,
+    );
   }
 
   if (caseFile.lastHearing) {
@@ -195,8 +186,6 @@ export async function upsertCaseFile(
       urgencyId: caseFile.urgency?.id,
       lastStatusId: caseFile.lastStatus.id,
       lastStatusDate: new Date(caseFile.lastStatus.statusDate),
-      mainClaimantId: caseFile.mainClaimant.id,
-      mainDefenderId: caseFile.mainDefender?.id,
       lastHearingId: caseFile.lastHearing?.hearingId,
       lastHearingConvocationDate: caseFile.lastHearing
         ? new Date(caseFile.lastHearing.convocationDate)
@@ -209,8 +198,6 @@ export async function upsertCaseFile(
       urgencyId: caseFile.urgency?.id,
       lastStatusId: caseFile.lastStatus.id,
       lastStatusDate: new Date(caseFile.lastStatus.statusDate),
-      mainClaimantId: caseFile.mainClaimant.id,
-      mainDefenderId: caseFile.mainDefender?.id,
       lastHearingId: caseFile.lastHearing?.hearingId,
       lastHearingConvocationDate: caseFile.lastHearing
         ? new Date(caseFile.lastHearing.convocationDate)

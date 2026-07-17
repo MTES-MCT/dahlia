@@ -3,14 +3,16 @@ import {
   PRODUCTION_DEADLINE_TYPE_LABELS,
   type ProductionDeadlineType,
 } from "@/app/lib/case-file-enums";
+import {
+  CASE_FILE_ACTOR_INCLUDE,
+  getMainClaimantActor,
+  getMainDefenderActor,
+} from "@/app/lib/case-file-actors";
 import { formatDateFr, getActorDisplayName } from "@/app/lib/case-file-format";
 import { type SortOrder } from "@/app/lib/table-sort";
 
-// Relations required by the dashboard table and xlsx export. Kept in one place so
-// fetch queries stay aligned with visible/exported columns.
 export const CASE_FILES_DASHBOARD_INCLUDE = {
-  mainClaimant: true,
-  mainDefender: true,
+  caseFileActors: { include: CASE_FILE_ACTOR_INCLUDE },
   lastProducer: true,
   lastStatus: true,
   lastHearing: true,
@@ -20,9 +22,6 @@ export type CaseFileDashboardRow = Prisma.CaseFileGetPayload<{
   include: typeof CASE_FILES_DASHBOARD_INCLUDE;
 }>;
 
-// Sort key for the memory-production deadline column. The URL param is kept as
-// `convocationDate` for backward compatibility; sorting uses the generated
-// `memoryDeadlineDate` column in Postgres (see migration case_file_memory_deadline_date).
 export const HEARING_CONVOCATION_SORT_KEY = "convocationDate";
 
 export type MemoryDeadlineSource = "hearing" | ProductionDeadlineType;
@@ -66,8 +65,6 @@ export type CaseFileDashboardColumnDef = {
   exportValue: (row: CaseFileDashboardRow) => string;
 };
 
-// Shared column metadata for the dashboard table and xlsx export. UI-specific
-// rendering (links, badges) is layered on top in the page component.
 export const CASE_FILES_DASHBOARD_COLUMNS: CaseFileDashboardColumnDef[] = [
   {
     key: "caseFileNumber",
@@ -87,17 +84,15 @@ export const CASE_FILES_DASHBOARD_COLUMNS: CaseFileDashboardColumnDef[] = [
     key: "mainClaimant",
     facetKey: "requerant",
     label: "Requérant",
-    sortable: true,
     facet: true,
-    exportValue: (caseFile) => getActorDisplayName(caseFile.mainClaimant),
+    exportValue: (caseFile) => getActorDisplayName(getMainClaimantActor(caseFile)),
   },
   {
     key: "mainDefender",
     facetKey: "defendeur",
     label: "Défendeur",
-    sortable: true,
     facet: true,
-    exportValue: (caseFile) => getActorDisplayName(caseFile.mainDefender),
+    exportValue: (caseFile) => getActorDisplayName(getMainDefenderActor(caseFile)),
   },
   {
     key: "lastProducer",

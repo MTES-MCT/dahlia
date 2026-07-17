@@ -81,11 +81,10 @@ model CaseFile {
   chamberId Int?
   chamber   Chamber? @relation(fields: [chamberId], references: [id])
 
-  mainClaimantId Int
-  mainClaimant   Actor @relation("CaseFileMainClaimant", fields: [mainClaimantId], references: [id])
-
-  mainDefenderId Int?
-  mainDefender   Actor? @relation("CaseFileMainDefender", fields: [mainDefenderId], references: [id])
+  // All actors participating in the case file (scraped from /api/case-file/<id>/actors).
+  // Main claimant/defender are identified by isMainClaimant / isMainDefender on the link.
+  caseFileActors       CaseFileActor[]
+  actorRepresentations ActorRepresentation[]
 
   // Actor of the most recent "reception…" event (see findLastProducerId in the
   // scraper, computed during the enrichment phase).
