@@ -11,18 +11,38 @@ function caseFileFixture(
     title: "Requête DALO",
     depositDate: new Date("2026-01-15T10:00:00.000Z"),
     lastStatus: { label: "En instruction" },
-    mainClaimant: {
-      firstName: "Jean",
-      lastName: "Dupont",
-      legalPersonName: null,
-      legalEntityName: null,
-    },
-    mainDefender: {
-      legalPersonName: "Préfecture du Rhône",
-      legalEntityName: null,
-      firstName: null,
-      lastName: null,
-    },
+    caseFileActors: [
+      {
+        caseFileNumber: "TA069-2026-001",
+        actorId: 1,
+        qualityCode: "R",
+        isMainClaimant: true,
+        isMainDefender: false,
+        actor: {
+          id: 1,
+          firstName: "Jean",
+          lastName: "Dupont",
+          legalPersonName: null,
+          legalEntityName: null,
+        },
+        quality: { code: "R", name: "Requérant" },
+      },
+      {
+        caseFileNumber: "TA069-2026-001",
+        actorId: 2,
+        qualityCode: "D",
+        isMainClaimant: false,
+        isMainDefender: true,
+        actor: {
+          id: 2,
+          legalPersonName: "Préfecture du Rhône",
+          legalEntityName: null,
+          firstName: null,
+          lastName: null,
+        },
+        quality: { code: "D", name: "Défendeur" },
+      },
+    ],
     chamber: { name: "3ème chambre" },
     ...overrides,
   } as NonNullable<CaseFileDetail>;
@@ -125,11 +145,7 @@ describe("CaseFileDetailsCard", () => {
   });
 
   it("affiche '-' pour les acteurs absents dans la modale", () => {
-    render(
-      <CaseFileDetailsCard
-        caseFile={caseFileFixture({ mainClaimant: undefined, mainDefender: undefined })}
-      />,
-    );
+    render(<CaseFileDetailsCard caseFile={caseFileFixture({ caseFileActors: [] })} />);
 
     const metadata = within(getModalMetadata());
 

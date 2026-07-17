@@ -1,6 +1,7 @@
 import {
   AttachedFile,
   CaseFile,
+  CaseFileActorDto,
   CaseFileDetail,
   CaseFileEvent,
   Hearing,
@@ -25,6 +26,13 @@ export interface TelerecoursClient {
   ): Promise<PagedResponse<CaseFile>>;
 
   getCaseFileDetail(caseFileNumber: string, jurisdiction: string): Promise<CaseFileDetail>;
+
+  getCaseFileActors(
+    caseFileNumber: string,
+    jurisdiction: string,
+    page?: number,
+    size?: number,
+  ): Promise<PagedResponse<CaseFileActorDto>>;
 
   getCaseFileHearings(
     caseFileNumber: string,

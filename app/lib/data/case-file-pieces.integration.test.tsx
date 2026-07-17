@@ -47,7 +47,6 @@ async function seedCaseFileWithPieces(): Promise<void> {
       actorType: "NATURAL_PERSON",
       firstName: "Jean",
       lastName: "Dupont",
-      qualityCode: "R",
     },
   });
   await testPrisma.caseFile.create({
@@ -59,7 +58,15 @@ async function seedCaseFileWithPieces(): Promise<void> {
       assignedToLegalEntityDivisionId: 2488,
       lastStatusId: 5,
       lastStatusDate: new Date("2026-01-10T00:00:00Z"),
-      mainClaimantId: 1001,
+    },
+  });
+  await testPrisma.caseFileActor.create({
+    data: {
+      caseFileNumber: CASE_FILE_NUMBER,
+      actorId: 1001,
+      qualityCode: "R",
+      isMainClaimant: true,
+      isMainDefender: false,
     },
   });
   await testPrisma.measure.create({

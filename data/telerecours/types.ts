@@ -16,6 +16,12 @@ export interface Actor {
   quality?: Quality;
 }
 
+export interface CaseFileActorDto extends Actor {
+  isMainClaimant: boolean;
+  isMainDefender: boolean;
+  representedBy: CaseFileActorDto[];
+}
+
 export interface Hearing {
   hearingId: string;
   convocationDate: string;

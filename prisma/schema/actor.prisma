@@ -25,14 +25,14 @@ model Actor {
   // using `contains` on it.
   displayNameNormalized String?
 
-  qualityCode String
-  quality     Quality @relation(fields: [qualityCode], references: [code])
+  caseFileActors CaseFileActor[]
 
-  caseFilesAsMainClaimant CaseFile[] @relation("CaseFileMainClaimant")
-  caseFilesAsMainDefender CaseFile[] @relation("CaseFileMainDefender")
   caseFilesAsLastProducer CaseFile[] @relation("CaseFileLastProducer")
 
   caseFileEvents CaseFileEvent[] @relation("CaseFileEventActor")
+
+  representedIn  ActorRepresentation[] @relation("RepresentedActor")
+  representsIn   ActorRepresentation[] @relation("RepresentativeActor")
 
   // Index sur les colonnes calculées (GENERATED ALWAYS) cf. migrations
   // actor_display_name & search_unaccent. Déclarés ici pour que Prisma ne
@@ -46,7 +46,7 @@ model Quality {
   code String @id
   name String @unique
 
-  actors Actor[]
+  caseFileActors CaseFileActor[]
 
   @@map("qualities")
 }

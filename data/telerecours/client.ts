@@ -11,6 +11,7 @@ import { TelerecoursClient } from "./client.interface";
 import {
   AttachedFile,
   CaseFile,
+  CaseFileActorDto,
   CaseFileDetail,
   CaseFileEvent,
   Hearing,
@@ -198,6 +199,18 @@ class TelerecoursCaseFileClient implements TelerecoursClient {
 
   getCaseFileDetail(caseFileNumber: string, jurisdiction: string): Promise<CaseFileDetail> {
     return this.get(`/api/case-file/${encodeCaseFileNumberSegment(caseFileNumber)}`, jurisdiction);
+  }
+
+  getCaseFileActors(
+    caseFileNumber: string,
+    jurisdiction: string,
+    page = 0,
+    size = PAGINATION_PAGE_SIZE,
+  ): Promise<PagedResponse<CaseFileActorDto>> {
+    return this.get(
+      `/api/case-file/${encodeCaseFileNumberSegment(caseFileNumber)}/actors?page=${page}&size=${size}`,
+      jurisdiction,
+    );
   }
 
   getCaseFileHearings(

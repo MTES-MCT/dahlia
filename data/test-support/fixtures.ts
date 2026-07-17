@@ -7,6 +7,7 @@ import {
   Actor,
   AttachedFile,
   CaseFile,
+  CaseFileActorDto,
   CaseFileDetail,
   CaseFileEvent,
   Hearing,
@@ -26,6 +27,16 @@ export function actorFixture(over: Partial<Actor> = {}): Actor {
     legalEntityId: null,
     actorType: "NATURAL_PERSON",
     quality: { code: "R", name: "Requérant" },
+    ...over,
+  };
+}
+
+export function caseFileActorDtoFixture(over: Partial<CaseFileActorDto> = {}): CaseFileActorDto {
+  return {
+    ...actorFixture(),
+    isMainClaimant: true,
+    isMainDefender: false,
+    representedBy: [],
     ...over,
   };
 }

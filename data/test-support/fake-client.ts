@@ -11,6 +11,7 @@ export function fakeTelerecoursClient(over: Partial<TelerecoursClient> = {}): Te
     getInProgressStatusGroupIds: vi.fn().mockResolvedValue([1, 2]),
     getCaseFiles: vi.fn().mockResolvedValue(emptyPage()),
     getCaseFileDetail: vi.fn().mockRejectedValue(new Error("getCaseFileDetail not stubbed")),
+    getCaseFileActors: vi.fn().mockResolvedValue(emptyPage()),
     getCaseFileHearings: vi.fn().mockResolvedValue(emptyPage()),
     getCaseFileMeasures: vi.fn().mockResolvedValue(emptyPage()),
     getCaseFileAttachedFiles: vi.fn().mockResolvedValue(emptyPage()),
