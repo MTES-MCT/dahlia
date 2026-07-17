@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { TelerecoursClient } from "../telerecours/client.interface";
 import {
   AttachedFile,
+  CaseFileActorDto,
   CaseFileDetail,
   CaseFileEvent,
   Hearing,
@@ -9,6 +10,7 @@ import {
 } from "../telerecours/types";
 import { computeContentHash } from "./content-hash";
 import { paginate } from "./paginate";
+import { upsertCaseFileActorsFromApi } from "./upsert-case-file-actors";
 import { upsertActor, upsertCaseFile } from "./upsert-case-file";
 
 function parseDate(value: string | null | undefined): Date | undefined {
@@ -204,13 +206,6 @@ async function upsertCaseFileEvent(
   });
 
   if (event.actor) {
-    if (event.actor.quality) {
-      await prisma.quality.upsert({
-        where: { code: event.actor.quality.code },
-        update: { name: event.actor.quality.name },
-        create: { code: event.actor.quality.code, name: event.actor.quality.name },
-      });
-    }
     await upsertActor(prisma, event.actor, anonymize);
   }
 
@@ -319,7 +314,17 @@ export async function enrichCaseFile(
   }
   await upsertCaseFileDetail(prisma, detail);
 
-  // 2. All hearings
+  // 2. All actors (parties, lawyers, etc.)
+  const actors: CaseFileActorDto[] = [];
+  for await (const actor of paginate<CaseFileActorDto>((page) =>
+    client.getCaseFileActors(caseFileNumber, jurisdiction, page),
+  )) {
+    actors.push(actor);
+  }
+  await upsertCaseFileActorsFromApi(prisma, caseFileNumber, actors, anonymize);
+  const actorsCount = actors.length;
+
+  // 3. All hearings
   const hearings: Hearing[] = [];
   for await (const hearing of paginate<Hearing>((page) =>
     client.getCaseFileHearings(caseFileNumber, jurisdiction, page),
@@ -329,7 +334,7 @@ export async function enrichCaseFile(
   }
   const hearingsCount = hearings.length;
 
-  // 3. All events (measures)
+  // 4. All events (measures)
   const events: CaseFileEvent[] = [];
   for await (const event of paginate<CaseFileEvent>((page) =>
     client.getCaseFileMeasures(caseFileNumber, jurisdiction, page),
@@ -339,7 +344,7 @@ export async function enrichCaseFile(
   }
   const eventsCount = events.length;
 
-  // 4. All attached files
+  // 5. All attached files
   let filesCount = 0;
   let filesSkipped = 0;
   const files: AttachedFile[] = [];
@@ -361,6 +366,7 @@ export async function enrichCaseFile(
   // sorted by their stable id so a mere reordering never looks like a change.
   const contentHash = computeContentHash({
     detail,
+    actors: [...actors].sort((a, b) => a.id - b.id),
     hearings: [...hearings].sort((a, b) => a.hearingId.localeCompare(b.hearingId)),
     events: [...events].sort((a, b) => a.id - b.id),
     files: [...files].sort((a, b) => a.encodedFileId.localeCompare(b.encodedFileId)),
@@ -388,7 +394,7 @@ export async function enrichCaseFile(
 
   const safeCaseFileNumberForLog = caseFileNumber.replace(/[\r\n]/g, "");
   console.log(
-    `  ✓ ${safeCaseFileNumberForLog}: ${hearingsCount} hearings, ${eventsCount} events, ` +
+    `  ✓ ${safeCaseFileNumberForLog}: ${actorsCount} actors, ${hearingsCount} hearings, ${eventsCount} events, ` +
       `${filesCount} files (${filesSkipped} skipped)`,
   );
 }

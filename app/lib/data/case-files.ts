@@ -1,5 +1,9 @@
 import { Prisma } from "@prisma/client";
 import {
+  CASE_FILE_ACTOR_INCLUDE,
+  buildMainActorSearchFilter,
+} from "@/app/lib/case-file-actors";
+import {
   CASE_FILES_DASHBOARD_INCLUDE,
   HEARING_CONVOCATION_SORT_KEY,
   type CaseFileDashboardRow,
@@ -12,7 +16,8 @@ export { HEARING_CONVOCATION_SORT_KEY } from "@/app/lib/case-files-dashboard-col
 
 type CaseFileWithRelations = CaseFileDashboardRow;
 
-const ACTOR_SORT_KEYS = ["mainClaimant", "mainDefender", "lastProducer"] as const;
+// Main actor columns are filterable but not sortable (Prisma cannot orderBy a filtered 1-N link).
+const UNSORTABLE_KEYS = ["mainClaimant", "mainDefender"] as const;
 
 export type CaseFilesTableData = {
   rows: CaseFileWithRelations[];
@@ -20,14 +25,15 @@ export type CaseFilesTableData = {
   totalCount: number;
 };
 
-// Pour les acteurs, on trie sur la colonne calculée `displayName` (générée en
-// base, cf. migration actor_display_name) qui reproduit getActorDisplayName.
 function buildOrderBy(
   sortBy: string,
   direction: Prisma.SortOrder,
-): Prisma.CaseFileOrderByWithRelationInput {
-  if ((ACTOR_SORT_KEYS as readonly string[]).includes(sortBy)) {
-    return { [sortBy]: { displayName: { sort: direction, nulls: "last" } } };
+): Prisma.CaseFileOrderByWithRelationInput | undefined {
+  if ((UNSORTABLE_KEYS as readonly string[]).includes(sortBy)) {
+    return undefined;
+  }
+  if (sortBy === "lastProducer") {
+    return { lastProducer: { displayName: { sort: direction, nulls: "last" } } };
   }
   if (sortBy === HEARING_CONVOCATION_SORT_KEY) {
     return { memoryDeadlineDate: { sort: direction, nulls: "last" } };
@@ -44,13 +50,13 @@ const FACET_BUILDERS: Record<
       caseFileNumber: { contains: word, mode: "insensitive" },
     })),
   requerant: (normalized) =>
-    buildWordAndFilter(facetSearchWords(normalized), (word) => ({
-      mainClaimant: { displayNameNormalized: { contains: word } },
-    })),
+    buildWordAndFilter(facetSearchWords(normalized), (word) =>
+      buildMainActorSearchFilter("isMainClaimant", word),
+    ),
   defendeur: (normalized) =>
-    buildWordAndFilter(facetSearchWords(normalized), (word) => ({
-      mainDefender: { displayNameNormalized: { contains: word } },
-    })),
+    buildWordAndFilter(facetSearchWords(normalized), (word) =>
+      buildMainActorSearchFilter("isMainDefender", word),
+    ),
   producteur: (normalized) =>
     buildWordAndFilter(facetSearchWords(normalized), (word) => ({
       lastProducer: { displayNameNormalized: { contains: word } },
@@ -61,12 +67,7 @@ const FACET_BUILDERS: Record<
     })),
 };
 
-// Build the Prisma filter combining the search box (free text + facets) and the
-// status label filter. All criteria are combined with AND; each criterion
-// absent (null) is ignored.
 function buildWhere(query: string | null, statusLabel: string | null): Prisma.CaseFileWhereInput {
-  // Soft-deleted case files (absent from the latest Telerecours scrape within
-  // their perimeter) are always hidden from the UI.
   const conditions: Prisma.CaseFileWhereInput[] = [
     { isDeleted: false } as Prisma.CaseFileWhereInput,
   ];
@@ -74,21 +75,18 @@ function buildWhere(query: string | null, statusLabel: string | null): Prisma.Ca
   if (query) {
     const { freeText, facets } = parseSearchQuery(query);
 
-    // Free text: global OR across the case-file number and both actors.
     if (freeText) {
       const normalized = normalizeForSearch(freeText);
       conditions.push({
         OR: [
           { caseFileNumber: { contains: freeText, mode: "insensitive" } },
-          { mainClaimant: { displayNameNormalized: { contains: normalized } } },
-          { mainDefender: { displayNameNormalized: { contains: normalized } } },
+          buildMainActorSearchFilter("isMainClaimant", normalized),
+          buildMainActorSearchFilter("isMainDefender", normalized),
           { lastProducer: { displayNameNormalized: { contains: normalized } } },
         ],
       });
     }
 
-    // Facets: each one restricts a single column; combined with AND. `parseSearchQuery`
-    // validated the key against FACET_KEYS here, so the cast to FacetKey is safe.
     for (const facet of facets) {
       conditions.push(
         FACET_BUILDERS[facet.key as FacetKey](normalizeForSearch(facet.value), facet.value),
@@ -113,11 +111,12 @@ async function fetchCaseFiles(
 ): Promise<CaseFileWithRelations[]> {
   const direction: Prisma.SortOrder = sortOrder === "ascending" ? "asc" : "desc";
   const where = buildWhere(query, statusLabel);
+  const orderBy = sortBy ? buildOrderBy(sortBy, direction) : undefined;
 
   return prisma.caseFile.findMany({
     include: CASE_FILES_DASHBOARD_INCLUDE,
     where,
-    ...(sortBy ? { orderBy: buildOrderBy(sortBy, direction) } : {}),
+    ...(orderBy ? { orderBy } : {}),
     skip: (page - 1) * numberOfCaseFiles,
     take: numberOfCaseFiles,
   });
@@ -131,61 +130,48 @@ async function fetchCaseFilesCount(
   return prisma.caseFile.count({ where });
 }
 
-// case-file detail with all its relations, for the detail page.
-// Load the complete tree (actors, status, hearings → conclusions,
-// events → measures/files, related case files) to display it in JSON.
+const CASE_FILE_DETAIL_INCLUDE = {
+  caseFileActors: { include: CASE_FILE_ACTOR_INCLUDE },
+  actorRepresentations: {
+    include: {
+      representedActor: true,
+      representativeActor: true,
+    },
+  },
+  urgency: true,
+  lastStatus: true,
+  chamber: true,
+  assignedToLegalEntityDivision: true,
+  lastDecisionReading: true,
+  lastHearing: { include: { lastConclusion: { include: { conclusionOperativePart: true } } } },
+  hearings: { include: { lastConclusion: { include: { conclusionOperativePart: true } } } },
+  events: {
+    include: { measure: true, actor: true, attachedFiles: true },
+    orderBy: { eventDate: "desc" as const },
+  },
+  relatedSources: { include: { relatedCaseFile: true } },
+  relatedTargets: { include: { caseFile: true } },
+} satisfies Prisma.CaseFileInclude;
+
 export async function fetchCaseFileDetail(caseFileNumber: string) {
   return prisma.caseFile.findUnique({
     where: { caseFileNumber },
-    include: {
-      mainClaimant: true,
-      mainDefender: true,
-      urgency: true,
-      lastStatus: true,
-      chamber: true,
-      assignedToLegalEntityDivision: true,
-      lastDecisionReading: true,
-      lastHearing: { include: { lastConclusion: { include: { conclusionOperativePart: true } } } },
-      hearings: { include: { lastConclusion: { include: { conclusionOperativePart: true } } } },
-      events: {
-        include: { measure: true, actor: true, attachedFiles: true },
-        orderBy: { eventDate: "desc" },
-      },
-      relatedSources: { include: { relatedCaseFile: true } },
-      relatedTargets: { include: { caseFile: true } },
-    },
+    include: CASE_FILE_DETAIL_INCLUDE,
   });
 }
 
 export type CaseFileDetail = Prisma.PromiseReturnType<typeof fetchCaseFileDetail>;
 
-// Full case-file graph for the debug tab only (includes pièces).
 export async function fetchCaseFileDebugSnapshot(caseFileNumber: string) {
   return prisma.caseFile.findUnique({
     where: { caseFileNumber },
     include: {
-      mainClaimant: true,
-      mainDefender: true,
-      urgency: true,
-      lastStatus: true,
-      chamber: true,
-      assignedToLegalEntityDivision: true,
-      lastHearing: { include: { lastConclusion: { include: { conclusionOperativePart: true } } } },
-      hearings: { include: { lastConclusion: { include: { conclusionOperativePart: true } } } },
-      events: {
-        include: { measure: true, actor: true, attachedFiles: true },
-        orderBy: { eventDate: "desc" },
-      },
+      ...CASE_FILE_DETAIL_INCLUDE,
       attachedFiles: { include: { fileFamilyType: true } },
-      relatedSources: { include: { relatedCaseFile: true } },
-      relatedTargets: { include: { caseFile: true } },
     },
   });
 }
 
-// All case files matching the current filter/sort, without pagination. Used by
-// the xlsx export route so the downloaded file mirrors the dashboard filter but
-// contains every matching row.
 export async function fetchAllCaseFilesForExport(
   sortBy: string | null,
   sortOrder: string,
@@ -194,11 +180,12 @@ export async function fetchAllCaseFilesForExport(
 ): Promise<CaseFileWithRelations[]> {
   const direction: Prisma.SortOrder = sortOrder === "ascending" ? "asc" : "desc";
   const where = buildWhere(query, statusLabel);
+  const orderBy = sortBy ? buildOrderBy(sortBy, direction) : undefined;
 
   return prisma.caseFile.findMany({
     include: CASE_FILES_DASHBOARD_INCLUDE,
     where,
-    ...(sortBy ? { orderBy: buildOrderBy(sortBy, direction) } : {}),
+    ...(orderBy ? { orderBy } : {}),
   });
 }
 

@@ -109,6 +109,8 @@ const TABLES = [
   "file_family_types",
   "case_file_events",
   "measures",
+  "actor_representations",
+  "case_file_actors",
   "related_case_files",
   "last_decision_readings",
   "case_files",

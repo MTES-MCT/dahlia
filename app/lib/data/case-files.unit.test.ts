@@ -19,8 +19,6 @@ const actorBase = {
   firstLastName: null,
   legalEntityId: null,
   actorType: "NATURAL_PERSON" as const,
-  qualityCode: "particulier",
-  // Computed columns generated in the database; not read by getActorDisplayName, but required by the Actor type.
   displayName: null,
   displayNameNormalized: null,
 };
@@ -32,6 +30,27 @@ const mockActor = {
   firstName: "Jean",
   lastName: "Dupont",
 };
+
+const mockCaseFileActors = [
+  {
+    caseFileNumber: "CF-2024-001",
+    actorId: 1,
+    qualityCode: "R",
+    isMainClaimant: true,
+    isMainDefender: false,
+    actor: mockActor,
+    quality: { code: "R", name: "Requérant" },
+  },
+  {
+    caseFileNumber: "CF-2024-001",
+    actorId: 1,
+    qualityCode: "D",
+    isMainClaimant: false,
+    isMainDefender: true,
+    actor: mockActor,
+    quality: { code: "D", name: "Défendeur" },
+  },
+];
 
 const mockActorWithLegalPerson = {
   ...actorBase,
@@ -88,15 +107,12 @@ const mockCaseFile = {
   lastHearingId: null,
   procedureState: null,
   chamberId: null,
-  mainClaimantId: 1,
-  mainDefenderId: 1,
   lastProducerId: 1,
   isDeleted: false,
   deletedAt: null,
   createdAt: new Date("2024-01-01"),
   updatedAt: new Date("2024-01-01"),
-  mainClaimant: mockActor,
-  mainDefender: mockActor,
+  caseFileActors: mockCaseFileActors,
   lastProducer: mockActor,
   urgency: mockUrgency,
   lastStatus: mockStatus,
@@ -199,29 +215,25 @@ describe("case-files", () => {
       );
     });
 
-    it("sorts by mainClaimant relation on the computed displayName", async () => {
+    it("ignores sortBy on mainClaimant (column is filter-only)", async () => {
       vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
       vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
 
       await fetchCaseFilesTableData(1, 10, "mainClaimant", "ascending");
 
       expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
-        expect.objectContaining({
-          orderBy: { mainClaimant: { displayName: { sort: "asc", nulls: "last" } } },
-        }),
+        expect.not.objectContaining({ orderBy: expect.anything() }),
       );
     });
 
-    it("sorts by mainDefender relation on the computed displayName descending", async () => {
+    it("ignores sortBy on mainDefender (column is filter-only)", async () => {
       vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
       vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
 
       await fetchCaseFilesTableData(1, 10, "mainDefender", "descending");
 
       expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
-        expect.objectContaining({
-          orderBy: { mainDefender: { displayName: { sort: "desc", nulls: "last" } } },
-        }),
+        expect.not.objectContaining({ orderBy: expect.anything() }),
       );
     });
 
@@ -311,8 +323,22 @@ describe("case-files", () => {
           {
             OR: [
               { caseFileNumber: { contains: "Dupont", mode: "insensitive" } },
-              { mainClaimant: { displayNameNormalized: { contains: "dupont" } } },
-              { mainDefender: { displayNameNormalized: { contains: "dupont" } } },
+              {
+                caseFileActors: {
+                  some: {
+                    isMainClaimant: true,
+                    actor: { displayNameNormalized: { contains: "dupont" } },
+                  },
+                },
+              },
+              {
+                caseFileActors: {
+                  some: {
+                    isMainDefender: true,
+                    actor: { displayNameNormalized: { contains: "dupont" } },
+                  },
+                },
+              },
               { lastProducer: { displayNameNormalized: { contains: "dupont" } } },
             ],
           },
@@ -337,8 +363,22 @@ describe("case-files", () => {
           {
             OR: [
               { caseFileNumber: { contains: "Frànçois", mode: "insensitive" } },
-              { mainClaimant: { displayNameNormalized: { contains: "francois" } } },
-              { mainDefender: { displayNameNormalized: { contains: "francois" } } },
+              {
+                caseFileActors: {
+                  some: {
+                    isMainClaimant: true,
+                    actor: { displayNameNormalized: { contains: "francois" } },
+                  },
+                },
+              },
+              {
+                caseFileActors: {
+                  some: {
+                    isMainDefender: true,
+                    actor: { displayNameNormalized: { contains: "francois" } },
+                  },
+                },
+              },
               { lastProducer: { displayNameNormalized: { contains: "francois" } } },
             ],
           },
@@ -375,7 +415,14 @@ describe("case-files", () => {
       const expectedWhere = {
         AND: [
           { isDeleted: false },
-          { mainClaimant: { displayNameNormalized: { contains: "prefet" } } },
+          {
+            caseFileActors: {
+              some: {
+                isMainClaimant: true,
+                actor: { displayNameNormalized: { contains: "prefet" } },
+              },
+            },
+          },
         ],
       };
 
@@ -394,8 +441,22 @@ describe("case-files", () => {
       const expectedWhere = {
         AND: [
           { isDeleted: false },
-          { mainClaimant: { displayNameNormalized: { contains: "prefet" } } },
-          { mainDefender: { displayNameNormalized: { contains: "dupont" } } },
+          {
+            caseFileActors: {
+              some: {
+                isMainClaimant: true,
+                actor: { displayNameNormalized: { contains: "prefet" } },
+              },
+            },
+          },
+          {
+            caseFileActors: {
+              some: {
+                isMainDefender: true,
+                actor: { displayNameNormalized: { contains: "dupont" } },
+              },
+            },
+          },
         ],
       };
 
@@ -446,12 +507,33 @@ describe("case-files", () => {
           {
             OR: [
               { caseFileNumber: { contains: "dupont", mode: "insensitive" } },
-              { mainClaimant: { displayNameNormalized: { contains: "dupont" } } },
-              { mainDefender: { displayNameNormalized: { contains: "dupont" } } },
+              {
+                caseFileActors: {
+                  some: {
+                    isMainClaimant: true,
+                    actor: { displayNameNormalized: { contains: "dupont" } },
+                  },
+                },
+              },
+              {
+                caseFileActors: {
+                  some: {
+                    isMainDefender: true,
+                    actor: { displayNameNormalized: { contains: "dupont" } },
+                  },
+                },
+              },
               { lastProducer: { displayNameNormalized: { contains: "dupont" } } },
             ],
           },
-          { mainClaimant: { displayNameNormalized: { contains: "prefet" } } },
+          {
+            caseFileActors: {
+              some: {
+                isMainClaimant: true,
+                actor: { displayNameNormalized: { contains: "prefet" } },
+              },
+            },
+          },
         ],
       };
 
@@ -471,8 +553,22 @@ describe("case-files", () => {
           { isDeleted: false },
           {
             AND: [
-              { mainClaimant: { displayNameNormalized: { contains: "dupont" } } },
-              { mainClaimant: { displayNameNormalized: { contains: "jean" } } },
+              {
+                caseFileActors: {
+                  some: {
+                    isMainClaimant: true,
+                    actor: { displayNameNormalized: { contains: "dupont" } },
+                  },
+                },
+              },
+              {
+                caseFileActors: {
+                  some: {
+                    isMainClaimant: true,
+                    actor: { displayNameNormalized: { contains: "jean" } },
+                  },
+                },
+              },
             ],
           },
         ],
