@@ -35,14 +35,25 @@ describe("ColumnHeader", () => {
     expect(screen.getByRole("button", { name: /Trier par Numéro/ })).toBeTruthy();
   });
 
-  it("rend le bouton de filtre quand facetKey est fourni", () => {
-    render(<ColumnHeader label="Requérant" facetKey="requerant" />);
+  it("rend le bouton de filtre quand facetFields est fourni", () => {
+    render(
+      <ColumnHeader
+        label="Requérant"
+        facetFields={[{ key: "requerant", label: "Requérant" }]}
+      />,
+    );
 
     expect(screen.getByRole("button", { name: /Filtrer par Requérant/ })).toBeTruthy();
   });
 
-  it("rend à la fois le tri et le filtre quand sortKey et facetKey sont fournis", () => {
-    render(<ColumnHeader label="Requérant" sortKey="requerant" facetKey="requerant" />);
+  it("rend à la fois le tri et le filtre quand sortKey et facetFields sont fournis", () => {
+    render(
+      <ColumnHeader
+        label="Requérant"
+        sortKey="requerant"
+        facetFields={[{ key: "requerant", label: "Requérant" }]}
+      />,
+    );
 
     expect(screen.getByRole("button", { name: /Trier par Requérant/ })).toBeTruthy();
     expect(screen.getByRole("button", { name: /Filtrer par Requérant/ })).toBeTruthy();

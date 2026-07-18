@@ -54,6 +54,8 @@ export function parseArgs(argv: string[] = process.argv): Args {
       divisionIdsFromCli = true;
     } else if (arg === "--anonymize") {
       args.anonymize = true;
+    } else if (arg === "--no-anonymize") {
+      args.anonymize = false;
     } else if (arg === "--skipEnrichment") {
       args.skipEnrichment = true;
     } else if (arg === "--update-piece-numbers") {
@@ -69,8 +71,22 @@ export function parseArgs(argv: string[] = process.argv): Args {
     const envValue = process.env[`${args.jurisdiction}_TELERECOURS_DIVISIONS`];
     if (envValue) {
       args.legalEntityDivisionIds = parseDivisionIds(envValue);
+      console.log("legalEntityDivisionIds set to", args.legalEntityDivisionIds);
     }
   }
 
+  console.log("--------------------------------------------------");
+  console.log("ARGUMENTS:");
+  console.log("  - jurisdiction set to", args.jurisdiction);
+  console.log("  - page set to", args.page);
+  console.log("  - size set to", args.size);
+  console.log("  - sort set to", args.sort);
+  console.log("  - all set to", args.all);
+  console.log("  - legalEntityDivisionIds set to", args.legalEntityDivisionIds);
+  console.log("  - anonymize set to", args.anonymize);
+  console.log("  - skipEnrichment set to", args.skipEnrichment);
+  console.log("  - updatePieceNumbers set to", args.updatePieceNumbers);
+  console.log("  - divisionIdsFromCli set to", divisionIdsFromCli);
+  console.log("--------------------------------------------------");
   return args;
 }

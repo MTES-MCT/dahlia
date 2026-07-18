@@ -73,7 +73,7 @@ describe("CaseFileDetailsCard", () => {
     expect(
       screen.getByRole("heading", {
         level: 1,
-        name: "TA069-2026-001 - Requête DALO - Dupont Jean - Injonction - L (Urgence familiale)",
+        name: "TA069-2026-001 - Dupont Jean vs Préfecture du Rhône - Injonction - DALO (Urgence familiale)",
       }),
     ).toBeTruthy();
   });
@@ -92,6 +92,14 @@ describe("CaseFileDetailsCard", () => {
     );
 
     expect(screen.getByRole("heading", { level: 1, name: "TA069-2026-001" })).toBeTruthy();
+  });
+
+  it("affiche le titre en sous-titre dans l'en-tête", () => {
+    render(<CaseFileDetailsCard caseFile={caseFileFixture()} />);
+
+    const subtitle = screen.getByText("Requête DALO");
+    expect(subtitle.tagName).toBe("P");
+    expect(subtitle.className).toContain("italic");
   });
 
   it("affiche le bouton d'édition et le statut dans l'en-tête", () => {

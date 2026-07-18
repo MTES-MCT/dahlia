@@ -26,6 +26,7 @@ import {
   isDateInputBeforeToday,
   PRODUCTION_DEADLINE_DATE_IN_PAST_WARNING,
 } from "@/app/lib/case-file-format";
+import { statusBadgeAccentuationClassName } from "@/app/lib/status-badge-accentuation";
 import { updateCaseFileDetailsFormAction } from "@/app/(protected)/case_files/[caseFileNumber]/actions";
 
 const caseFileDetailsModal = createModal({
@@ -130,15 +131,18 @@ function ProductionDeadlineFields({
 // sticky stacking context.
 export function CaseFileDetailsHeader({
   displayName,
+  title,
   statusLabel,
 }: {
   displayName: string;
+  title: string | null;
   statusLabel: string;
 }) {
+  const trimmedTitle = title?.trim();
+
   return (
     <div
       className={clsx(
-        fr.cx("fr-mb-2w"),
         "flex flex-col items-start gap-4 lg:flex-row lg:items-start lg:justify-between",
       )}
     >
@@ -150,7 +154,12 @@ export function CaseFileDetailsHeader({
         />
         <div>
           <h1 className={fr.cx("fr-h4", "fr-mb-1v")}>{displayName}</h1>
-          <Badge as="span" noIcon severity="info">
+          {trimmedTitle ? (
+            <p className={clsx(fr.cx("fr-mb-1v"), "text-(--text-mention-grey) italic")}>
+              {trimmedTitle}
+            </p>
+          ) : null}
+          <Badge as="span" noIcon className={fr.cx(statusBadgeAccentuationClassName(statusLabel))}>
             {statusLabel}
           </Badge>
         </div>
@@ -303,11 +312,7 @@ export function CaseFileDetailsModal({
           <h2 className={fr.cx("fr-h6", "fr-mb-2w")}>Autres acteurs</h2>
           <div className="grid grid-cols-1 gap-x-4 md:grid-cols-2">
             {otherActors.map((actor) => (
-              <DetailRow
-                key={actor.actorId}
-                label={actor.qualityLabel}
-                value={actor.name}
-              />
+              <DetailRow key={actor.actorId} label={actor.qualityLabel} value={actor.name} />
             ))}
           </div>
         </>

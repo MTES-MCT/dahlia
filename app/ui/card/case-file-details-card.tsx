@@ -59,6 +59,7 @@ export function CaseFileDetailsCard({ caseFile }: Props) {
       >
         <CaseFileDetailsHeader
           displayName={getCaseFileDisplayName(caseFile)}
+          title={editorProps.title}
           statusLabel={editorProps.statusLabel}
         />
       </section>

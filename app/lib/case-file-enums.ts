@@ -30,8 +30,8 @@ export const RIGHT_TYPE_LABELS: Record<RightType, string> = {
 };
 
 export const RIGHT_TYPE_SHORT_LABELS: Record<RightType, string> = {
-  LOGEMENT: "L",
-  HEBERGEMENT: "H",
+  LOGEMENT: "DALO",
+  HEBERGEMENT: "DAHO",
 };
 
 // Empty string is the form value for an unset right type (stored as null in the database).

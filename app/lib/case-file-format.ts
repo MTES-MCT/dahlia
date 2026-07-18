@@ -1,5 +1,9 @@
 import type { LitigationType, Prisma, RightType } from "@prisma/client";
-import { getMainClaimantActor, type CaseFileWithActors } from "@/app/lib/case-file-actors";
+import {
+  getMainClaimantActor,
+  getMainDefenderActor,
+  type CaseFileWithActors,
+} from "@/app/lib/case-file-actors";
 import { litigationTypeShortLabel, rightTypeShortLabel } from "@/app/lib/case-file-enums";
 
 // Pure formatting helpers shared between Server Components and Client Components.
@@ -99,20 +103,20 @@ export function getCaseFileDisplayName(
   caseFile: CaseFileDisplayNameSource & CaseFileWithActors,
 ): string {
   const parts = [caseFile.caseFileNumber];
-
-  const title = caseFile.title?.trim();
-  if (title) parts.push(title);
-
   const mainClaimantName = getActorDisplayName(getMainClaimantActor(caseFile));
-
-  if (mainClaimantName !== "-") {
-    parts.push(mainClaimantName);
-  }
-
+  const mainDefenderName = getActorDisplayName(getMainDefenderActor(caseFile));
   const litigation = litigationTypeShortLabel(caseFile.litigationType);
-  if (litigation) parts.push(litigation);
-
   const right = rightTypeShortLabel(caseFile.rightType);
+
+  // we display the title only if it is not a litigation or right type
+  if (mainClaimantName !== "-" && mainDefenderName !== "-") {
+    parts.push(`${mainClaimantName} vs ${mainDefenderName}`);
+  } else if (mainClaimantName !== "-") {
+    parts.push(mainClaimantName);
+  } else if (mainDefenderName !== "-") {
+    parts.push(mainDefenderName);
+  }
+  if (litigation) parts.push(litigation);
   if (right) parts.push(right);
 
   const base = parts.join(" - ");

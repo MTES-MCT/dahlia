@@ -6,31 +6,7 @@ import {
   formatDateTimeFr,
   isDateInputBeforeToday,
 } from "@/app/lib/case-file-format";
-import { mainClaimantCaseFileActors } from "@/app/lib/test-support/case-file-actors.fixture";
-
-function caseFileWithMainClaimant(
-  overrides: {
-    caseFileNumber?: string;
-    title?: string | null;
-    litigationType?: "INJONCTION" | null;
-    rightType?: "LOGEMENT" | null;
-    summary?: string | null;
-  } = {},
-  claimant: { firstName?: string | null; lastName?: string | null } | null = {
-    firstName: "Jean",
-    lastName: "Dupont",
-  },
-) {
-  return {
-    caseFileNumber: "TA069-2026-001",
-    title: "Requête DALO",
-    litigationType: "INJONCTION" as const,
-    rightType: "LOGEMENT" as const,
-    summary: "Urgence familiale",
-    caseFileActors: mainClaimantCaseFileActors(claimant),
-    ...overrides,
-  };
-}
+import { caseFileWithActor } from "@/app/lib/test-support/case-file-actors.fixture";
 
 describe("formatDateInputValue", () => {
   it("retourne une chaîne vide quand la date est absente", () => {
@@ -94,28 +70,46 @@ describe("isDateInputBeforeToday", () => {
 
 describe("getCaseFileDisplayName", () => {
   it("formate le nom complet avec résumé", () => {
-    expect(getCaseFileDisplayName(caseFileWithMainClaimant())).toBe(
-      "TA069-2026-001 - Requête DALO - Dupont Jean - Injonction - L (Urgence familiale)",
+    expect(getCaseFileDisplayName(caseFileWithActor())).toBe(
+      "TA069-2026-001 - Dupont Jean - Injonction - DALO (Urgence familiale)",
+    );
+  });
+
+  it("affiche requérant vs défendeur quand les deux sont renseignés", () => {
+    expect(
+      getCaseFileDisplayName(
+        caseFileWithActor(
+          {},
+          {
+            defender: {
+              actorType: "LEGAL_PERSON",
+              legalPersonName: "Préfecture du Rhône",
+            },
+          },
+        ),
+      ),
+    ).toBe(
+      "TA069-2026-001 - Dupont Jean vs Préfecture du Rhône - Injonction - DALO (Urgence familiale)",
     );
   });
 
   it("omet le résumé entre parenthèses quand il est absent", () => {
-    expect(getCaseFileDisplayName(caseFileWithMainClaimant({ summary: null }))).toBe(
-      "TA069-2026-001 - Requête DALO - Dupont Jean - Injonction - L",
+    expect(getCaseFileDisplayName(caseFileWithActor({ summary: null }))).toBe(
+      "TA069-2026-001 - Dupont Jean - Injonction - DALO",
     );
   });
 
   it("omet les segments non renseignés", () => {
     expect(
       getCaseFileDisplayName(
-        caseFileWithMainClaimant(
+        caseFileWithActor(
           {
             title: null,
             litigationType: null,
             rightType: null,
             summary: null,
           },
-          null,
+          { claimant: null },
         ),
       ),
     ).toBe("TA069-2026-001");

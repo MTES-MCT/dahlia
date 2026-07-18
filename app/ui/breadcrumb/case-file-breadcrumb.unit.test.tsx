@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
-import { mainClaimantCaseFileActors } from "@/app/lib/test-support/case-file-actors.fixture";
+import { caseFileWithActor } from "@/app/lib/test-support/case-file-actors.fixture";
 import {
   CaseFileBreadcrumb,
   caseFileLabel,
@@ -9,31 +9,45 @@ import {
 } from "./case-file-breadcrumb";
 
 describe("caseFileLabel", () => {
-  const caseFile = {
-    caseFileNumber: "TA069-2026-001",
-    title: "Requête DALO",
-    litigationType: "INJONCTION" as const,
-    rightType: "LOGEMENT" as const,
-    summary: "Urgence familiale",
-    caseFileActors: mainClaimantCaseFileActors(),
-  };
+  const caseFile = caseFileWithActor();
 
   it("formate le nom d'affichage complet du dossier", () => {
     expect(caseFileLabel(caseFile)).toBe(
-      "TA069-2026-001 - Requête DALO - Dupont Jean - Injonction - L (Urgence familiale)",
+      "TA069-2026-001 - Dupont Jean - Injonction - DALO (Urgence familiale)",
+    );
+  });
+
+  it("affiche requérant vs défendeur quand les deux sont renseignés", () => {
+    expect(
+      caseFileLabel(
+        caseFileWithActor(
+          {},
+          {
+            defender: {
+              actorType: "LEGAL_PERSON",
+              legalPersonName: "Préfecture du Rhône",
+            },
+          },
+        ),
+      ),
+    ).toBe(
+      "TA069-2026-001 - Dupont Jean vs Préfecture du Rhône - Injonction - DALO (Urgence familiale)",
     );
   });
 
   it("omet les segments non renseignés", () => {
     expect(
-      caseFileLabel({
-        caseFileNumber: "TA069-2026-001",
-        title: null,
-        litigationType: null,
-        rightType: null,
-        summary: null,
-        caseFileActors: [],
-      }),
+      caseFileLabel(
+        caseFileWithActor(
+          {
+            title: null,
+            litigationType: null,
+            rightType: null,
+            summary: null,
+          },
+          { claimant: null },
+        ),
+      ),
     ).toBe("TA069-2026-001");
   });
 });
@@ -57,20 +71,19 @@ describe("buildDashboardBreadcrumbSegment", () => {
 });
 
 describe("buildCaseFileBreadcrumbSegment", () => {
-  const caseFile = {
+  const caseFile = caseFileWithActor({
     caseFileNumber: "TA069/2024/001",
     title: "Recours DAHO",
-    litigationType: "REFERE" as const,
-    rightType: "HEBERGEMENT" as const,
+    litigationType: "REFERE",
+    rightType: "HEBERGEMENT",
     summary: "Requête DALO",
-    caseFileActors: mainClaimantCaseFileActors(),
-  };
+  });
 
   it("builds a case file link with encoded path and label", () => {
     const segment = buildCaseFileBreadcrumbSegment(caseFile, {});
 
     expect(segment.label).toBe(
-      "TA069/2024/001 - Recours DAHO - Dupont Jean - Référé - H (Requête DALO)",
+      "TA069/2024/001 - Dupont Jean - Référé - DAHO (Requête DALO)",
     );
     expect(segment.linkProps.href).toBe("/case_files/TA069%2F2024%2F001#case-file-details");
   });
@@ -85,14 +98,7 @@ describe("buildCaseFileBreadcrumbSegment", () => {
 });
 
 describe("CaseFileBreadcrumb", () => {
-  const caseFile = {
-    caseFileNumber: "TA069-2026-001",
-    title: "Requête DALO",
-    litigationType: "INJONCTION" as const,
-    rightType: "LOGEMENT" as const,
-    summary: "Urgence familiale",
-    caseFileActors: mainClaimantCaseFileActors(),
-  };
+  const caseFile = caseFileWithActor();
 
   afterEach(() => {
     cleanup();
@@ -106,7 +112,7 @@ describe("CaseFileBreadcrumb", () => {
     );
     expect(
       screen.getByText(
-        "TA069-2026-001 - Requête DALO - Dupont Jean - Injonction - L (Urgence familiale)",
+        "TA069-2026-001 - Dupont Jean - Injonction - DALO (Urgence familiale)",
       ),
     ).toBeTruthy();
   });
@@ -137,7 +143,7 @@ describe("CaseFileBreadcrumb", () => {
         currentPageLabel="Pièce 1"
         trailingSegments={[
           {
-            label: "TA069-2026-001 - Requête DALO - Dupont Jean - Injonction - L (Urgence familiale)",
+            label: "TA069-2026-001 - Dupont Jean - Injonction - DALO (Urgence familiale)",
             linkProps: { href: "/case_files/TA069-2026-001?tab=pieces" },
           },
         ]}
@@ -147,7 +153,7 @@ describe("CaseFileBreadcrumb", () => {
     expect(
       screen
         .getByRole("link", {
-          name: "TA069-2026-001 - Requête DALO - Dupont Jean - Injonction - L (Urgence familiale)",
+          name: "TA069-2026-001 - Dupont Jean - Injonction - DALO (Urgence familiale)",
         })
         .getAttribute("href"),
     ).toBe("/case_files/TA069-2026-001?tab=pieces");

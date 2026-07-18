@@ -4,6 +4,7 @@ import {
   parseSearchQuery,
   serializeSearch,
   setFacet,
+  setFacetValues,
   getFacetValue,
 } from "./case-file-search";
 
@@ -54,9 +55,9 @@ describe("case-file-search", () => {
     });
 
     it("keeps free text alongside facets", () => {
-      expect(parseSearchQuery("prefet statut:cours")).toEqual({
+      expect(parseSearchQuery("prefet titre:cours")).toEqual({
         freeText: "prefet",
-        facets: [{ key: "statut", value: "cours" }],
+        facets: [{ key: "titre", value: "cours" }],
       });
     });
 
@@ -65,7 +66,7 @@ describe("case-file-search", () => {
     });
 
     it("keeps a key with an empty value as free text", () => {
-      expect(parseSearchQuery("requerant:")).toEqual({ freeText: "requerant:", facets: [] });
+      expect(parseSearchQuery("dossier:")).toEqual({ freeText: "dossier:", facets: [] });
     });
 
     it("treats a double-quoted segment as a single free-text token", () => {
@@ -76,9 +77,9 @@ describe("case-file-search", () => {
     });
 
     it("keeps quoted free text alongside unquoted tokens and facets", () => {
-      expect(parseSearchQuery('prefet "jean dupont" statut:cours')).toEqual({
+      expect(parseSearchQuery('prefet "jean dupont" titre:cours')).toEqual({
         freeText: "prefet jean dupont",
-        facets: [{ key: "statut", value: "cours" }],
+        facets: [{ key: "titre", value: "cours" }],
       });
     });
 
@@ -90,9 +91,20 @@ describe("case-file-search", () => {
     });
 
     it("treats a quoted key:value pair as literal free text", () => {
-      expect(parseSearchQuery('"requerant:prefet"')).toEqual({
-        freeText: "requerant:prefet",
+      expect(parseSearchQuery('"dossier:TA069"')).toEqual({
+        freeText: "dossier:TA069",
         facets: [],
+      });
+    });
+
+    it("extracts dossier facets separately from other dossier fields", () => {
+      expect(parseSearchQuery("dossier:TA069 requerant:prefet titre:dupont")).toEqual({
+        freeText: null,
+        facets: [
+          { key: "dossier", value: "TA069" },
+          { key: "requerant", value: "prefet" },
+          { key: "titre", value: "dupont" },
+        ],
       });
     });
   });
@@ -104,14 +116,14 @@ describe("case-file-search", () => {
 
     it("renders a single facet", () => {
       expect(
-        serializeSearch({ freeText: null, facets: [{ key: "requerant", value: "prefet" }] }),
-      ).toBe("requerant:prefet");
+        serializeSearch({ freeText: null, facets: [{ key: "dossier", value: "TA069" }] }),
+      ).toBe("dossier:TA069");
     });
 
     it("quotes multi-word facet values", () => {
       expect(
-        serializeSearch({ freeText: null, facets: [{ key: "requerant", value: "le prefet" }] }),
-      ).toBe('requerant:"le prefet"');
+        serializeSearch({ freeText: null, facets: [{ key: "dossier", value: "le prefet" }] }),
+      ).toBe('dossier:"le prefet"');
     });
 
     it("combines free text and several facets", () => {
@@ -120,42 +132,63 @@ describe("case-file-search", () => {
           freeText: "dupont",
           facets: [
             { key: "requerant", value: "prefet" },
-            { key: "statut", value: "role" },
+            { key: "titre", value: "dalo" },
           ],
         }),
-      ).toBe("dupont requerant:prefet statut:role");
+      ).toBe("dupont requerant:prefet titre:dalo");
     });
 
     it("round-trips through parseSearchQuery", () => {
-      const query = 'dupont requerant:"le prefet" statut:role';
+      const query = 'dupont requerant:"le prefet" titre:dalo';
       expect(serializeSearch(parseSearchQuery(query))).toBe(query);
+    });
+  });
+
+  describe("setFacetValues", () => {
+    it("applies several facets in one pass", () => {
+      expect(
+        setFacetValues("", {
+          dossier: "TA069",
+          requerant: "prefet",
+          titre: "",
+        }),
+      ).toBe("dossier:TA069 requerant:prefet");
+    });
+
+    it("replaces existing facets for the updated keys only", () => {
+      expect(
+        setFacetValues("dossier:TA068 requerant:martin defendeur:dupont", {
+          dossier: "TA069",
+          requerant: "prefet",
+        }),
+      ).toBe("defendeur:dupont dossier:TA069 requerant:prefet");
     });
   });
 
   describe("setFacet", () => {
     it("adds a facet to an empty query", () => {
-      expect(setFacet("", "requerant", "prefet")).toBe("requerant:prefet");
+      expect(setFacet("", "dossier", "TA069")).toBe("dossier:TA069");
     });
 
     it("adds a facet while keeping free text", () => {
-      expect(setFacet("dupont", "requerant", "prefet")).toBe("dupont requerant:prefet");
+      expect(setFacet("dupont", "dossier", "TA069")).toBe("dupont dossier:TA069");
     });
 
     it("replaces the existing facet of the same key", () => {
-      expect(setFacet("requerant:martin", "requerant", "prefet")).toBe("requerant:prefet");
+      expect(setFacet("dossier:TA068", "dossier", "TA069")).toBe("dossier:TA069");
     });
 
     it("removes the facet when the value is empty", () => {
-      expect(setFacet("dupont requerant:prefet", "requerant", "")).toBe("dupont");
+      expect(setFacet("dupont dossier:TA069", "dossier", "")).toBe("dupont");
     });
 
     it("removes the facet when the value is only whitespace", () => {
-      expect(setFacet("requerant:prefet", "requerant", "   ")).toBe("");
+      expect(setFacet("dossier:TA069", "dossier", "   ")).toBe("");
     });
 
     it("leaves other facets untouched", () => {
-      expect(setFacet("requerant:martin defendeur:dupont", "requerant", "prefet")).toBe(
-        "defendeur:dupont requerant:prefet",
+      expect(setFacet("dossier:TA068 defendeur:dupont", "dossier", "TA069")).toBe(
+        "defendeur:dupont dossier:TA069",
       );
     });
 
@@ -164,21 +197,21 @@ describe("case-file-search", () => {
     });
 
     it("trims the value before storing it", () => {
-      expect(setFacet("", "requerant", "  prefet  ")).toBe("requerant:prefet");
+      expect(setFacet("", "dossier", "  TA069  ")).toBe("dossier:TA069");
     });
   });
 
   describe("getFacetValue", () => {
     it("returns the current value of a facet", () => {
-      expect(getFacetValue("dupont requerant:prefet", "requerant")).toBe("prefet");
+      expect(getFacetValue("dupont dossier:TA069", "dossier")).toBe("TA069");
     });
 
     it("returns an empty string when the facet is absent", () => {
-      expect(getFacetValue("dupont", "requerant")).toBe("");
+      expect(getFacetValue("dupont", "dossier")).toBe("");
     });
 
     it("reads a quoted multi-word value", () => {
-      expect(getFacetValue('requerant:"le prefet"', "requerant")).toBe("le prefet");
+      expect(getFacetValue('dossier:"le prefet"', "dossier")).toBe("le prefet");
     });
   });
 });

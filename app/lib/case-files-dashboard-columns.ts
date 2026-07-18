@@ -3,12 +3,13 @@ import {
   PRODUCTION_DEADLINE_TYPE_LABELS,
   type ProductionDeadlineType,
 } from "@/app/lib/case-file-enums";
+import { CASE_FILE_ACTOR_INCLUDE } from "@/app/lib/case-file-actors";
 import {
-  CASE_FILE_ACTOR_INCLUDE,
-  getMainClaimantActor,
-  getMainDefenderActor,
-} from "@/app/lib/case-file-actors";
-import { formatDateFr, getActorDisplayName, getCaseFileDisplayName } from "@/app/lib/case-file-format";
+  formatDateFr,
+  getActorDisplayName,
+  getCaseFileDisplayName,
+} from "@/app/lib/case-file-format";
+import { DOSSIER_FACET_FIELDS } from "@/app/lib/case-file-search";
 import { type SortOrder } from "@/app/lib/table-sort";
 
 export const CASE_FILES_DASHBOARD_INCLUDE = {
@@ -60,60 +61,41 @@ export type CaseFileDashboardColumnDef = {
   label: string;
   sortable?: boolean;
   defaultOrder?: SortOrder;
-  facet?: boolean;
-  facetKey?: string;
+  facetFields?: readonly { key: string; label: string }[];
+  width?: string;
   exportValue: (row: CaseFileDashboardRow) => string;
 };
 
 export const CASE_FILES_DASHBOARD_COLUMNS: CaseFileDashboardColumnDef[] = [
   {
     key: "caseFileNumber",
-    facetKey: "dossier",
     label: "Dossier",
     sortable: true,
-    facet: true,
+    facetFields: DOSSIER_FACET_FIELDS,
+    width: "50%",
     exportValue: (caseFile) => getCaseFileDisplayName(caseFile),
   },
   {
     key: "depositDate",
     label: "Date de réception",
     sortable: true,
+    width: "14%",
     exportValue: (caseFile) => formatDateFr(caseFile.depositDate),
   },
   {
-    key: "mainClaimant",
-    facetKey: "requerant",
-    label: "Requérant",
-    facet: true,
-    exportValue: (caseFile) => getActorDisplayName(getMainClaimantActor(caseFile)),
-  },
-  {
-    key: "mainDefender",
-    facetKey: "defendeur",
-    label: "Défendeur",
-    facet: true,
-    exportValue: (caseFile) => getActorDisplayName(getMainDefenderActor(caseFile)),
-  },
-  {
     key: "lastProducer",
-    facetKey: "producteur",
     label: "Dernier producteur",
     sortable: true,
-    facet: true,
+    facetFields: [{ key: "producteur", label: "Dernier producteur" }],
+    width: "18%",
     exportValue: (caseFile) => getActorDisplayName(caseFile.lastProducer),
-  },
-  {
-    key: "status",
-    facetKey: "statut",
-    label: "Statut",
-    facet: true,
-    exportValue: (caseFile) => caseFile.lastStatus.label,
   },
   {
     key: HEARING_CONVOCATION_SORT_KEY,
     label: "Date limite de production de mémoire",
     sortable: true,
     defaultOrder: "ascending",
+    width: "18%",
     exportValue: (caseFile) => formatDateFr(caseFile.memoryDeadlineDate),
   },
 ];
