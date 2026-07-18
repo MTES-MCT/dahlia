@@ -17,7 +17,8 @@ export function formatDateInputValue(date: Date | null | undefined): string {
 }
 
 // Today's calendar date (yyyy-mm-dd) in the court's time zone.
-export function getTodayDateInputValueInParis(): string {
+// FIXME : check if we need to get the TA timezone instead of Paris
+function getTodayDateInputValueInParis(): string {
   return new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Paris" }).format(new Date());
 }
 
