@@ -21,7 +21,11 @@ import {
   UNDER_INSTRUCTION_STATUS_LABEL,
   type ProductionDeadlineType,
 } from "@/app/lib/case-file-enums";
-import { formatDateInputValue } from "@/app/lib/case-file-format";
+import {
+  formatDateInputValue,
+  isDateInputBeforeToday,
+  PRODUCTION_DEADLINE_DATE_IN_PAST_WARNING,
+} from "@/app/lib/case-file-format";
 import { updateCaseFileDetailsFormAction } from "@/app/(protected)/case_files/[caseFileNumber]/actions";
 
 const caseFileDetailsModal = createModal({
@@ -71,7 +75,12 @@ function ProductionDeadlineFields({
 }: Pick<CaseFileDetailsEditorProps, "productionDeadlineType" | "productionDeadlineDate">) {
   const initialType = productionDeadlineType ?? PRODUCTION_DEADLINE_TYPE_UNDEFINED_VALUE;
   const [selectedType, setSelectedType] = useState(initialType);
+  const [dateValue, setDateValue] = useState(formatDateInputValue(productionDeadlineDate));
   const hasDeadlineType = selectedType !== PRODUCTION_DEADLINE_TYPE_UNDEFINED_VALUE;
+  const dateWarning =
+    hasDeadlineType && dateValue && isDateInputBeforeToday(dateValue)
+      ? PRODUCTION_DEADLINE_DATE_IN_PAST_WARNING
+      : null;
 
   return (
     <>
@@ -100,10 +109,13 @@ function ProductionDeadlineFields({
         <Input
           label="Date limite de production"
           disabled={!hasDeadlineType}
+          state={dateWarning ? "error" : "default"}
+          stateRelatedMessage={dateWarning ?? undefined}
           nativeInputProps={{
             type: "date",
             name: "productionDeadlineDate",
-            defaultValue: formatDateInputValue(productionDeadlineDate),
+            value: dateValue,
+            onChange: (event) => setDateValue(event.currentTarget.value),
           }}
           className="shrink-0"
         />
@@ -153,7 +165,7 @@ export function CaseFileDetailsHeader({
           type: "button",
         }}
       >
-        Éditer les détails du dossier
+        Détails du dossier
       </Button>
     </div>
   );

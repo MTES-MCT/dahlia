@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { formatDateFr, formatDateInputValue, formatDateTimeFr } from "@/app/lib/case-file-format";
+import {
+  formatDateFr,
+  formatDateInputValue,
+  formatDateTimeFr,
+  isDateInputBeforeToday,
+} from "@/app/lib/case-file-format";
 
 describe("formatDateInputValue", () => {
   it("retourne une chaîne vide quand la date est absente", () => {
@@ -43,5 +48,20 @@ describe("formatDateTimeFr", () => {
 
   it("applique l'heure d'hiver hors période d'été", () => {
     expect(formatDateTimeFr(new Date("2025-01-05T08:30:00Z"))).toBe("05/01/2025 à 09h30");
+  });
+});
+
+describe("isDateInputBeforeToday", () => {
+  it("retourne false pour une date vide", () => {
+    expect(isDateInputBeforeToday("", "2026-07-17")).toBe(false);
+  });
+
+  it("retourne true pour une date antérieure à la référence", () => {
+    expect(isDateInputBeforeToday("2026-07-16", "2026-07-17")).toBe(true);
+  });
+
+  it("retourne false pour la date du jour ou une date future", () => {
+    expect(isDateInputBeforeToday("2026-07-17", "2026-07-17")).toBe(false);
+    expect(isDateInputBeforeToday("2026-07-18", "2026-07-17")).toBe(false);
   });
 });
