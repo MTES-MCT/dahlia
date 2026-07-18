@@ -1,10 +1,10 @@
 import { fr } from "@codegouvfr/react-dsfr";
 import { Breadcrumb } from "@codegouvfr/react-dsfr/Breadcrumb";
+import { getCaseFileDisplayName, type CaseFileDisplayNameSource } from "@/app/lib/case-file-format";
+import { type CaseFileWithActors } from "@/app/lib/case-file-actors";
 import { buildBackParams, type CarriedSearchParams } from "@/app/lib/carried-search-params";
-export type CaseFileForBreadcrumb = {
-  caseFileNumber: string;
-  title: string | null;
-};
+
+export type CaseFileForBreadcrumb = CaseFileDisplayNameSource & CaseFileWithActors;
 
 type BreadcrumbSegment = {
   label: React.ReactNode;
@@ -18,8 +18,8 @@ type Props = {
   trailingSegments?: BreadcrumbSegment[];
 };
 
-export function caseFileLabel({ caseFileNumber, title }: CaseFileForBreadcrumb): string {
-  return caseFileNumber + (title ? ` - ${title}` : "");
+export function caseFileLabel(caseFile: CaseFileForBreadcrumb): string {
+  return getCaseFileDisplayName(caseFile);
 }
 
 export function buildDashboardBreadcrumbSegment(

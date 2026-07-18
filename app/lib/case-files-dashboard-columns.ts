@@ -8,7 +8,7 @@ import {
   getMainClaimantActor,
   getMainDefenderActor,
 } from "@/app/lib/case-file-actors";
-import { formatDateFr, getActorDisplayName } from "@/app/lib/case-file-format";
+import { formatDateFr, getActorDisplayName, getCaseFileDisplayName } from "@/app/lib/case-file-format";
 import { type SortOrder } from "@/app/lib/table-sort";
 
 export const CASE_FILES_DASHBOARD_INCLUDE = {
@@ -72,7 +72,7 @@ export const CASE_FILES_DASHBOARD_COLUMNS: CaseFileDashboardColumnDef[] = [
     label: "Dossier",
     sortable: true,
     facet: true,
-    exportValue: (caseFile) => caseFile.caseFileNumber,
+    exportValue: (caseFile) => getCaseFileDisplayName(caseFile),
   },
   {
     key: "depositDate",

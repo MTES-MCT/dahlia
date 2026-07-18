@@ -175,6 +175,18 @@ describe("case-files", () => {
       };
       expect(getActorDisplayName(actor)).toBe("Curie Marie");
     });
+
+    it("returns firstName + lastName for a natural person even when legalEntityName is set", () => {
+      const actor = {
+        ...actorBase,
+        id: 99,
+        legalPersonName: null,
+        legalEntityName: "CADOUX",
+        firstName: "Eloise",
+        lastName: "CADOUX",
+      };
+      expect(getActorDisplayName(actor)).toBe("CADOUX Eloise");
+    });
   });
 
   describe("fetchCaseFilesTableData", () => {

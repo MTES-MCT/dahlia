@@ -44,6 +44,7 @@ export type CaseFileDetailsEditorProps = {
   productionDeadlineDate: Date | null;
   mainClaimantName: string;
   mainDefenderName: string;
+  otherActors: { actorId: number; qualityLabel: string; name: string }[];
   depositDateLabel: string;
   chamberName: string | undefined;
   // Last decision reading (Telerecours `lastDecisionReading`); absent on case
@@ -124,14 +125,16 @@ function ProductionDeadlineFields({
   );
 }
 
-// Sticky card header (identity: number, title, status) and trigger for the modal.
+// Sticky card header (display name, status) and trigger for the modal.
 // Kept separate from the modal so the dialog backdrop is not clipped by the
 // sticky stacking context.
 export function CaseFileDetailsHeader({
-  caseFileNumber,
-  title,
+  displayName,
   statusLabel,
-}: Pick<CaseFileDetailsEditorProps, "caseFileNumber" | "title" | "statusLabel">) {
+}: {
+  displayName: string;
+  statusLabel: string;
+}) {
   return (
     <div
       className={clsx(
@@ -146,9 +149,7 @@ export function CaseFileDetailsHeader({
           style={{ color: "var(--text-action-high-blue-france)", marginTop: "0.25rem" }}
         />
         <div>
-          <h1 className={fr.cx("fr-h4", "fr-mb-1v")}>
-            {caseFileNumber + (title ? ` - ${title}` : "")}
-          </h1>
+          <h1 className={fr.cx("fr-h4", "fr-mb-1v")}>{displayName}</h1>
           <Badge as="span" noIcon severity="info">
             {statusLabel}
           </Badge>
@@ -183,6 +184,7 @@ export function CaseFileDetailsModal({
   productionDeadlineDate,
   mainClaimantName,
   mainDefenderName,
+  otherActors,
   depositDateLabel,
   chamberName,
   decisionReadingDateLabel,
@@ -295,6 +297,21 @@ export function CaseFileDetailsModal({
         <DetailRow label="Date de réception" value={depositDateLabel} />
         <DetailRow label="Chambre" value={chamberName} />
       </div>
+
+      {otherActors.length > 0 && (
+        <>
+          <h2 className={fr.cx("fr-h6", "fr-mb-2w")}>Autres acteurs</h2>
+          <div className="grid grid-cols-1 gap-x-4 md:grid-cols-2">
+            {otherActors.map((actor) => (
+              <DetailRow
+                key={actor.actorId}
+                label={actor.qualityLabel}
+                value={actor.name}
+              />
+            ))}
+          </div>
+        </>
+      )}
 
       {hasDecisionReading && (
         <>

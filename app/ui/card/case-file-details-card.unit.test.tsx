@@ -1,6 +1,10 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { render, screen, cleanup, within } from "@testing-library/react";
 import type { CaseFileDetail } from "@/app/lib/data/case-files";
+import {
+  actorFixture,
+  caseFileActorFixture,
+} from "@/app/lib/test-support/case-file-actors.fixture";
 import { CaseFileDetailsCard } from "./case-file-details-card";
 
 function caseFileFixture(
@@ -12,36 +16,28 @@ function caseFileFixture(
     depositDate: new Date("2026-01-15T10:00:00.000Z"),
     lastStatus: { label: "En instruction" },
     caseFileActors: [
-      {
-        caseFileNumber: "TA069-2026-001",
+      caseFileActorFixture({
         actorId: 1,
         qualityCode: "R",
         isMainClaimant: true,
         isMainDefender: false,
-        actor: {
-          id: 1,
-          firstName: "Jean",
-          lastName: "Dupont",
-          legalPersonName: null,
-          legalEntityName: null,
-        },
+        actor: actorFixture({ id: 1, firstName: "Jean", lastName: "Dupont" }),
         quality: { code: "R", name: "Requérant" },
-      },
-      {
-        caseFileNumber: "TA069-2026-001",
+      }),
+      caseFileActorFixture({
         actorId: 2,
         qualityCode: "D",
         isMainClaimant: false,
         isMainDefender: true,
-        actor: {
+        actor: actorFixture({
           id: 2,
+          actorType: "LEGAL_PERSON",
           legalPersonName: "Préfecture du Rhône",
-          legalEntityName: null,
           firstName: null,
           lastName: null,
-        },
+        }),
         quality: { code: "D", name: "Défendeur" },
-      },
+      }),
     ],
     chamber: { name: "3ème chambre" },
     ...overrides,
@@ -63,16 +59,37 @@ describe("CaseFileDetailsCard", () => {
     cleanup();
   });
 
-  it("affiche le numéro de dossier et le titre dans l'en-tête", () => {
-    render(<CaseFileDetailsCard caseFile={caseFileFixture()} />);
+  it("affiche le nom d'affichage du dossier dans l'en-tête", () => {
+    render(
+      <CaseFileDetailsCard
+        caseFile={caseFileFixture({
+          litigationType: "INJONCTION",
+          rightType: "LOGEMENT",
+          summary: "Urgence familiale",
+        })}
+      />,
+    );
 
     expect(
-      screen.getByRole("heading", { level: 1, name: "TA069-2026-001 - Requête DALO" }),
+      screen.getByRole("heading", {
+        level: 1,
+        name: "TA069-2026-001 - Requête DALO - Dupont Jean - Injonction - L (Urgence familiale)",
+      }),
     ).toBeTruthy();
   });
 
-  it("affiche uniquement le numéro de dossier quand le titre est absent", () => {
-    render(<CaseFileDetailsCard caseFile={caseFileFixture({ title: null })} />);
+  it("omet les segments non renseignés dans l'en-tête", () => {
+    render(
+      <CaseFileDetailsCard
+        caseFile={caseFileFixture({
+          title: null,
+          litigationType: null,
+          rightType: null,
+          summary: null,
+          caseFileActors: [],
+        })}
+      />,
+    );
 
     expect(screen.getByRole("heading", { level: 1, name: "TA069-2026-001" })).toBeTruthy();
   });
@@ -150,5 +167,40 @@ describe("CaseFileDetailsCard", () => {
     const metadata = within(getModalMetadata());
 
     expect(metadata.getAllByText("-")).toHaveLength(2);
+  });
+
+  it("affiche les autres acteurs dans la modale quand ils existent", () => {
+    render(
+      <CaseFileDetailsCard
+        caseFile={caseFileFixture({
+          caseFileActors: [
+            ...(caseFileFixture().caseFileActors ?? []),
+            caseFileActorFixture({
+              actorId: 3,
+              qualityCode: "A",
+              isMainClaimant: false,
+              isMainDefender: false,
+              actor: actorFixture({ id: 3, firstName: "Marie", lastName: "Martin" }),
+              quality: { code: "A", name: "Avocat" },
+            }),
+          ],
+        })}
+      />,
+    );
+
+    const otherActors = within(getModalSection("Autres acteurs"));
+
+    expect(otherActors.getByText(/Avocat/)).toBeTruthy();
+    expect(otherActors.getByText("Martin Marie")).toBeTruthy();
+  });
+
+  it("masque la section autres acteurs quand seuls le requérant et le défendeur existent", () => {
+    render(<CaseFileDetailsCard caseFile={caseFileFixture()} />);
+
+    const modal = screen.getByRole("dialog", { hidden: true });
+
+    expect(
+      within(modal).queryByRole("heading", { name: "Autres acteurs", hidden: true }),
+    ).toBeNull();
   });
 });
