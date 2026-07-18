@@ -16,6 +16,24 @@ export function formatDateInputValue(date: Date | null | undefined): string {
   return `${year}-${month}-${day}`;
 }
 
+// Today's calendar date (yyyy-mm-dd) in the court's time zone.
+// FIXME : check if we need to get the TA timezone instead of Paris
+function getTodayDateInputValueInParis(): string {
+  return new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Paris" }).format(new Date());
+}
+
+export const PRODUCTION_DEADLINE_DATE_IN_PAST_WARNING =
+  "Attention, la date limite de production est dans le passé.";
+
+// True when a yyyy-mm-dd value is strictly before the given today reference.
+export function isDateInputBeforeToday(
+  dateInputValue: string,
+  today = getTodayDateInputValueInParis(),
+): boolean {
+  if (!dateInputValue) return false;
+  return dateInputValue < today;
+}
+
 // Format a date as dd/mm/yyyy (French format); empty string when absent.
 export function formatDateFr(date: Date | null | undefined): string {
   if (!date) return "";

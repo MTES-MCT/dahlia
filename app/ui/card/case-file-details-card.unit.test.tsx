@@ -81,7 +81,7 @@ describe("CaseFileDetailsCard", () => {
     render(<CaseFileDetailsCard caseFile={caseFileFixture()} />);
 
     expect(screen.getByText("En instruction")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Éditer les détails du dossier" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Détails du dossier" })).toBeTruthy();
   });
 
   it("affiche les métadonnées Télérecours dans la modale", () => {
