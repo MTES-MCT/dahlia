@@ -6,7 +6,8 @@ import { CaseFilesSearchByStatus } from "@/app/ui/form/case-files-search-by-stat
 import { TableSearchBar } from "@/app/ui/form/table-search-bar";
 import { type DataTableSearchConfig } from "@/app/ui/table/data-table";
 
-const PLACEHOLDER = 'ex. « dupont » ou « requerant:prefet defendeur:"jean dupont" »';
+const PLACEHOLDER =
+  'ex. « dupont » ou « dossier:TA069 requerant:prefet titre:dalo »';
 
 export type CaseFilesSearchProps = {
   // Label preselected when `statut` is absent from the URL.

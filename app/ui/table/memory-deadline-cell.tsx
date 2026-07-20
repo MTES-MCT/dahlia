@@ -68,7 +68,7 @@ export function MemoryDeadlineCell({
     <>
       {formatDateFr(date)}
       <div className={fr.cx("fr-mt-1v")}>
-        <Badge as="span" noIcon severity="info">
+        <Badge as="span" noIcon severity="info" className={fr.cx("fr-badge--sm")}>
           {MEMORY_DEADLINE_SOURCE_LABELS[source]}
         </Badge>
       </div>

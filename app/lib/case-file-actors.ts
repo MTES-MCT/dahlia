@@ -21,6 +21,10 @@ export function getMainDefenderActor(caseFile: CaseFileWithActors) {
   return caseFile.caseFileActors.find((link) => link.isMainDefender)?.actor ?? null;
 }
 
+export function getOtherCaseFileActors(caseFile: CaseFileWithActors) {
+  return caseFile.caseFileActors.filter((link) => !link.isMainClaimant && !link.isMainDefender);
+}
+
 export function buildMainActorSearchFilter(
   role: "isMainClaimant" | "isMainDefender",
   normalizedWord: string,

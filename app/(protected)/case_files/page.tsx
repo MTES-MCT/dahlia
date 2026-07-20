@@ -1,10 +1,6 @@
 import { fr } from "@codegouvfr/react-dsfr";
-import Link from "next/link";
 import { cookies } from "next/headers";
-import {
-  fetchCaseFilesTableData,
-  HEARING_CONVOCATION_SORT_KEY,
-} from "@/app/lib/data/case-files";
+import { fetchCaseFilesTableData, HEARING_CONVOCATION_SORT_KEY } from "@/app/lib/data/case-files";
 import {
   CASE_FILES_DASHBOARD_COLUMNS,
   getMemoryDeadlineSource,
@@ -20,6 +16,7 @@ import { parseTableQueryState } from "@/app/lib/table-query-state";
 import { statusLabelForCount } from "@/app/lib/status-label-plural";
 import { DEFAULT_STATUT, resolveCurrentStatut } from "@/app/lib/dashboard-filter";
 import { buildCaseFilesSearchConfig } from "@/app/ui/form/case-files-search";
+import { CaseFileDossierCell } from "@/app/ui/table/case-file-dossier-cell";
 import { DataTable, type DataTableColumn } from "@/app/ui/table/data-table";
 import { MemoryDeadlineCell } from "@/app/ui/table/memory-deadline-cell";
 
@@ -43,16 +40,15 @@ function dashboardColumns(detailQueryString: string): DataTableColumn<CaseFileDa
     label: column.label,
     sortable: column.sortable,
     defaultOrder: column.defaultOrder,
-    facet: column.facet,
-    facetKey: column.facetKey,
+    facetFields: column.facetFields,
+    width: column.width,
     render: (caseFile) => {
       if (column.key === "caseFileNumber") {
         return (
-          <Link
+          <CaseFileDossierCell
+            caseFile={caseFile}
             href={`/case_files/${encodeURIComponent(caseFile.caseFileNumber)}${suffix}#case-file-details`}
-          >
-            {caseFile.caseFileNumber}
-          </Link>
+          />
         );
       }
       if (column.key === HEARING_CONVOCATION_SORT_KEY) {
@@ -134,6 +130,7 @@ export default async function Page({ searchParams }: Props) {
       <h1 className={fr.cx("fr-mt-3w", "fr-h2")}>Affaires suivies par la DDETS du Rhône</h1>
 
       <DataTable
+        minWidth="50rem"
         search={buildCaseFilesSearchConfig({
           defaultStatut: DEFAULT_STATUT,
           currentQuery: tableState.query ?? "",

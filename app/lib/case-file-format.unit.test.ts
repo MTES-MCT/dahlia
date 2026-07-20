@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  getCaseFileDisplayName,
   formatDateFr,
   formatDateInputValue,
   formatDateTimeFr,
   isDateInputBeforeToday,
 } from "@/app/lib/case-file-format";
+import { caseFileWithActor } from "@/app/lib/test-support/case-file-actors.fixture";
 
 describe("formatDateInputValue", () => {
   it("retourne une chaîne vide quand la date est absente", () => {
@@ -63,5 +65,53 @@ describe("isDateInputBeforeToday", () => {
   it("retourne false pour la date du jour ou une date future", () => {
     expect(isDateInputBeforeToday("2026-07-17", "2026-07-17")).toBe(false);
     expect(isDateInputBeforeToday("2026-07-18", "2026-07-17")).toBe(false);
+  });
+});
+
+describe("getCaseFileDisplayName", () => {
+  it("formate le nom complet avec résumé", () => {
+    expect(getCaseFileDisplayName(caseFileWithActor())).toBe(
+      "TA069-2026-001 - Dupont Jean - Injonction - DALO (Urgence familiale)",
+    );
+  });
+
+  it("affiche requérant vs défendeur quand les deux sont renseignés", () => {
+    expect(
+      getCaseFileDisplayName(
+        caseFileWithActor(
+          {},
+          {
+            defender: {
+              actorType: "LEGAL_PERSON",
+              legalPersonName: "Préfecture du Rhône",
+            },
+          },
+        ),
+      ),
+    ).toBe(
+      "TA069-2026-001 - Dupont Jean vs Préfecture du Rhône - Injonction - DALO (Urgence familiale)",
+    );
+  });
+
+  it("omet le résumé entre parenthèses quand il est absent", () => {
+    expect(getCaseFileDisplayName(caseFileWithActor({ summary: null }))).toBe(
+      "TA069-2026-001 - Dupont Jean - Injonction - DALO",
+    );
+  });
+
+  it("omet les segments non renseignés", () => {
+    expect(
+      getCaseFileDisplayName(
+        caseFileWithActor(
+          {
+            title: null,
+            litigationType: null,
+            rightType: null,
+            summary: null,
+          },
+          { claimant: null },
+        ),
+      ),
+    ).toBe("TA069-2026-001");
   });
 });

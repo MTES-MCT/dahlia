@@ -33,7 +33,7 @@ const columns = [
   {
     key: "type",
     label: "Type",
-    facet: true,
+    facetFields: [{ key: "type", label: "Type" }],
     render: (row: Row) => row.type,
   },
 ];
@@ -100,14 +100,13 @@ describe("DataTable", () => {
     expect(screen.getByRole("button", { name: /Filtrer par Type/ })).toBeTruthy();
   });
 
-  it("utilise facetKey pour le filtre quand il diffère de la clé de colonne", () => {
+  it("utilise facetFields pour le filtre quand la clé diffère de la clé de colonne", () => {
     const dossierColumns = [
       {
         key: "caseFileNumber",
         label: "Dossier",
         sortable: true,
-        facet: true,
-        facetKey: "dossier",
+        facetFields: [{ key: "dossier", label: "Numéro" }],
         render: (row: { caseFileNumber: string }) => row.caseFileNumber,
       },
     ];
@@ -130,5 +129,45 @@ describe("DataTable", () => {
     render(<DataTable {...baseProps} />);
 
     expect(screen.getByLabelText("Résultats par page")).toBeTruthy();
+  });
+
+  it("injecte des règles CSS de colonnes via colgroup en layout fixe", () => {
+    const sizedColumns = [
+      {
+        key: "dossier",
+        label: "Dossier",
+        width: "40rem",
+        render: (row: Row) => row.name,
+      },
+      {
+        key: "date",
+        label: "Date",
+        width: "9rem",
+        render: (row: Row) => row.type,
+      },
+    ];
+
+    const { container } = render(<DataTable {...baseProps} columns={sizedColumns} />);
+
+    const style = container.querySelector("style");
+    expect(style?.textContent).not.toContain("@media");
+    expect(style?.textContent).toContain("table-layout: fixed");
+    expect(style?.textContent).not.toContain("min-width:");
+    expect(style?.textContent).toContain(
+      ".dt-sizing-pieces col:nth-child(1){width:40rem;}",
+    );
+    expect(style?.textContent).toContain(
+      ".dt-sizing-pieces col:nth-child(2){width:9rem;}",
+    );
+    expect(container.querySelector(".dt-sizing-pieces col")).toBeTruthy();
+    expect(container.querySelector(".dt-sizing-pieces")).toBeTruthy();
+    expect(container.querySelector(".fr-table--layout-fixed")).toBeTruthy();
+  });
+
+  it("injecte min-width sur le tableau quand minWidth est fourni", () => {
+    const { container } = render(<DataTable {...baseProps} minWidth="50rem" />);
+
+    const style = container.querySelector("style");
+    expect(style?.textContent).toContain("min-width: 50rem;");
   });
 });

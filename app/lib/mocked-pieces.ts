@@ -22,7 +22,10 @@ const MOCKED_PDF_BY_TYPE: Record<string, string[]> = {
     "getdoc.pdf",
     "2411158_20022025_1147930341-1.pdf",
   ],
-  "Avis d'audience": ["Avis_d_audience.pdf"],
+  "Avis d'audience": [
+    // "Avis_d_audience.pdf"
+    "1142338213_aviaudal.pdf",
+  ],
   "Avis d'audience - DALO": [
     //"Avis_d_audience_-_DALO.pdf",
     "1142338213_aviaudal.pdf",
@@ -45,7 +48,11 @@ const MOCKED_PDF_BY_TYPE: Record<string, string[]> = {
   ],
   "Communication d'une régularisation": ["Communication_d_une_regularisation.pdf"],
   "Communication de la procédure": ["Communication_de_la_procedure.pdf"],
-  "Communication de la requête": ["Communication_de_la_requete.pdf"],
+  "Communication de la requête": [
+    //"Communication_de_la_requete.pdf",
+    "1136210751_comrdal.pdf",
+    "comrdal_1144181451-1.pdf",
+  ],
   "Communication de la requête - DALO": [
     // "Communication_de_la_requete_-_DALO.pdf",
     "1136210751_comrdal.pdf",

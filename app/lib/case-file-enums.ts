@@ -15,9 +15,23 @@ export const LITIGATION_TYPE_LABELS: Record<LitigationType, string> = {
   REFERE: "Référé",
 };
 
+// Short labels for compact case-file display names (dashboard column, page header).
+export const LITIGATION_TYPE_SHORT_LABELS: Record<LitigationType, string> = {
+  LIQUIDATION_ASTREINTE: "Liquidation d'astreinte",
+  INJONCTION: "Injonction",
+  INDEMNITAIRE: "Indemnitaire",
+  EXCES_DE_POUVOIR: "REP",
+  REFERE: "Référé",
+};
+
 export const RIGHT_TYPE_LABELS: Record<RightType, string> = {
   LOGEMENT: "Logement",
   HEBERGEMENT: "Hébergement",
+};
+
+export const RIGHT_TYPE_SHORT_LABELS: Record<RightType, string> = {
+  LOGEMENT: "DALO",
+  HEBERGEMENT: "DAHO",
 };
 
 // Empty string is the form value for an unset right type (stored as null in the database).
@@ -54,8 +68,18 @@ export function litigationTypeLabel(value: LitigationType | null | undefined): s
   return value ? LITIGATION_TYPE_LABELS[value] : undefined;
 }
 
+export function litigationTypeShortLabel(
+  value: LitigationType | null | undefined,
+): string | undefined {
+  return value ? LITIGATION_TYPE_SHORT_LABELS[value] : undefined;
+}
+
 export function rightTypeLabel(value: RightType | null | undefined): string | undefined {
   return value ? RIGHT_TYPE_LABELS[value] : RIGHT_TYPE_UNDEFINED_LABEL;
+}
+
+export function rightTypeShortLabel(value: RightType | null | undefined): string | undefined {
+  return value ? RIGHT_TYPE_SHORT_LABELS[value] : undefined;
 }
 
 export const PRODUCTION_DEADLINE_TYPE_LABELS: Record<ProductionDeadlineType, string> = {

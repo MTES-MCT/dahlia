@@ -17,7 +17,19 @@ export function normalizeForSearch(value: string): string {
 // Facet keys recognized in the search box. They map to the displayed table
 // columns; a `key:value` token restricts the match to that single column
 // instead of the global free-text OR.
-export const FACET_KEYS = ["dossier", "requerant", "defendeur", "producteur", "statut"] as const;
+export const DOSSIER_FACET_FIELDS = [
+  { key: "dossier", label: "Numéro" },
+  { key: "titre", label: "Titre" },
+  { key: "requerant", label: "Requérant" },
+  { key: "defendeur", label: "Défendeur" },
+] as const;
+
+export type DossierFacetKey = (typeof DOSSIER_FACET_FIELDS)[number]["key"];
+
+export const FACET_KEYS = [
+  ...DOSSIER_FACET_FIELDS.map((field) => field.key),
+  "producteur",
+] as const;
 
 export type FacetKey = (typeof FACET_KEYS)[number];
 
@@ -154,6 +166,27 @@ export function setFacet(
   const trimmed = value.trim();
   const others = parsed.facets.filter((facet) => facet.key !== key);
   const facets = trimmed ? [...others, { key, value: trimmed }] : others;
+  return serializeSearch({ freeText: parsed.freeText, facets });
+}
+
+// Apply several facet updates in one pass (empty values remove the facet).
+export function setFacetValues(
+  query: string,
+  values: Record<string, string>,
+  validKeys: readonly string[] = FACET_KEYS,
+): string {
+  const parsed = parseSearchQuery(query, validKeys);
+  const keysToUpdate = new Set(Object.keys(values));
+  const others = parsed.facets.filter((facet) => !keysToUpdate.has(facet.key));
+  const facets = [...others];
+
+  for (const [key, rawValue] of Object.entries(values)) {
+    const trimmed = rawValue.trim();
+    if (trimmed && isFacetKey(key, validKeys)) {
+      facets.push({ key, value: trimmed });
+    }
+  }
+
   return serializeSearch({ freeText: parsed.freeText, facets });
 }
 
