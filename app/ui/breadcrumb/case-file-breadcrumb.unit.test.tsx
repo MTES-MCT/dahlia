@@ -1,5 +1,6 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
+import { caseFileWithActor } from "@/app/lib/test-support/case-file-actors.fixture";
 import {
   CaseFileBreadcrumb,
   caseFileLabel,
@@ -8,14 +9,46 @@ import {
 } from "./case-file-breadcrumb";
 
 describe("caseFileLabel", () => {
-  it("concatenates case file number and title when title is set", () => {
-    expect(caseFileLabel({ caseFileNumber: "TA069-2026-001", title: "Requête DALO" })).toBe(
-      "TA069-2026-001 - Requête DALO",
+  const caseFile = caseFileWithActor();
+
+  it("formate le nom d'affichage complet du dossier", () => {
+    expect(caseFileLabel(caseFile)).toBe(
+      "TA069-2026-001 - Dupont Jean - Injonction - DALO (Urgence familiale)",
     );
   });
 
-  it("returns only the case file number when title is null", () => {
-    expect(caseFileLabel({ caseFileNumber: "TA069-2026-001", title: null })).toBe("TA069-2026-001");
+  it("affiche requérant vs défendeur quand les deux sont renseignés", () => {
+    expect(
+      caseFileLabel(
+        caseFileWithActor(
+          {},
+          {
+            defender: {
+              actorType: "LEGAL_PERSON",
+              legalPersonName: "Préfecture du Rhône",
+            },
+          },
+        ),
+      ),
+    ).toBe(
+      "TA069-2026-001 - Dupont Jean vs Préfecture du Rhône - Injonction - DALO (Urgence familiale)",
+    );
+  });
+
+  it("omet les segments non renseignés", () => {
+    expect(
+      caseFileLabel(
+        caseFileWithActor(
+          {
+            title: null,
+            litigationType: null,
+            rightType: null,
+            summary: null,
+          },
+          { claimant: null },
+        ),
+      ),
+    ).toBe("TA069-2026-001");
   });
 });
 
@@ -38,12 +71,20 @@ describe("buildDashboardBreadcrumbSegment", () => {
 });
 
 describe("buildCaseFileBreadcrumbSegment", () => {
-  const caseFile = { caseFileNumber: "TA069/2024/001", title: "Requête DALO" };
+  const caseFile = caseFileWithActor({
+    caseFileNumber: "TA069/2024/001",
+    title: "Recours DAHO",
+    litigationType: "REFERE",
+    rightType: "HEBERGEMENT",
+    summary: "Requête DALO",
+  });
 
   it("builds a case file link with encoded path and label", () => {
     const segment = buildCaseFileBreadcrumbSegment(caseFile, {});
 
-    expect(segment.label).toBe("TA069/2024/001 - Requête DALO");
+    expect(segment.label).toBe(
+      "TA069/2024/001 - Dupont Jean - Référé - DAHO (Requête DALO)",
+    );
     expect(segment.linkProps.href).toBe("/case_files/TA069%2F2024%2F001#case-file-details");
   });
 
@@ -57,28 +98,34 @@ describe("buildCaseFileBreadcrumbSegment", () => {
 });
 
 describe("CaseFileBreadcrumb", () => {
+  const caseFile = caseFileWithActor();
+
   afterEach(() => {
     cleanup();
   });
 
   it("renders the dashboard link and current case file label", () => {
-    render(
-      <CaseFileBreadcrumb
-        caseFile={{ caseFileNumber: "TA069-2026-001", title: "Requête DALO" }}
-        searchParams={{}}
-      />,
-    );
+    render(<CaseFileBreadcrumb caseFile={caseFile} searchParams={{}} />);
 
     expect(screen.getByRole("link", { name: /Tableau de bord/ }).getAttribute("href")).toBe(
       "/case_files",
     );
-    expect(screen.getByText("TA069-2026-001 - Requête DALO")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "TA069-2026-001 - Dupont Jean - Injonction - DALO (Urgence familiale)",
+      ),
+    ).toBeTruthy();
   });
 
   it("carries search params on the dashboard link", () => {
     render(
       <CaseFileBreadcrumb
-        caseFile={{ caseFileNumber: "TA069-2026-001", title: null }}
+        caseFile={{
+          ...caseFile,
+          litigationType: null,
+          rightType: null,
+          summary: null,
+        }}
         searchParams={{ page: "2", tab: "pieces" }}
       />,
     );
@@ -91,12 +138,12 @@ describe("CaseFileBreadcrumb", () => {
   it("renders trailing segments and a custom current page label", () => {
     render(
       <CaseFileBreadcrumb
-        caseFile={{ caseFileNumber: "TA069-2026-001", title: "Requête DALO" }}
+        caseFile={caseFile}
         searchParams={{ tab: "pieces" }}
         currentPageLabel="Pièce 1"
         trailingSegments={[
           {
-            label: "TA069-2026-001 - Requête DALO",
+            label: "TA069-2026-001 - Dupont Jean - Injonction - DALO (Urgence familiale)",
             linkProps: { href: "/case_files/TA069-2026-001?tab=pieces" },
           },
         ]}
@@ -104,7 +151,11 @@ describe("CaseFileBreadcrumb", () => {
     );
 
     expect(
-      screen.getByRole("link", { name: "TA069-2026-001 - Requête DALO" }).getAttribute("href"),
+      screen
+        .getByRole("link", {
+          name: "TA069-2026-001 - Dupont Jean - Injonction - DALO (Urgence familiale)",
+        })
+        .getAttribute("href"),
     ).toBe("/case_files/TA069-2026-001?tab=pieces");
     expect(screen.getByText("Pièce 1")).toBeTruthy();
   });

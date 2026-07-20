@@ -175,6 +175,18 @@ describe("case-files", () => {
       };
       expect(getActorDisplayName(actor)).toBe("Curie Marie");
     });
+
+    it("returns firstName + lastName for a natural person even when legalEntityName is set", () => {
+      const actor = {
+        ...actorBase,
+        id: 99,
+        legalPersonName: null,
+        legalEntityName: "CADOUX",
+        firstName: "Eloise",
+        lastName: "CADOUX",
+      };
+      expect(getActorDisplayName(actor)).toBe("CADOUX Eloise");
+    });
   });
 
   describe("fetchCaseFilesTableData", () => {
@@ -212,28 +224,6 @@ describe("case-files", () => {
         expect.objectContaining({
           orderBy: { caseFileNumber: "asc" },
         }),
-      );
-    });
-
-    it("ignores sortBy on mainClaimant (column is filter-only)", async () => {
-      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
-      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
-
-      await fetchCaseFilesTableData(1, 10, "mainClaimant", "ascending");
-
-      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
-        expect.not.objectContaining({ orderBy: expect.anything() }),
-      );
-    });
-
-    it("ignores sortBy on mainDefender (column is filter-only)", async () => {
-      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
-      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
-
-      await fetchCaseFilesTableData(1, 10, "mainDefender", "descending");
-
-      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
-        expect.not.objectContaining({ orderBy: expect.anything() }),
       );
     });
 
@@ -323,6 +313,8 @@ describe("case-files", () => {
           {
             OR: [
               { caseFileNumber: { contains: "Dupont", mode: "insensitive" } },
+              { title: { contains: "Dupont", mode: "insensitive" } },
+              { summary: { contains: "Dupont", mode: "insensitive" } },
               {
                 caseFileActors: {
                   some: {
@@ -363,6 +355,8 @@ describe("case-files", () => {
           {
             OR: [
               { caseFileNumber: { contains: "Frànçois", mode: "insensitive" } },
+              { title: { contains: "Frànçois", mode: "insensitive" } },
+              { summary: { contains: "Frànçois", mode: "insensitive" } },
               {
                 caseFileActors: {
                   some: {
@@ -406,7 +400,7 @@ describe("case-files", () => {
       );
     });
 
-    it("restricts the search to the requerant column for a requerant: facet", async () => {
+    it("restricts the search to the requerant for a requerant: facet", async () => {
       vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
       vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
 
@@ -472,7 +466,10 @@ describe("case-files", () => {
       await fetchCaseFilesTableData(1, 10, null, "descending", "dossier:TA069");
 
       const expectedWhere = {
-        AND: [{ isDeleted: false }, { caseFileNumber: { contains: "TA069", mode: "insensitive" } }],
+        AND: [
+          { isDeleted: false },
+          { caseFileNumber: { contains: "TA069", mode: "insensitive" } },
+        ],
       };
 
       expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
@@ -480,14 +477,40 @@ describe("case-files", () => {
       );
     });
 
-    it("filters the statut column accent-insensitively for a statut: facet", async () => {
+    it("filters with the titre facet across display-name fields and title", async () => {
       vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
       vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
 
-      await fetchCaseFilesTableData(1, 10, null, "descending", "statut:role");
+      await fetchCaseFilesTableData(1, 10, null, "descending", "titre:dalo");
 
       const expectedWhere = {
-        AND: [{ isDeleted: false }, { lastStatus: { labelNormalized: { contains: "role" } } }],
+        AND: [
+          { isDeleted: false },
+          {
+            OR: [
+              { caseFileNumber: { contains: "dalo", mode: "insensitive" } },
+              { title: { contains: "dalo", mode: "insensitive" } },
+              { summary: { contains: "dalo", mode: "insensitive" } },
+              {
+                caseFileActors: {
+                  some: {
+                    isMainClaimant: true,
+                    actor: { displayNameNormalized: { contains: "dalo" } },
+                  },
+                },
+              },
+              {
+                caseFileActors: {
+                  some: {
+                    isMainDefender: true,
+                    actor: { displayNameNormalized: { contains: "dalo" } },
+                  },
+                },
+              },
+              { rightType: { in: ["LOGEMENT"] } },
+            ],
+          },
+        ],
       };
 
       expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
@@ -507,6 +530,8 @@ describe("case-files", () => {
           {
             OR: [
               { caseFileNumber: { contains: "dupont", mode: "insensitive" } },
+              { title: { contains: "dupont", mode: "insensitive" } },
+              { summary: { contains: "dupont", mode: "insensitive" } },
               {
                 caseFileActors: {
                   some: {
@@ -569,30 +594,6 @@ describe("case-files", () => {
                   },
                 },
               },
-            ],
-          },
-        ],
-      };
-
-      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
-        expect.objectContaining({ where: expectedWhere }),
-      );
-    });
-
-    it("matches every word of a multi-word statut facet regardless of order", async () => {
-      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
-      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
-
-      await fetchCaseFilesTableData(1, 10, null, "descending", 'statut:"Inscrit role audience"');
-
-      const expectedWhere = {
-        AND: [
-          { isDeleted: false },
-          {
-            AND: [
-              { lastStatus: { labelNormalized: { contains: "inscrit" } } },
-              { lastStatus: { labelNormalized: { contains: "role" } } },
-              { lastStatus: { labelNormalized: { contains: "audience" } } },
             ],
           },
         ],

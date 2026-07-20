@@ -1,8 +1,14 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, type LitigationType, type RightType } from "@prisma/client";
 import {
   CASE_FILE_ACTOR_INCLUDE,
   buildMainActorSearchFilter,
 } from "@/app/lib/case-file-actors";
+import {
+  LITIGATION_TYPE_LABELS,
+  LITIGATION_TYPE_SHORT_LABELS,
+  RIGHT_TYPE_LABELS,
+  RIGHT_TYPE_SHORT_LABELS,
+} from "@/app/lib/case-file-enums";
 import {
   CASE_FILES_DASHBOARD_INCLUDE,
   HEARING_CONVOCATION_SORT_KEY,
@@ -16,9 +22,6 @@ export { HEARING_CONVOCATION_SORT_KEY } from "@/app/lib/case-files-dashboard-col
 
 type CaseFileWithRelations = CaseFileDashboardRow;
 
-// Main actor columns are filterable but not sortable (Prisma cannot orderBy a filtered 1-N link).
-const UNSORTABLE_KEYS = ["mainClaimant", "mainDefender"] as const;
-
 export type CaseFilesTableData = {
   rows: CaseFileWithRelations[];
   totalPages: number;
@@ -29,9 +32,6 @@ function buildOrderBy(
   sortBy: string,
   direction: Prisma.SortOrder,
 ): Prisma.CaseFileOrderByWithRelationInput | undefined {
-  if ((UNSORTABLE_KEYS as readonly string[]).includes(sortBy)) {
-    return undefined;
-  }
   if (sortBy === "lastProducer") {
     return { lastProducer: { displayName: { sort: direction, nulls: "last" } } };
   }
@@ -39,6 +39,57 @@ function buildOrderBy(
     return { memoryDeadlineDate: { sort: direction, nulls: "last" } };
   }
   return { [sortBy]: direction };
+}
+
+function matchingLitigationTypesForSearchWord(word: string): LitigationType[] {
+  return (Object.keys(LITIGATION_TYPE_SHORT_LABELS) as LitigationType[]).filter((type) => {
+    const shortLabel = normalizeForSearch(LITIGATION_TYPE_SHORT_LABELS[type]);
+    const fullLabel = normalizeForSearch(LITIGATION_TYPE_LABELS[type]);
+    return shortLabel.includes(word) || fullLabel.includes(word);
+  });
+}
+
+function matchingRightTypesForSearchWord(word: string): RightType[] {
+  return (Object.keys(RIGHT_TYPE_SHORT_LABELS) as RightType[]).filter((type) => {
+    const shortLabel = normalizeForSearch(RIGHT_TYPE_SHORT_LABELS[type]);
+    const fullLabel = normalizeForSearch(RIGHT_TYPE_LABELS[type]);
+    return shortLabel.includes(word) || fullLabel.includes(word);
+  });
+}
+
+function buildTitreWordFilter(rawWord: string): Prisma.CaseFileWhereInput {
+  const normalized = normalizeForSearch(rawWord);
+  const litigationTypes = matchingLitigationTypesForSearchWord(normalized);
+  const rightTypes = matchingRightTypesForSearchWord(normalized);
+
+  const orConditions: Prisma.CaseFileWhereInput[] = [
+    { caseFileNumber: { contains: rawWord, mode: "insensitive" } },
+    { title: { contains: rawWord, mode: "insensitive" } },
+    { summary: { contains: rawWord, mode: "insensitive" } },
+    buildMainActorSearchFilter("isMainClaimant", normalized),
+    buildMainActorSearchFilter("isMainDefender", normalized),
+  ];
+
+  if (litigationTypes.length > 0) {
+    orConditions.push({ litigationType: { in: litigationTypes } });
+  }
+  if (rightTypes.length > 0) {
+    orConditions.push({ rightType: { in: rightTypes } });
+  }
+
+  return { OR: orConditions };
+}
+
+function buildFreeTextFilter(freeText: string): Prisma.CaseFileWhereInput {
+  const normalized = normalizeForSearch(freeText);
+  const titreFilter = buildTitreWordFilter(freeText);
+
+  return {
+    OR: [
+      ...(titreFilter.OR ?? []),
+      { lastProducer: { displayNameNormalized: { contains: normalized } } },
+    ],
+  };
 }
 
 const FACET_BUILDERS: Record<
@@ -49,6 +100,8 @@ const FACET_BUILDERS: Record<
     buildWordAndFilter(facetSearchWords(raw), (word) => ({
       caseFileNumber: { contains: word, mode: "insensitive" },
     })),
+  titre: (normalized) =>
+    buildWordAndFilter(facetSearchWords(normalized), (word) => buildTitreWordFilter(word)),
   requerant: (normalized) =>
     buildWordAndFilter(facetSearchWords(normalized), (word) =>
       buildMainActorSearchFilter("isMainClaimant", word),
@@ -61,10 +114,6 @@ const FACET_BUILDERS: Record<
     buildWordAndFilter(facetSearchWords(normalized), (word) => ({
       lastProducer: { displayNameNormalized: { contains: word } },
     })),
-  statut: (normalized) =>
-    buildWordAndFilter(facetSearchWords(normalized), (word) => ({
-      lastStatus: { labelNormalized: { contains: word } } as unknown as Prisma.StatusWhereInput,
-    })),
 };
 
 function buildWhere(query: string | null, statusLabel: string | null): Prisma.CaseFileWhereInput {
@@ -76,15 +125,7 @@ function buildWhere(query: string | null, statusLabel: string | null): Prisma.Ca
     const { freeText, facets } = parseSearchQuery(query);
 
     if (freeText) {
-      const normalized = normalizeForSearch(freeText);
-      conditions.push({
-        OR: [
-          { caseFileNumber: { contains: freeText, mode: "insensitive" } },
-          buildMainActorSearchFilter("isMainClaimant", normalized),
-          buildMainActorSearchFilter("isMainDefender", normalized),
-          { lastProducer: { displayNameNormalized: { contains: normalized } } },
-        ],
-      });
+      conditions.push(buildFreeTextFilter(freeText));
     }
 
     for (const facet of facets) {

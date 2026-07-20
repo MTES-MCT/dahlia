@@ -1,4 +1,10 @@
-import type { Prisma } from "@prisma/client";
+import type { LitigationType, Prisma, RightType } from "@prisma/client";
+import {
+  getMainClaimantActor,
+  getMainDefenderActor,
+  type CaseFileWithActors,
+} from "@/app/lib/case-file-actors";
+import { litigationTypeShortLabel, rightTypeShortLabel } from "@/app/lib/case-file-enums";
 
 // Pure formatting helpers shared between Server Components and Client Components.
 // They must NOT import the Prisma client (which pulls `pg`/`dns`): keeping them
@@ -62,12 +68,57 @@ export function formatDateTimeFr(date: Date | null | undefined): string {
   return `${get("day")}/${get("month")}/${get("year")} à ${get("hour")}h${get("minute")}`;
 }
 
+// Mirror Postgres `displayName` (cf. migration actor_display_name_by_actor_type):
+// natural persons use first/last name; legal persons use legalPersonName/legalEntityName.
 export function getActorDisplayName(actor: ActorForDisplay): string {
   if (!actor) return "-";
+
+  if (actor.actorType === "NATURAL_PERSON") {
+    if (actor.firstName && actor.lastName) return `${actor.lastName} ${actor.firstName}`;
+    if (actor.lastName) return actor.lastName;
+    if (actor.firstName) return actor.firstName;
+    if (actor.legalEntityName) return actor.legalEntityName;
+    return "-";
+  }
+
   if (actor.legalPersonName) return actor.legalPersonName;
   if (actor.legalEntityName) return actor.legalEntityName;
   if (actor.firstName && actor.lastName) return `${actor.lastName} ${actor.firstName}`;
   if (actor.lastName) return actor.lastName;
   if (actor.firstName) return actor.firstName;
   return "-";
+}
+
+export type CaseFileDisplayNameSource = {
+  caseFileNumber: string;
+  title: string | null;
+  litigationType: LitigationType | null;
+  rightType: RightType | null;
+  summary: string | null;
+};
+
+// Compact label: `<number> - <title> - <claimant> - <litigation> - <right> (summary)`.
+// Undefined segments are omitted rather than shown as placeholders.
+export function getCaseFileDisplayName(
+  caseFile: CaseFileDisplayNameSource & CaseFileWithActors,
+): string {
+  const parts = [caseFile.caseFileNumber];
+  const mainClaimantName = getActorDisplayName(getMainClaimantActor(caseFile));
+  const mainDefenderName = getActorDisplayName(getMainDefenderActor(caseFile));
+  const litigation = litigationTypeShortLabel(caseFile.litigationType);
+  const right = rightTypeShortLabel(caseFile.rightType);
+
+  // we display the title only if it is not a litigation or right type
+  if (mainClaimantName !== "-" && mainDefenderName !== "-") {
+    parts.push(`${mainClaimantName} vs ${mainDefenderName}`);
+  } else if (mainClaimantName !== "-") {
+    parts.push(mainClaimantName);
+  } else if (mainDefenderName !== "-") {
+    parts.push(mainDefenderName);
+  }
+  if (litigation) parts.push(litigation);
+  if (right) parts.push(right);
+
+  const base = parts.join(" - ");
+  return caseFile.summary ? `${base} (${caseFile.summary})` : base;
 }
