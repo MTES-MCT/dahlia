@@ -73,7 +73,7 @@ describe("CaseFileDetailsCard", () => {
     expect(
       screen.getByRole("heading", {
         level: 1,
-        name: "TA069-2026-001 - Dupont Jean vs Préfecture du Rhône - Injonction - DALO (Urgence familiale)",
+        name: "TA069-2026-001 - Dupont Jean c/ Préfecture du Rhône - Injonction - DALO (Urgence familiale)",
       }),
     ).toBeTruthy();
   });
