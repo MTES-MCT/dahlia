@@ -17,7 +17,7 @@ describe("caseFileLabel", () => {
     );
   });
 
-  it("affiche requérant vs défendeur quand les deux sont renseignés", () => {
+  it("affiche requérant c/ défendeur quand les deux sont renseignés", () => {
     expect(
       caseFileLabel(
         caseFileWithActor(
@@ -31,7 +31,7 @@ describe("caseFileLabel", () => {
         ),
       ),
     ).toBe(
-      "TA069-2026-001 - Dupont Jean vs Préfecture du Rhône - Injonction - DALO (Urgence familiale)",
+      "TA069-2026-001 - Dupont Jean c/ Préfecture du Rhône - Injonction - DALO (Urgence familiale)",
     );
   });
 
@@ -82,9 +82,7 @@ describe("buildCaseFileBreadcrumbSegment", () => {
   it("builds a case file link with encoded path and label", () => {
     const segment = buildCaseFileBreadcrumbSegment(caseFile, {});
 
-    expect(segment.label).toBe(
-      "TA069/2024/001 - Dupont Jean - Référé - DAHO (Requête DALO)",
-    );
+    expect(segment.label).toBe("TA069/2024/001 - Dupont Jean - Référé - DAHO (Requête DALO)");
     expect(segment.linkProps.href).toBe("/case_files/TA069%2F2024%2F001#case-file-details");
   });
 
@@ -111,9 +109,7 @@ describe("CaseFileBreadcrumb", () => {
       "/case_files",
     );
     expect(
-      screen.getByText(
-        "TA069-2026-001 - Dupont Jean - Injonction - DALO (Urgence familiale)",
-      ),
+      screen.getByText("TA069-2026-001 - Dupont Jean - Injonction - DALO (Urgence familiale)"),
     ).toBeTruthy();
   });
 

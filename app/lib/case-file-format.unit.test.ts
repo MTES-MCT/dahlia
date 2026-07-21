@@ -75,7 +75,7 @@ describe("getCaseFileDisplayName", () => {
     );
   });
 
-  it("affiche requérant vs défendeur quand les deux sont renseignés", () => {
+  it("affiche requérant c/ défendeur quand les deux sont renseignés", () => {
     expect(
       getCaseFileDisplayName(
         caseFileWithActor(
@@ -89,7 +89,7 @@ describe("getCaseFileDisplayName", () => {
         ),
       ),
     ).toBe(
-      "TA069-2026-001 - Dupont Jean vs Préfecture du Rhône - Injonction - DALO (Urgence familiale)",
+      "TA069-2026-001 - Dupont Jean c/ Préfecture du Rhône - Injonction - DALO (Urgence familiale)",
     );
   });
 
