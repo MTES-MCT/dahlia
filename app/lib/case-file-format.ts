@@ -110,7 +110,7 @@ export function getCaseFileDisplayName(
 
   // we display the title only if it is not a litigation or right type
   if (mainClaimantName !== "-" && mainDefenderName !== "-") {
-    parts.push(`${mainClaimantName} vs ${mainDefenderName}`);
+    parts.push(`${mainClaimantName} c/ ${mainDefenderName}`);
   } else if (mainClaimantName !== "-") {
     parts.push(mainClaimantName);
   } else if (mainDefenderName !== "-") {
