@@ -401,7 +401,7 @@ function PieceDetail({ piece, editing, onEdit, onCancel, onSaved }: DetailProps)
               {piece.fileName}
             </p>
           )}
-          <p className={fr.cx("fr-mb-2w")}>{piece.comment || "Aucun commentaire"}</p>
+          {piece.comment && <p className={fr.cx("fr-mb-2w")}>{piece.comment}</p>}
           <Button
             priority="secondary"
             iconId="fr-icon-edit-line"
