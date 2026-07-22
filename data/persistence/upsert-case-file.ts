@@ -140,23 +140,6 @@ export async function upsertCaseFile(
     }
   }
 
-  await upsertCaseFileActorLink(
-    prisma,
-    caseFile.caseFileNumber,
-    caseFile.mainClaimant,
-    { isMainClaimant: true, isMainDefender: false },
-    anonymize,
-  );
-  if (caseFile.mainDefender) {
-    await upsertCaseFileActorLink(
-      prisma,
-      caseFile.caseFileNumber,
-      caseFile.mainDefender,
-      { isMainClaimant: false, isMainDefender: true },
-      anonymize,
-    );
-  }
-
   if (caseFile.lastHearing) {
     await prisma.hearing.upsert({
       where: { hearingId: caseFile.lastHearing.hearingId },
@@ -204,6 +187,23 @@ export async function upsertCaseFile(
         : null,
     },
   });
+
+  await upsertCaseFileActorLink(
+    prisma,
+    caseFile.caseFileNumber,
+    caseFile.mainClaimant,
+    { isMainClaimant: true, isMainDefender: false },
+    anonymize,
+  );
+  if (caseFile.mainDefender) {
+    await upsertCaseFileActorLink(
+      prisma,
+      caseFile.caseFileNumber,
+      caseFile.mainDefender,
+      { isMainClaimant: false, isMainDefender: true },
+      anonymize,
+    );
+  }
 
   return true;
 }

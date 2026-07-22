@@ -123,7 +123,7 @@ export function caseFileWithActor(
     caseFileNumber: "TA069-2026-001",
     title: "Requête DALO",
     litigationType: "INJONCTION",
-    rightType: "LOGEMENT",
+    rightType: "DALO",
     summary: "Urgence familiale",
     caseFileActors: caseFileActors ?? caseFileActorsFixture(actors),
     ...rest,
