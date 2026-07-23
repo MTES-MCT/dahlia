@@ -37,6 +37,17 @@ export interface Hearing {
   } | null;
 }
 
+// Status group returned by /api/parametres/statusGroups. Each group lists the
+// individual status IDs that share its label in the Telerecours catalogue.
+export interface StatusGroup {
+  id: number;
+  statusList?: number[];
+  label?: string;
+  category?: string;
+}
+
+export type StatusGroupType = "ALL" | "INPROGRESS";
+
 export interface CaseFile {
   caseFileNumber: string;
   assignedToLegalEntityDivision?: { id: number; name: string; shortName: string };

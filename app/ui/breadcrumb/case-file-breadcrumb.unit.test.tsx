@@ -75,7 +75,7 @@ describe("buildCaseFileBreadcrumbSegment", () => {
     caseFileNumber: "TA069/2024/001",
     title: "Recours DAHO",
     litigationType: "REFERE",
-    rightType: "HEBERGEMENT",
+    rightType: "DAHO",
     summary: "Requête DALO",
   });
 

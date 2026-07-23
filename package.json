@@ -24,6 +24,7 @@
     "reschedule-deliberation:dev": "ts-node -P data/tsconfig.json data/cli/reschedule-deliberation-case-files.ts",
     "test:unit": "vitest run --config vitest.unit.config.mts",
     "test:integration": "vitest run --config vitest.integration.config.mts",
+    "test": "pnpm test:unit && pnpm test:integration",
     "prepare": "husky"
   },
   "dependencies": {

@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { TelerecoursClient } from "../telerecours/client.interface";
+import { phaseA0 } from "./phase-a0-status-catalog";
 import { phaseA, reconcileDeleted } from "./phase-a-list";
 import { phaseB } from "./phase-b-enrich";
 import { phaseC } from "./phase-c-related";
@@ -27,9 +28,12 @@ export interface ScrapeDeps {
   rateLimitMs?: number;
 }
 
-// Orchestrate the full scrape: A (list) → A.5 (reconcile) → B (enrich) →
-// C (related links). Returns a process exit code (0 ok, 2 when nothing scraped).
+// Orchestrate the full scrape: A.0 (status catalogue) → A (list) → A.5
+// (reconcile) → B (enrich) → C (related links). Returns a process exit code
+// (0 ok, 2 when nothing scraped).
 export async function runScrape(args: Args, deps: ScrapeDeps): Promise<number> {
+  await phaseA0(args, deps);
+
   const a = await phaseA(args, deps);
   if (a.processed === 0) {
     console.error("⚠ No case files retrieved.");

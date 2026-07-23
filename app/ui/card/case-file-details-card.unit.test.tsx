@@ -64,7 +64,7 @@ describe("CaseFileDetailsCard", () => {
       <CaseFileDetailsCard
         caseFile={caseFileFixture({
           litigationType: "INJONCTION",
-          rightType: "LOGEMENT",
+          rightType: "DALO",
           summary: "Urgence familiale",
         })}
       />,

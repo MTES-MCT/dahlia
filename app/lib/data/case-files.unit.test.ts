@@ -507,7 +507,7 @@ describe("case-files", () => {
                   },
                 },
               },
-              { rightType: { in: ["LOGEMENT"] } },
+              { rightType: { in: ["DALO"] } },
             ],
           },
         ],

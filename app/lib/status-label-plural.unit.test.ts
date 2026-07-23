@@ -1,13 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { STATUS_FILTER_OPTIONS, STATUS_LABEL_PLURAL, statusLabelForCount } from "@/app/lib/status-label-plural";
-
-describe("STATUS_FILTER_OPTIONS", () => {
-  it("lists every known status label, sorted in French locale order", () => {
-    expect(STATUS_FILTER_OPTIONS).toEqual(
-      Object.keys(STATUS_LABEL_PLURAL).sort((a, b) => a.localeCompare(b, "fr")),
-    );
-  });
-});
+import { STATUS_LABEL_PLURAL, statusLabelForCount } from "@/app/lib/status-label-plural";
 
 describe("statusLabelForCount", () => {
   describe.each(Object.entries(STATUS_LABEL_PLURAL))("%s", (dbLabel, captions) => {

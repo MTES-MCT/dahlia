@@ -17,6 +17,8 @@ import {
   Hearing,
   PagedResponse,
   RelatedCaseFileSummary,
+  StatusGroup,
+  StatusGroupType,
 } from "./types";
 
 const MAX_LOGIN_ATTEMPTS = 10;
@@ -24,13 +26,6 @@ const MAX_LOGIN_ATTEMPTS = 10;
 interface ClientCredentials {
   username: string;
   password: string;
-}
-
-interface StatusGroup {
-  id: number;
-  statusList?: number[];
-  label?: string;
-  category?: string;
 }
 
 function parseStatusGroupsResponse(data: unknown): StatusGroup[] {
@@ -51,7 +46,7 @@ class TelerecoursCaseFileClient implements TelerecoursClient {
   private accessToken: string | null = null;
   private credentials: ClientCredentials;
   private isLoggingIn = false;
-  private inProgressStatusGroupIds: number[] | null = null;
+  private statusGroupsCache = new Map<string, StatusGroup[]>();
 
   constructor(credentials: ClientCredentials) {
     this.credentials = credentials;
@@ -150,25 +145,40 @@ class TelerecoursCaseFileClient implements TelerecoursClient {
   }
 
   /**
+   * Fetch status groups from Telerecours (/api/parametres/statusGroups).
+   * Cached per jurisdiction and statusType for the lifetime of this client.
+   */
+  async getStatusGroups(
+    jurisdiction: string,
+    statusType: StatusGroupType,
+  ): Promise<StatusGroup[]> {
+    const cacheKey = `${jurisdiction}:${statusType}`;
+    const cached = this.statusGroupsCache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    const data = await this.get<unknown>(
+      `/api/parametres/statusGroups?statusType=${statusType}`,
+      jurisdiction,
+    );
+    const groups = parseStatusGroupsResponse(data);
+    this.statusGroupsCache.set(cacheKey, groups);
+    return groups;
+  }
+
+  /**
    * Fetch status group IDs for in-progress dossiers (statusType=INPROGRESS).
    * The result is cached for the lifetime of this client instance.
    */
   async getInProgressStatusGroupIds(jurisdiction: string): Promise<number[]> {
-    if (this.inProgressStatusGroupIds) {
-      return this.inProgressStatusGroupIds;
-    }
-
-    const data = await this.get<unknown>(
-      "/api/parametres/statusGroups?statusType=INPROGRESS",
-      jurisdiction,
-    );
-    const groups = parseStatusGroupsResponse(data);
-    this.inProgressStatusGroupIds = groups.map((group) => group.id);
+    const groups = await this.getStatusGroups(jurisdiction, "INPROGRESS");
+    const groupIds = groups.map((group) => group.id);
     console.log(
-      `✓ ${this.inProgressStatusGroupIds.length} groupes de statut INPROGRESS : ` +
+      `✓ ${groupIds.length} groupes de statut INPROGRESS : ` +
         groups.map((group) => group.label ?? group.id).join(", "),
     );
-    return this.inProgressStatusGroupIds;
+    return groupIds;
   }
 
   async getCaseFiles(

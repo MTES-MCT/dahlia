@@ -7,16 +7,42 @@ Il s'agit de questions techniques.
 
 ### Scapper
 
-- (Est-ce qu'on veut que le code du scrapper soit open source ?)
-- (Est-ce qu'il est prévu une double authentification ?)
-
 - Attention : tout changement de méthode d'authentification a un fort impact (voir un impact descructeur) sur notre outil DAHLIA
+
+### Problématiques
+
+#### Authentification et Droits des utilisateurs
+
+Les dossiers sont affichés selon les droits des utilisateurs, la plus part du temps l'utilisateur peut voir les dossiers d'un département ou d'un service au sein du département mais il se peut que l'utilisateur ait aussi quelques dossier dans d'autre département. Une des problématique est de pouvoir récupérer cette compléxité d'authentification et d'accès aux dossiers avec différent niveaux de droit sur chaque dossier pour les utilisateurs des applications tierces.
+
+deux solutions:
+
+- soit l'application tierce, grâce à un SSO ou à partir de l'email de l'utilisateur peut récupérer les droits appliqués à l'utilisateur et les réappliquer dans l'application tierce
+- soit les droits sont reproduits sur l'application tierce sans lien avec les droits appliqués sur télérecours
+
+On préfèrerait la première solution
+
+#### Accusé de réception suite à la visualisation des pièces d'un dossier
+
+Quand un utilisateur visualise une pièce d'un dossier pour la première fois, cela génère un accusé de réception qui fait potentiellement courrir des délais de justice.
+
+Aujourd'hui sur DAHLIA, on affiche le document en utilisant une route directe vers télérecours, ceci crée un accusé de réception.
+
+Demain, on voudra faire des prétraitements sur le document sans générer d'accusé de réception puisque aucun utinisateur n'aura visualiser la pièce, il est donc nécessaire d'avoir des routes API permettant de générer et de ne pas générer d'accusé de réception lors du téléchargement de la pièce et d'xpliquer qu'il est de la responsabilité des applications tierces d'appliquer la règle de droit pour choisir la route à utiliser
+
+#### Paternité des pièces partagées
+
+lorsqu'on récupère les pièces d'un dossier, elle sont attaché à un evènement, les évenements cont la reception et la comunication des pièces par les greffes.
+en tant que partie (requérant ou défendeur du dossier), les pièces sont attachées à l'évenement qui permet de voir les pièces, soit la réception si on est producteur des pièces, soit les communications si on en est destinataire, dans tous les cas c'est l'utilisateur courant qui est attaché à l'évenement, du coup, on ne sais pas qui est le réel producteur des pièces, on a donc besoin de connaitre qui les a produites
 
 ### API
 
 Il existe déjà une API utilisée par l'interface
 
-- Est-ce possibe d'avoir rapidement une authentification machine à machine pour ne pas avoir a émuler l'authentification d'un utilisateur sur le portail d'authentification (SSO) https://authentification.telerecours.fr/
+- Gestion des utilisateurs et des habilitations
+  - Est-ce possibe d'avoir rapidement une authentification machine à machine pour ne pas avoir a émuler l'authentification d'un utilisateur sur le portail d'authentification (SSO) https://authentification.telerecours.fr/
+  - Gestion des utilisateurs : est-ce possible de récupérer les autorisations assignées aux utilisateurs ?
+  - entity -> pas toujours renvoyé lors de la récupération de la liste des case-files
 - Est-ce possible de faire évoler la route API `/api/case-file`
   - Permettre de récupérer la liste des dossier par bloc de 100 ou 1000
   - Permettre de récupérer les objets liés historiques et documents directement avec cette route API, ainsi que les champs et objets :
@@ -41,27 +67,14 @@ Il existe déjà une API utilisée par l'interface
     - AttachedFile (avec FileFamilyType)
     - RelatedCaseFile
   - Permettre de filtrer sur la date du dernier événement de l'historique
-- Gestion des utilisateurs et des habilitations
-  - Gestion des utilisateurs : est-ce possible de récupérer les autorisations assignées aux utilisateurs ?
-  - entity -> pas toujours renvoyé lors de la récupération de la liste des case-files
-  - Est-ce qu'on pourrait utiliser télérecours comme SSO ? pour récupérer l'identité et les droits 'utilisateur'
 - Récupérer d'une manière ou d'une autre le producteur de la pièce jointe, ex : dans quel évenement elle a été partagée en premier
 - Avoir une route qui permet de récupérer les pièces jointes sans générer d'acusé de lecture (dans le cas d'un prétraitement machine) et avec accusé de lecture (dans le cas de la visualisation par un utilisateur)
 
-Quastion :
+Question :
 
 - Est-ce que l'accusé de lecture est assigné à un utilisateur ?
 
 Note : une API en lecture seule est suffisante pour les besoins de notre première itération. Selon la trajectoire de DAHLIA, nous aurons peut-être un jour besoin de déposer des pièces dans un dossier
-
-### Fonctionnel
-
-Pièces toujours attribuées à la préfecture ?
-
-### Architecture
-
-- Comment Télérecours détermine qu'un utilisateur à les droits pour visualider les dossiers du tribunal administartif du Rhône (TA069)
-- Est-ce qu'on pourrait utiliser télérecours comme SSO ? pour récupérer l'identité et les droits 'utilisateur'
 
 ## Ministère de l'interieur / ASTREE
 
@@ -123,6 +136,31 @@ Recueil de jurisprudance par l'ADAGE
   - Code open-source ? -> en attente de partage
   - techno python
   - API TEERECOURS, SGG / DINUM, demande en cours
+
+#### RDV - 23-07-2026
+
+AGILE - Safe
+prod vs QA
+
+en prod : n'utilise pas télérecours, utilise 2 autres applications
+en QA :
+
+- RPA (Scrapping) -> exactement la même méthode
+- Accord de principe avec télérecours, CR de réu
+- Audit DINUM et le conseil d'état à partir de septembre
+- Démarche numérique -> IHM et DB pour sauvegarder les dossiers
+- pas d'environnement déployé -> peur d'être bani
+- extraction des entités dans les requêtes
+  - AI agentic ->
+
+Paddle OCR -> pas de GPU
+Catégorisation -> au niveau de la page ou du doc
+Agent pour rechercher les informations
+Pas de classification d'image
+-> sort une synthèse
+DocumentIA -> pas investigué
+
+Mutualiser : question d'organisation avant tout
 
 ### Scrapper
 

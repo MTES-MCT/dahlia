@@ -9,8 +9,8 @@ enum LitigationType {
 
 // Type de droit concerné (DALO / DAHO), saisi manuellement par l'utilisateur.
 enum RightType {
-  LOGEMENT // Logement
-  HEBERGEMENT // Hébergement
+  DALO // Logement
+  DAHO // Hébergement
 }
 
 // Type d'échéance à produire, saisi manuellement pour les dossiers en cours d'instruction.

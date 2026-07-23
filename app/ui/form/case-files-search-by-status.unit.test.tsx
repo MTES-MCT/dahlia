@@ -66,4 +66,10 @@ describe("CaseFilesSearchByStatus", () => {
 
     expect(getSelect().value).toBe("");
   });
+
+  it('présélectionne "Tous" quand le statut par défaut est absent', () => {
+    render(<CaseFilesSearchByStatus options={OPTIONS} defaultStatut={null} />);
+
+    expect(getSelect().value).toBe("");
+  });
 });
