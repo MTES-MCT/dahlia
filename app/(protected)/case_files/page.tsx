@@ -1,6 +1,7 @@
 import { fr } from "@codegouvfr/react-dsfr";
 import { cookies } from "next/headers";
 import { fetchCaseFilesTableData, HEARING_CONVOCATION_SORT_KEY } from "@/app/lib/data/case-files";
+import { fetchDashboardStatusFilterOptions } from "@/app/lib/data/statuses";
 import {
   CASE_FILES_DASHBOARD_COLUMNS,
   getMemoryDeadlineSource,
@@ -14,7 +15,7 @@ import {
 } from "@/app/lib/table-page-size";
 import { parseTableQueryState } from "@/app/lib/table-query-state";
 import { statusLabelForCount } from "@/app/lib/status-label-plural";
-import { DEFAULT_STATUT, resolveCurrentStatut } from "@/app/lib/dashboard-filter";
+import { resolveCurrentStatut, resolveDefaultStatut } from "@/app/lib/dashboard-filter";
 import { buildCaseFilesSearchConfig } from "@/app/ui/form/case-files-search";
 import { CaseFileDossierCell } from "@/app/ui/table/case-file-dossier-cell";
 import { DataTable, type DataTableColumn } from "@/app/ui/table/data-table";
@@ -23,10 +24,12 @@ import { MemoryDeadlineCell } from "@/app/ui/table/memory-deadline-cell";
 function setStatutSearchParam(
   params: URLSearchParams,
   statutParam: string | undefined,
-  defaultStatut: string,
+  defaultStatut: string | null,
 ) {
   if (statutParam === undefined) {
-    params.set("statut", defaultStatut);
+    if (defaultStatut !== null) {
+      params.set("statut", defaultStatut);
+    }
   } else {
     params.set("statut", statutParam);
   }
@@ -56,7 +59,6 @@ function dashboardColumns(detailQueryString: string): DataTableColumn<CaseFileDa
           <MemoryDeadlineCell
             date={caseFile.memoryDeadlineDate}
             source={getMemoryDeadlineSource(caseFile)}
-            status={caseFile.lastStatus.label}
           />
         );
       }
@@ -93,7 +95,9 @@ export default async function Page({ searchParams }: Props) {
     },
   );
 
-  const currentStatut = resolveCurrentStatut(statutParam);
+  const statusFilterOptions = await fetchDashboardStatusFilterOptions();
+  const defaultStatut = resolveDefaultStatut(statusFilterOptions);
+  const currentStatut = resolveCurrentStatut(statutParam, defaultStatut);
 
   const cookieStore = await cookies();
   const pageSize = parseTablePageSize(
@@ -115,12 +119,14 @@ export default async function Page({ searchParams }: Props) {
   if (tableState.sortBy) currentParams.set("sortBy", tableState.sortBy);
   if (sortOrderParam) currentParams.set("sortOrder", tableState.sortOrder);
   if (tableState.query) currentParams.set("dahliaq", tableState.query);
-  setStatutSearchParam(currentParams, statutParam, DEFAULT_STATUT);
+  setStatutSearchParam(currentParams, statutParam, defaultStatut);
   const currentQueryString = currentParams.toString();
 
   const statutPreserve =
     statutParam === undefined
-      ? { statut: DEFAULT_STATUT }
+      ? defaultStatut !== null
+        ? { statut: defaultStatut }
+        : {}
       : statutParam !== ""
         ? { statut: statutParam }
         : { statut: "" };
@@ -132,7 +138,8 @@ export default async function Page({ searchParams }: Props) {
       <DataTable
         minWidth="50rem"
         search={buildCaseFilesSearchConfig({
-          defaultStatut: DEFAULT_STATUT,
+          statusFilterOptions,
+          defaultStatut,
           currentQuery: tableState.query ?? "",
           statutParam,
           sortByParam,

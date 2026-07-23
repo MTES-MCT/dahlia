@@ -7,6 +7,8 @@ import {
   Hearing,
   PagedResponse,
   RelatedCaseFileSummary,
+  StatusGroup,
+  StatusGroupType,
 } from "./types";
 
 // The set of Telerecours operations the scraping pipeline depends on. The
@@ -14,6 +16,8 @@ import {
 // returning canned fixtures. Because the methods are typed against the DTOs,
 // a fixture that drifts from the real shape is caught by the type checker.
 export interface TelerecoursClient {
+  getStatusGroups(jurisdiction: string, statusType: StatusGroupType): Promise<StatusGroup[]>;
+
   getInProgressStatusGroupIds(jurisdiction: string): Promise<number[]>;
 
   getCaseFiles(

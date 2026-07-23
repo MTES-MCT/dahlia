@@ -8,6 +8,7 @@ import { emptyPage } from "./fixtures";
 // DTO shape fails to compile.
 export function fakeTelerecoursClient(over: Partial<TelerecoursClient> = {}): TelerecoursClient {
   return {
+    getStatusGroups: vi.fn().mockResolvedValue([]),
     getInProgressStatusGroupIds: vi.fn().mockResolvedValue([1, 2]),
     getCaseFiles: vi.fn().mockResolvedValue(emptyPage()),
     getCaseFileDetail: vi.fn().mockRejectedValue(new Error("getCaseFileDetail not stubbed")),

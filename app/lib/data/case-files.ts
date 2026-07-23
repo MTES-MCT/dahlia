@@ -7,7 +7,6 @@ import {
   LITIGATION_TYPE_LABELS,
   LITIGATION_TYPE_SHORT_LABELS,
   RIGHT_TYPE_LABELS,
-  RIGHT_TYPE_SHORT_LABELS,
 } from "@/app/lib/case-file-enums";
 import {
   CASE_FILES_DASHBOARD_INCLUDE,
@@ -50,10 +49,9 @@ function matchingLitigationTypesForSearchWord(word: string): LitigationType[] {
 }
 
 function matchingRightTypesForSearchWord(word: string): RightType[] {
-  return (Object.keys(RIGHT_TYPE_SHORT_LABELS) as RightType[]).filter((type) => {
-    const shortLabel = normalizeForSearch(RIGHT_TYPE_SHORT_LABELS[type]);
+  return (Object.keys(RIGHT_TYPE_LABELS) as RightType[]).filter((type) => {
     const fullLabel = normalizeForSearch(RIGHT_TYPE_LABELS[type]);
-    return shortLabel.includes(word) || fullLabel.includes(word);
+    return fullLabel.includes(word);
   });
 }
 

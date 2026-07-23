@@ -87,9 +87,8 @@ export function PiecesWorkspace({ caseFileNumber, pieces }: Props) {
   }
 
   return (
-    <div className={clsx("flex", "min-h-0", "flex-1", "flex-col", "md:flex-row")}>
+    <div className={clsx("flex", "min-h-100", "flex-1", "flex-col", "md:flex-row")}>
       <PiecesSidebar
-        className="min-h-[400px]"
         caseFileNumber={caseFileNumber}
         pieces={merged}
         currentId={currentId}
@@ -102,7 +101,6 @@ export function PiecesWorkspace({ caseFileNumber, pieces }: Props) {
       />
 
       <PieceDetailPane
-        className="min-h-[400px]"
         piece={current}
         editing={editing}
         onEdit={() => setEditing(true)}
@@ -401,7 +399,7 @@ function PieceDetail({ piece, editing, onEdit, onCancel, onSaved }: DetailProps)
               {piece.fileName}
             </p>
           )}
-          <p className={fr.cx("fr-mb-2w")}>{piece.comment || "Aucun commentaire"}</p>
+          {piece.comment && <p className={fr.cx("fr-mb-2w")}>{piece.comment}</p>}
           <Button
             priority="secondary"
             iconId="fr-icon-edit-line"
@@ -413,7 +411,7 @@ function PieceDetail({ piece, editing, onEdit, onCancel, onSaved }: DetailProps)
         </div>
       )}
 
-      <div className={clsx("flex", "min-h-[400px]", "flex-1", "flex-col")}>
+      <div className={clsx("flex", "flex-1", "flex-col")}>
         <PieceViewer
           dataUrl={piece.dataUrl}
           mimeType={piece.viewerMimeType}

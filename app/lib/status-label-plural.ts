@@ -43,11 +43,6 @@ export const STATUS_LABEL_PLURAL: Record<string, StatusCaptionLabels> = {
   },
 };
 
-// Sorted status labels for the dashboard filter dropdown.
-export const STATUS_FILTER_OPTIONS = Object.keys(STATUS_LABEL_PLURAL).sort((a, b) =>
-  a.localeCompare(b, "fr"),
-);
-
 export function statusLabelForCount(count: number, statusLabel: string): string {
   const captions = STATUS_LABEL_PLURAL[statusLabel];
   if (!captions) return statusLabel;

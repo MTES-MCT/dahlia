@@ -4,7 +4,7 @@ import {
   getMainDefenderActor,
   type CaseFileWithActors,
 } from "@/app/lib/case-file-actors";
-import { litigationTypeShortLabel, rightTypeShortLabel } from "@/app/lib/case-file-enums";
+import { litigationTypeShortLabel, rightTypeLabel } from "@/app/lib/case-file-enums";
 
 // Pure formatting helpers shared between Server Components and Client Components.
 // They must NOT import the Prisma client (which pulls `pg`/`dns`): keeping them
@@ -106,7 +106,7 @@ export function getCaseFileDisplayName(
   const mainClaimantName = getActorDisplayName(getMainClaimantActor(caseFile));
   const mainDefenderName = getActorDisplayName(getMainDefenderActor(caseFile));
   const litigation = litigationTypeShortLabel(caseFile.litigationType);
-  const right = rightTypeShortLabel(caseFile.rightType);
+  const right = rightTypeLabel(caseFile.rightType);
 
   // we display the title only if it is not a litigation or right type
   if (mainClaimantName !== "-" && mainDefenderName !== "-") {

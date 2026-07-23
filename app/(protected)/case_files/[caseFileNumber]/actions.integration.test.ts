@@ -29,7 +29,7 @@ function buildFormData(fields: Record<string, string>): FormData {
 
 async function seedCaseFile(overrides?: {
   litigationType?: "REFERE" | null;
-  rightType?: "LOGEMENT" | null;
+  rightType?: "DALO" | null;
   summary?: string | null;
   productionDeadlineType?: "MISE_EN_DEMEURE_DE_PRODUIRE" | null;
   productionDeadlineDate?: Date | null;
@@ -97,7 +97,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
       buildFormData({
         caseFileNumber: CASE_FILE_NUMBER,
         litigationType: "REFERE",
-        rightType: "LOGEMENT",
+        rightType: "DALO",
         summary: "Urgence familiale",
       }),
     );
@@ -108,7 +108,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
       where: { caseFileNumber: CASE_FILE_NUMBER },
     });
     expect(updated.litigationType).toBe("REFERE");
-    expect(updated.rightType).toBe("LOGEMENT");
+    expect(updated.rightType).toBe("DALO");
     expect(updated.summary).toBe("Urgence familiale");
     expect(revalidatePath).toHaveBeenCalledWith(`/case_files/${CASE_FILE_NUMBER}`);
   });
@@ -118,7 +118,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
       where: { caseFileNumber: CASE_FILE_NUMBER },
       data: {
         litigationType: "INJONCTION",
-        rightType: "HEBERGEMENT",
+        rightType: "DAHO",
         summary: "Ancienne raison",
       },
     });
@@ -149,7 +149,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
       buildFormData({
         caseFileNumber: CASE_FILE_NUMBER,
         litigationType: "INDEMNITAIRE",
-        rightType: "LOGEMENT",
+        rightType: "DALO",
         summary: "",
         hasProductionDeadlineFields: "true",
         productionDeadlineType: "MISE_EN_DEMEURE_DE_PRODUIRE",
@@ -211,7 +211,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
       buildFormData({
         caseFileNumber: CASE_FILE_NUMBER,
         litigationType: "REFERE",
-        rightType: "LOGEMENT",
+        rightType: "DALO",
         summary: "Nouvelle raison",
       }),
     );
@@ -232,7 +232,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
       null,
       buildFormData({
         litigationType: "REFERE",
-        rightType: "LOGEMENT",
+        rightType: "DALO",
         summary: "",
       }),
     );
@@ -247,7 +247,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
       buildFormData({
         caseFileNumber: CASE_FILE_NUMBER,
         litigationType: "INVALID",
-        rightType: "LOGEMENT",
+        rightType: "DALO",
         summary: "",
       }),
     );
@@ -283,7 +283,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
       buildFormData({
         caseFileNumber: "INEXISTANT",
         litigationType: "REFERE",
-        rightType: "LOGEMENT",
+        rightType: "DALO",
         summary: "",
       }),
     );

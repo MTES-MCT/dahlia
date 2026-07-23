@@ -1,6 +1,5 @@
 import clsx from "clsx";
 import { DASHBOARD_TABLE_PARAMS } from "@/app/lib/case-file-search";
-import { STATUS_FILTER_OPTIONS } from "@/app/lib/status-label-plural";
 import { buildDashboardSortHiddenParams } from "@/app/lib/table-search-context";
 import { CaseFilesSearchByStatus } from "@/app/ui/form/case-files-search-by-status";
 import { TableSearchBar } from "@/app/ui/form/table-search-bar";
@@ -10,8 +9,10 @@ const PLACEHOLDER =
   'ex. « dupont » ou « dossier:TA069 requerant:prefet titre:dalo »';
 
 export type CaseFilesSearchProps = {
+  // Distinct status labels from the database, sorted for the filter dropdown.
+  statusFilterOptions: string[];
   // Label preselected when `statut` is absent from the URL.
-  defaultStatut: string;
+  defaultStatut: string | null;
   // Current text query, used as the input default value.
   currentQuery: string;
   // Raw `statut`/`sortBy`/`sortOrder` params: `statut` drives the select's selected
@@ -23,10 +24,14 @@ export type CaseFilesSearchProps = {
 };
 
 function caseFilesSearchSlot({
+  statusFilterOptions,
   defaultStatut,
   currentQuery,
   statutParam,
-}: Pick<CaseFilesSearchProps, "defaultStatut" | "currentQuery" | "statutParam">) {
+}: Pick<
+  CaseFilesSearchProps,
+  "statusFilterOptions" | "defaultStatut" | "currentQuery" | "statutParam"
+>) {
   return (
     <div className={clsx("flex", "flex-row", "gap-2", "items-end")}>
       <CaseFilesSearchByStatus
@@ -34,7 +39,7 @@ function caseFilesSearchSlot({
         // <select> picks up its new defaultValue on client navigation (e.g.
         // the reset link); without this, React keeps the stale DOM value.
         key={`statut-${statutParam ?? "__default__"}`}
-        options={STATUS_FILTER_OPTIONS}
+        options={statusFilterOptions}
         defaultStatut={defaultStatut}
         statutParam={statutParam}
       />
@@ -51,6 +56,7 @@ function caseFilesSearchSlot({
 }
 
 export function buildCaseFilesSearchConfig({
+  statusFilterOptions,
   defaultStatut,
   currentQuery,
   statutParam,
@@ -65,6 +71,7 @@ export function buildCaseFilesSearchConfig({
     label: "Rechercher un dossier",
     placeholder: PLACEHOLDER,
     searchSlot: caseFilesSearchSlot({
+      statusFilterOptions,
       defaultStatut,
       currentQuery,
       statutParam,
