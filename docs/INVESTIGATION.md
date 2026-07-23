@@ -137,6 +137,31 @@ Recueil de jurisprudance par l'ADAGE
   - techno python
   - API TEERECOURS, SGG / DINUM, demande en cours
 
+#### RDV - 23-07-2026
+
+AGILE - Safe
+prod vs QA
+
+en prod : n'utilise pas télérecours, utilise 2 autres applications
+en QA :
+
+- RPA (Scrapping) -> exactement la même méthode
+- Accord de principe avec télérecours, CR de réu
+- Audit DINUM et le conseil d'état à partir de septembre
+- Démarche numérique -> IHM et DB pour sauvegarder les dossiers
+- pas d'environnement déployé -> peur d'être bani
+- extraction des entités dans les requêtes
+  - AI agentic ->
+
+Paddle OCR -> pas de GPU
+Catégorisation -> au niveau de la page ou du doc
+Agent pour rechercher les informations
+Pas de classification d'image
+-> sort une synthèse
+DocumentIA -> pas investigué
+
+Mutualiser : question d'organisation avant tout
+
 ### Scrapper
 
 Où en êtes vous du développement d'un scrapper de TéléRecours ?

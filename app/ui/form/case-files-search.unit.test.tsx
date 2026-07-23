@@ -9,6 +9,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 const DEFAULT_STATUT = "En cours d'instruction";
+const STATUS_FILTER_OPTIONS = ["En cours d'instruction", "Terminé", "Recours en appel"];
 
 function getForm(): HTMLFormElement {
   return screen.getByRole("search") as HTMLFormElement;
@@ -33,6 +34,7 @@ describe("buildCaseFilesSearchConfig", () => {
 
   it("est un form GET vers /case_files sans champ page", () => {
     renderDashboardSearch({
+      statusFilterOptions: STATUS_FILTER_OPTIONS,
       defaultStatut: DEFAULT_STATUT,
       currentQuery: "",
     });
@@ -46,6 +48,7 @@ describe("buildCaseFilesSearchConfig", () => {
 
   it("englobe le filtre statut et le champ texte", () => {
     renderDashboardSearch({
+      statusFilterOptions: STATUS_FILTER_OPTIONS,
       defaultStatut: DEFAULT_STATUT,
       currentQuery: "dupont",
       statutParam: "Terminé",
@@ -65,6 +68,7 @@ describe("buildCaseFilesSearchConfig", () => {
 
   it("affiche un bouton « Rechercher » et un lien de réinitialisation", () => {
     renderDashboardSearch({
+      statusFilterOptions: STATUS_FILTER_OPTIONS,
       defaultStatut: DEFAULT_STATUT,
       currentQuery: "",
     });
@@ -78,6 +82,7 @@ describe("buildCaseFilesSearchConfig", () => {
 
   it("rend les champs cachés sortBy/sortOrder quand ils sont fournis", () => {
     renderDashboardSearch({
+      statusFilterOptions: STATUS_FILTER_OPTIONS,
       defaultStatut: DEFAULT_STATUT,
       currentQuery: "",
       sortByParam: "caseFileNumber",
@@ -91,6 +96,7 @@ describe("buildCaseFilesSearchConfig", () => {
 
   it("n'émet pas de tri caché tant que sortBy est absent", () => {
     renderDashboardSearch({
+      statusFilterOptions: STATUS_FILTER_OPTIONS,
       defaultStatut: DEFAULT_STATUT,
       currentQuery: "",
       sortOrderParam: "ascending",

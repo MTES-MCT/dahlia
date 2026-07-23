@@ -3,7 +3,7 @@ import { Select } from "@codegouvfr/react-dsfr/Select";
 type Props = {
   options: string[];
   // Status preselected when the `statut` param is absent from the URL (matches the page default).
-  defaultStatut: string;
+  defaultStatut: string | null;
   // Raw `statut` param from the URL: absent → default filter; empty string → « Tous ».
   statutParam?: string;
 };
@@ -14,7 +14,7 @@ type Props = {
 export function CaseFilesSearchByStatus({ options, defaultStatut, statutParam }: Props) {
   // `statut` missing from the URL → preselect the default filter; otherwise the value
   // from the URL (empty string included, which corresponds to the explicit choice « Tous »).
-  const currentStatut = statutParam === undefined ? defaultStatut : statutParam;
+  const currentStatut = statutParam === undefined ? (defaultStatut ?? "") : statutParam;
 
   return (
     <Select
