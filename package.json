@@ -33,7 +33,7 @@
     "@prisma/client": "^7.8.0",
     "@prisma/config": "^7.8.0",
     "bcrypt": "^6.0.0",
-    "better-auth": "^1.6.20",
+    "better-auth": "^1.6.23",
     "cheerio": "^1.2.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
