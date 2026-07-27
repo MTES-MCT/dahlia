@@ -108,7 +108,7 @@ Le script [data/cli/scrape-telerecours.ts](data/cli/scrape-telerecours.ts) inter
 l'API Télérecours et **upsert** les dossiers en base. Il se lance via :
 
 ```sh
-pnpm scrape:dev -- [options]
+pnpm scrape:telerecours -- [options]
 ```
 
 ### Pré-requis (`.env`)
@@ -171,16 +171,16 @@ stocké, seul `telerecoursSyncAt` est rafraîchi ; `telerecoursUpdatedAt` et
 
 ```sh
 # Scrape complet de la juridiction par défaut (TA069), divisions issues de l'env
-pnpm scrape:dev
+pnpm scrape:telerecours
 
 # Cibler une juridiction et des divisions précises
-pnpm scrape:dev -- --jurisdiction TA069 --legalEntityDivisionIds 2488
+pnpm scrape:telerecours -- --jurisdiction TA069 --legalEntityDivisionIds 2488
 
 # Récupérer tous les dossiers quelques soit leur statut
-pnpm scrape:dev -- --all
+pnpm scrape:telerecours -- --all
 
 # Tester rapidement la seule Phase A, anonymisée, sur une page
-pnpm scrape:dev -- --page 0 --size 30 --skipEnrichment --anonymize
+pnpm scrape:telerecours -- --page 0 --size 30 --skipEnrichment --anonymize
 ```
 
 ### Architecture du code

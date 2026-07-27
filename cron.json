@@ -1,7 +1,8 @@
 {
   "jobs": [
     {
-      "command": "0 1 * * * pnpm scrape:dev -- --all"
+      "command": "0 1 * * * pnpm scrape:telerecours -- --all",
+      "size": "XL"
     }
   ]
 }

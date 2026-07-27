@@ -46,3 +46,9 @@ webapp_dbdata/
 
 # continue
 .continue/
+
+# Albert-code
+.agent-vm.runtime.sh
+.albert-code/
+.pnpm-store
+opencode.json
