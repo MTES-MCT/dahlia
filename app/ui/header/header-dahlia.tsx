@@ -46,9 +46,7 @@ export function HeaderDahlia({ user }: { user?: HeaderDahliaUser | null }) {
       }
       homeLinkProps={{
         href: user ? "/case_files" : "/",
-        title: user
-          ? "Tableau de bord - DAHLIA (Ministères du logement)"
-          : "Accueil - DAHLIA (Ministères du logement)",
+        title: user ? "Tableau de bord - DAHLIA" : "Accueil - DAHLIA",
       }}
       id="fr-header-simple-header-with-service-title-and-tagline"
       serviceTagline="Aide au traitement des contentieux du droit au logement et à l'hébergement opposable"
