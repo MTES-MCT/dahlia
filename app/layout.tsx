@@ -12,7 +12,11 @@ import { EnvironmentBanner } from "@/app/ui/header/environment-banner";
 import { HeaderDahlia } from "@/app/ui/header/header-dahlia";
 
 export const metadata: Metadata = {
-  title: "DAHLIA (Ministères du logement)",
+  // Each route sets its own `title`, always suffixed with the app name (RGAA 8.5/8.6).
+  title: {
+    default: "DAHLIA",
+    template: "%s - DAHLIA",
+  },
   description:
     "Aide au traitement des contentieux du droit au logement et à l'hébergement opposable",
 };
@@ -24,7 +28,8 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const lang = undefined; // Can be "fr" or "en" ...
+  // Default language of the application, exposed as <html lang="fr"> (RGAA 8.3).
+  const lang = "fr";
 
   const session = await auth.api.getSession({ headers: await headers() });
   const user = session?.user;

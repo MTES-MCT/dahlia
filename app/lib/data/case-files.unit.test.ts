@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { getActorDisplayName } from "@/app/lib/case-file-format";
 import { CASE_FILES_DASHBOARD_INCLUDE, HEARING_CONVOCATION_SORT_KEY } from "@/app/lib/case-files-dashboard-columns";
-import { fetchCaseFilesTableData } from "./case-files";
+import { fetchCaseFileDetail, fetchCaseFilesTableData } from "./case-files";
 import { prisma } from "@/app/lib/prisma";
 
 vi.mock("@/app/lib/prisma", () => ({
@@ -9,6 +9,7 @@ vi.mock("@/app/lib/prisma", () => ({
     caseFile: {
       findMany: vi.fn(),
       count: vi.fn(),
+      findUnique: vi.fn(),
     },
   },
 }));
@@ -186,6 +187,28 @@ describe("case-files", () => {
         lastName: "CADOUX",
       };
       expect(getActorDisplayName(actor)).toBe("CADOUX Eloise");
+    });
+  });
+
+  describe("fetchCaseFileDetail", () => {
+    // Wrapped in React `cache()` so `generateMetadata` and the page body of the
+    // detail route share one query; it must still behave like a plain lookup.
+    it("charge le dossier par son numéro avec ses relations", async () => {
+      vi.mocked(prisma.caseFile.findUnique).mockResolvedValue(mockCaseFile as never);
+
+      const result = await fetchCaseFileDetail("CF-2024-001");
+
+      expect(result).toBe(mockCaseFile);
+      expect(vi.mocked(prisma.caseFile.findUnique)).toHaveBeenCalledWith({
+        where: { caseFileNumber: "CF-2024-001" },
+        include: expect.objectContaining({ caseFileActors: expect.anything() }),
+      });
+    });
+
+    it("renvoie null quand le dossier n'existe pas", async () => {
+      vi.mocked(prisma.caseFile.findUnique).mockResolvedValue(null);
+
+      expect(await fetchCaseFileDetail("CF-INCONNU")).toBeNull();
     });
   });
 

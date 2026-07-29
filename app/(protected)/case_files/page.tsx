@@ -1,4 +1,5 @@
 import { fr } from "@codegouvfr/react-dsfr";
+import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { fetchCaseFilesTableData, HEARING_CONVOCATION_SORT_KEY } from "@/app/lib/data/case-files";
 import { fetchDashboardStatusFilterOptions } from "@/app/lib/data/statuses";
@@ -20,6 +21,10 @@ import { buildCaseFilesSearchConfig } from "@/app/ui/form/case-files-search";
 import { CaseFileDossierCell } from "@/app/ui/table/case-file-dossier-cell";
 import { DataTable, type DataTableColumn } from "@/app/ui/table/data-table";
 import { MemoryDeadlineCell } from "@/app/ui/table/memory-deadline-cell";
+
+export const metadata: Metadata = {
+  title: "Tableau de bord",
+};
 
 function setStatutSearchParam(
   params: URLSearchParams,

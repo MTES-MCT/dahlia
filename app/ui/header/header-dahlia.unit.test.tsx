@@ -36,7 +36,7 @@ describe("HeaderDahlia", () => {
     const homeLinks = screen.getAllByRole("link", { name: /DAHLIA/ });
     expect(homeLinks.length).toBeGreaterThan(0);
     expect(homeLinks[0].getAttribute("href")).toBe("/");
-    expect(homeLinks[0].getAttribute("title")).toBe("Accueil - DAHLIA (Ministères du logement)");
+    expect(homeLinks[0].getAttribute("title")).toBe("Accueil - DAHLIA");
   });
 
   it("redirige vers le tableau de bord quand un utilisateur est connecté", () => {
@@ -45,9 +45,7 @@ describe("HeaderDahlia", () => {
     const homeLinks = screen.getAllByRole("link", { name: /DAHLIA/ });
     expect(homeLinks.length).toBeGreaterThan(0);
     expect(homeLinks[0].getAttribute("href")).toBe("/case_files");
-    expect(homeLinks[0].getAttribute("title")).toBe(
-      "Tableau de bord - DAHLIA (Ministères du logement)",
-    );
+    expect(homeLinks[0].getAttribute("title")).toBe("Tableau de bord - DAHLIA");
   });
 
   it("affiche les prénom et nom de l'utilisateur connecté et « Se déconnecter »", () => {
