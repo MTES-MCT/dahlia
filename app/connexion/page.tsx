@@ -1,8 +1,13 @@
 import { fr } from "@codegouvfr/react-dsfr";
+import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/app/lib/auth";
 import { ProConnectLoginButton } from "@/app/ui/button/proconnect-login-button";
+
+export const metadata: Metadata = {
+  title: "Connexion",
+};
 
 export default async function ConnexionPage() {
   // Déjà connecté → on n'a rien à faire sur la page de connexion.

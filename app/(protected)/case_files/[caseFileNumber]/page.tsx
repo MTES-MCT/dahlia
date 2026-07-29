@@ -1,5 +1,7 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { fetchCaseFileDetail } from "@/app/lib/data/case-files";
+import { getCaseFileDisplayName } from "@/app/lib/case-file-format";
 import { CaseFileBreadcrumb } from "@/app/ui/breadcrumb/case-file-breadcrumb";
 import { CaseFileDetailsCard } from "@/app/ui/card/case-file-details-card";
 import { CaseFileTabs } from "@/app/ui/tabs/case-file-tabs";
@@ -9,6 +11,17 @@ type Props = {
   params: Promise<{ caseFileNumber: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { caseFileNumber } = await params;
+  const caseFile = await fetchCaseFileDetail(decodeURIComponent(caseFileNumber));
+
+  // Same label as the breadcrumb and the details card, so the tab title matches
+  // what is displayed on the page.
+  return {
+    title: caseFile ? `Dossier ${getCaseFileDisplayName(caseFile)}` : "Dossier introuvable",
+  };
+}
 
 export default async function Page({ params, searchParams }: Props) {
   const { caseFileNumber } = await params;

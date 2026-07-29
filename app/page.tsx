@@ -1,8 +1,13 @@
+import type { Metadata } from "next";
 import { StartDsfrOnHydration } from "../src/dsfr-bootstrap";
 import { fr } from "@codegouvfr/react-dsfr";
 import { Tile } from "@codegouvfr/react-dsfr/Tile";
 import CityHall from "@codegouvfr/react-dsfr/picto/CityHall";
 import Community from "@codegouvfr/react-dsfr/picto/Community";
+
+export const metadata: Metadata = {
+  title: "Accueil",
+};
 
 export default function Home() {
   return (

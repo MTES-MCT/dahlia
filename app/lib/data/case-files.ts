@@ -1,4 +1,5 @@
 import { Prisma, type LitigationType, type RightType } from "@prisma/client";
+import { cache } from "react";
 import {
   CASE_FILE_ACTOR_INCLUDE,
   buildMainActorSearchFilter,
@@ -192,12 +193,13 @@ const CASE_FILE_DETAIL_INCLUDE = {
   relatedTargets: { include: { caseFile: true } },
 } satisfies Prisma.CaseFileInclude;
 
-export async function fetchCaseFileDetail(caseFileNumber: string) {
+// Memoized per request so `generateMetadata` and the page body share a single query.
+export const fetchCaseFileDetail = cache(async (caseFileNumber: string) => {
   return prisma.caseFile.findUnique({
     where: { caseFileNumber },
     include: CASE_FILE_DETAIL_INCLUDE,
   });
-}
+});
 
 export type CaseFileDetail = Prisma.PromiseReturnType<typeof fetchCaseFileDetail>;
 
