@@ -4,6 +4,7 @@ import { metadata as rootMetadata } from "./layout";
 import { metadata as homeMetadata } from "./page";
 import { metadata as connexionMetadata } from "./connexion/page";
 import { metadata as dashboardMetadata } from "./(protected)/case_files/page";
+import { metadata as adminUsersMetadata } from "./(protected)/admin/users/page";
 import { generateMetadata as caseFileMetadata } from "./(protected)/case_files/[caseFileNumber]/page";
 import { fetchCaseFileDetail } from "@/app/lib/data/case-files";
 
@@ -88,6 +89,10 @@ describe("Titres des pages", () => {
     expect(resolveTitle(dashboardMetadata.title)).toBe("Tableau de bord - DAHLIA");
   });
 
+  it("intitule la page d'administration des utilisateurs", () => {
+    expect(resolveTitle(adminUsersMetadata.title)).toBe("Utilisateurs - Administration - DAHLIA");
+  });
+
   it("intitule une fiche dossier avec le libellé du dossier", async () => {
     mockedFetchCaseFileDetail.mockResolvedValue(caseFile as never);
 
@@ -115,9 +120,12 @@ describe("Titres des pages", () => {
   });
 
   it("distingue les pages les unes des autres", () => {
-    const titles = [homeMetadata.title, connexionMetadata.title, dashboardMetadata.title].map(
-      resolveTitle,
-    );
+    const titles = [
+      homeMetadata.title,
+      connexionMetadata.title,
+      dashboardMetadata.title,
+      adminUsersMetadata.title,
+    ].map(resolveTitle);
 
     expect(new Set(titles).size).toBe(titles.length);
   });

@@ -55,9 +55,12 @@ export const auth = betterAuth({
     additionalFields: {
       firstName: { type: "string", required: false, input: false },
       lastName: { type: "string", required: false, input: false },
-      // Drapeau d'autorisation : un compte fraîchement créé via ProConnect est
-      // non validé. Un administrateur le passe à true directement en base.
-      validated: { type: "boolean", required: false, input: false, defaultValue: false },
+      // Access gate: a freshly created ProConnect account is not validated.
+      // An administrator sets it to true (SQL today; admin UI later).
+      isValidated: { type: "boolean", required: false, input: false, defaultValue: false },
+      // Admin flag: grants access to /admin/* (user management). Bootstrap the
+      // first admin via SQL / Prisma Studio, same as isValidated.
+      isAdmin: { type: "boolean", required: false, input: false, defaultValue: false },
     },
   },
   plugins: [

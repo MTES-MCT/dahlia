@@ -91,11 +91,15 @@ sont montées sur `/api/auth/*`.
 - La page d'accueil `/` est **publique** ; toutes les autres pages exigent un
   compte **connecté et validé** (cf. `proxy.ts` + `app/(protected)/layout.tsx`).
 - À la première connexion ProConnect, l'utilisateur est créé en base avec
-  `validated = false`. Tant qu'il n'est pas validé, il voit un message d'attente.
-- **Validation manuelle** (admin) via Prisma Studio (`pnpm db:studio`) ou en SQL :
+  `isValidated = false` et `isAdmin = false`. Tant qu'il n'est pas validé, il voit
+  un message d'attente. Les administrateurs (`isAdmin = true`) accèdent à
+  `/admin/users` (liste lecture seule des utilisateurs).
+- **Validation / promotion admin** manuelle via Prisma Studio (`pnpm db:studio`)
+  ou en SQL :
 
   ```sql
-  UPDATE users SET "validated" = true WHERE email = 'prenom.nom@exemple.gouv.fr';
+  UPDATE users SET "isValidated" = true WHERE email = 'prenom.nom@exemple.gouv.fr';
+  UPDATE users SET "isAdmin" = true WHERE email = 'prenom.nom@exemple.gouv.fr';
   ```
 
 - La particularité ProConnect du `userinfo` renvoyé en **JWT signé** est gérée par
@@ -428,7 +432,8 @@ erDiagram
         string image "nullable"
         string firstName "nullable"
         string lastName "nullable"
-        boolean validated "défaut false (autorisation)"
+        boolean isValidated "défaut false (autorisation)"
+        boolean isAdmin "défaut false (accès /admin)"
         DateTime createdAt
         DateTime updatedAt
     }
