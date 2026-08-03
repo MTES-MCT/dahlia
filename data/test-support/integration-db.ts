@@ -123,6 +123,10 @@ const TABLES = [
   "urgencies",
   "chambers",
   "legal_entity_divisions",
+  "sessions",
+  "accounts",
+  "verifications",
+  "users",
 ];
 
 // Wipe all business tables so each test starts from a clean, known state.

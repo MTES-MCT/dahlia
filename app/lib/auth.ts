@@ -2,8 +2,12 @@ import { betterAuth } from "better-auth/minimal";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { genericOAuth } from "better-auth/plugins";
 import type { OAuth2UserInfo } from "better-auth/oauth2";
-import { createRemoteJWKSet, jwtVerify } from "jose";
 import { prisma } from "@/app/lib/prisma";
+import {
+  fetchProconnectUserInfo,
+  fillMissingUserNamesFromProvider,
+  getProconnectDiscovery,
+} from "@/app/lib/proconnect-user";
 
 // --- Configuration ProConnect (OIDC) ---------------------------------------
 // PROCONNECT_URL = domaine de base de l'environnement ProConnect.
@@ -12,45 +16,46 @@ import { prisma } from "@/app/lib/prisma";
 const PROCONNECT_URL = process.env.PROCONNECT_URL ?? "https://fca.integ01.dev-agentconnect.fr";
 const PROCONNECT_DISCOVERY_URL = `${PROCONNECT_URL}/api/v2/.well-known/openid-configuration`;
 
-type ProconnectDiscovery = {
-  issuer: string;
-  authorization_endpoint: string;
-  token_endpoint: string;
-  userinfo_endpoint: string;
-  end_session_endpoint: string;
-  jwks_uri: string;
-};
-
-// Le document de discovery et le JWKS sont mis en cache au niveau du module
-// (ils changent rarement) pour éviter un aller-retour réseau à chaque connexion.
-let discoveryCache: Promise<ProconnectDiscovery> | undefined;
-
-export function getProconnectDiscovery(): Promise<ProconnectDiscovery> {
-  if (!discoveryCache) {
-    discoveryCache = fetch(PROCONNECT_DISCOVERY_URL).then((res) => {
-      if (!res.ok) {
-        throw new Error(`ProConnect discovery a répondu ${res.status}`);
-      }
-      return res.json() as Promise<ProconnectDiscovery>;
-    });
-  }
-  return discoveryCache;
-}
-
-let jwksCache: ReturnType<typeof createRemoteJWKSet> | undefined;
-
-async function getProconnectJwks() {
-  if (!jwksCache) {
-    const discovery = await getProconnectDiscovery();
-    jwksCache = createRemoteJWKSet(new URL(discovery.jwks_uri));
-  }
-  return jwksCache;
-}
+export { getProconnectDiscovery };
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, { provider: "postgresql" }),
   baseURL: process.env.BETTER_AUTH_URL,
   secret: process.env.BETTER_AUTH_SECRET,
+  // Pre-created users (admin UI) only have a `users` row until first ProConnect
+  // login. Implicit linking then attaches the OAuth account; ProConnect is
+  // trusted because it is our sole IdP and verifies emails.
+  account: {
+    accountLinking: {
+      enabled: true,
+      trustedProviders: ["proconnect"],
+    },
+  },
+  // After ProConnect account create/update (first login or token refresh), backfill
+  // empty firstName/lastName from the IdP. These fields are input:false so
+  // mapProfileToUser cannot persist them through Better Auth's user API.
+  databaseHooks: {
+    account: {
+      create: {
+        after: async (account) => {
+          await fillMissingUserNamesFromProvider({
+            userId: account.userId,
+            providerId: account.providerId,
+            accessToken: account.accessToken,
+          });
+        },
+      },
+      update: {
+        after: async (account) => {
+          await fillMissingUserNamesFromProvider({
+            userId: account.userId,
+            providerId: account.providerId,
+            accessToken: account.accessToken,
+          });
+        },
+      },
+    },
+  },
   user: {
     additionalFields: {
       firstName: { type: "string", required: false, input: false },
@@ -80,38 +85,18 @@ export const auth = betterAuth({
           // The ProConnect userinfo is returned as a signed JWT (application/jwt),
           // not in JSON : we need to verify it and then decode it.
           getUserInfo: async (tokens) => {
-            const discovery = await getProconnectDiscovery();
-            const res = await fetch(discovery.userinfo_endpoint, {
-              headers: { Authorization: `Bearer ${tokens.accessToken}` },
-            });
-            if (!res.ok) {
+            if (!tokens.accessToken) {
               return null;
             }
-            const jwt = await res.text();
-            const jwks = await getProconnectJwks();
-            const { payload } = await jwtVerify(jwt, jwks, {
-              issuer: discovery.issuer,
-              audience: process.env.PROCONNECT_CLIENT_ID,
-            });
-
-            const givenName = (payload.given_name as string | undefined) ?? "";
-            const usualName = (payload.usual_name as string | undefined) ?? "";
-
-            // We transport firstName / lastName in addition to the standard fields ;
-            // mapProfileToUser (below) copies them to the business fields.
-            return {
-              id: String(payload.sub),
-              email: (payload.email as string | undefined) ?? null,
-              emailVerified: true,
-              name: `${givenName} ${usualName}`.trim(),
-              firstName: givenName,
-              lastName: usualName,
-            } as OAuth2UserInfo & { firstName: string; lastName: string };
+            const profile = await fetchProconnectUserInfo(tokens.accessToken);
+            if (!profile) {
+              return null;
+            }
+            return profile as OAuth2UserInfo & { firstName: string; lastName: string };
           },
-          // `profile` is the object returned by getUserInfo above. We copy
-          // firstName / lastName : they are not in the return type of
-          // better-auth (based on the standard User) but are well persisted at
-          // execution because declared in additionalFields. Hence the cast.
+          // Kept for documentation / future input:true fields. firstName/lastName
+          // are input:false so Better Auth ignores these on persist; the
+          // databaseHooks above fill empty names after account create/update.
           mapProfileToUser: (profile) =>
             ({
               firstName: profile.firstName as string,

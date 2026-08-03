@@ -93,13 +93,15 @@ sont montées sur `/api/auth/*`.
 - À la première connexion ProConnect, l'utilisateur est créé en base avec
   `isValidated = false` et `isAdmin = false`. Tant qu'il n'est pas validé, il voit
   un message d'attente. Les administrateurs (`isAdmin = true`) accèdent à
-  `/admin/users` (liste lecture seule des utilisateurs).
-- **Validation / promotion admin** manuelle via Prisma Studio (`pnpm db:studio`)
-  ou en SQL :
+  `/admin/users` pour gérer les utilisateurs (création, modification, suppression).
+  L'email d'un compte doit correspondre à celui utilisé avec ProConnect.
+  Un utilisateur pré-créé en admin a `emailVerified = true` pour que Better Auth
+  puisse rattacher le compte ProConnect au premier login (account linking).
+- **Bootstrap du premier admin** via Prisma Studio (`pnpm db:studio`) ou en SQL
+  (ensuite la page d'administration suffit) :
 
   ```sql
-  UPDATE users SET "isValidated" = true WHERE email = 'prenom.nom@exemple.gouv.fr';
-  UPDATE users SET "isAdmin" = true WHERE email = 'prenom.nom@exemple.gouv.fr';
+  UPDATE users SET "isValidated" = true, "isAdmin" = true WHERE email = 'prenom.nom@exemple.gouv.fr';
   ```
 
 - La particularité ProConnect du `userinfo` renvoyé en **JWT signé** est gérée par
