@@ -9,11 +9,13 @@ export type HeaderDahliaUser = {
   lastName?: string | null;
   name?: string | null;
   email?: string | null;
+  isAdmin?: boolean | null;
 };
 
 // Application header (DSFR) for DAHLIA.
 // Shows a « Se connecter » link when no user is provided; otherwise displays
-// the user's name and a « Se déconnecter » link.
+// the user's name and a « Se déconnecter » link. Admins also get a link to
+// the users administration page.
 export function HeaderDahlia({ user }: { user?: HeaderDahliaUser | null }) {
   const quickAccessItems: HeaderProps["quickAccessItems"] = user
     ? [
@@ -21,6 +23,15 @@ export function HeaderDahlia({ user }: { user?: HeaderDahliaUser | null }) {
           <span className={fr.cx("fr-icon-account-line")} aria-hidden="true" />
           {[user.firstName, user.lastName].filter(Boolean).join(" ") || user.name || user.email}
         </p>,
+        ...(user.isAdmin
+          ? [
+              {
+                iconId: "fr-icon-settings-5-line" as const,
+                linkProps: { href: "/admin/users" },
+                text: "Administration",
+              },
+            ]
+          : []),
         {
           iconId: "fr-icon-logout-box-r-line",
           linkProps: { href: "/api/auth/proconnect-logout", prefetch: false },

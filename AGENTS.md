@@ -74,6 +74,7 @@ applique aussitôt et échoue avant qu'on puisse corriger le SQL.
 - **Tailwind** : utiliser Tailwind v4 en complément du DSFR lorsque le DSFR ne propose pas la classe voulue ou pour personnaliser. Combiner avec `fr.cx(...)` et `clsx(...)` si besoin.
 - **Styles** : éviter au maximum l'attribut `style` ; préférer des classes DSFR ou Tailwind. Si l'attribut `style` est nécessaire, demander confirmation à l'utilisateur en justifiant pourquoi les classes ne conviennent pas.
 - **TypeScript** : toujours vérifier que les contrôles TypeScript passent et utiliser les types générés par Prisma (ex. `Prisma.CaseFileGetPayload`) pour le code de la couche données.
+- **Titre de page (RGAA 8.5/8.6)** : toute nouvelle page doit exporter un `metadata.title` (ou `generateMetadata`) **spécifique et significatif**. Le layout racine applique le gabarit `%s - DAHLIA` : ne pas inclure « - DAHLIA » dans le titre de la page. Ajouter aussi un cas dans `app/page-titles.unit.test.tsx` (et l'inclure dans le test d'unicité des titres).
 
 ## Tests
 

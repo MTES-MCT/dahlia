@@ -5,7 +5,7 @@ import { PendingValidation } from "@/app/ui/pending-validation";
 
 // Access control for connected pages:
 // - no valid session → redirect to /connexion ;
-// - valid session but account not validated → pending validation message ;
+// - valid session but isValidated is false → pending validation message ;
 // - otherwise → render the page.
 export default async function ProtectedLayout({
   children,
@@ -16,7 +16,7 @@ export default async function ProtectedLayout({
     redirect("/connexion");
   }
 
-  if (!session.user.validated) {
+  if (!session.user.isValidated) {
     return <PendingValidation />;
   }
 

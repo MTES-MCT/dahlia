@@ -91,11 +91,17 @@ sont montées sur `/api/auth/*`.
 - La page d'accueil `/` est **publique** ; toutes les autres pages exigent un
   compte **connecté et validé** (cf. `proxy.ts` + `app/(protected)/layout.tsx`).
 - À la première connexion ProConnect, l'utilisateur est créé en base avec
-  `validated = false`. Tant qu'il n'est pas validé, il voit un message d'attente.
-- **Validation manuelle** (admin) via Prisma Studio (`pnpm db:studio`) ou en SQL :
+  `isValidated = false` et `isAdmin = false`. Tant qu'il n'est pas validé, il voit
+  un message d'attente. Les administrateurs (`isAdmin = true`) accèdent à
+  `/admin/users` pour gérer les utilisateurs (création, modification, suppression).
+  L'email d'un compte doit correspondre à celui utilisé avec ProConnect.
+  Un utilisateur pré-créé en admin a `emailVerified = true` pour que Better Auth
+  puisse rattacher le compte ProConnect au premier login (account linking).
+- **Bootstrap du premier admin** via Prisma Studio (`pnpm db:studio`) ou en SQL
+  (ensuite la page d'administration suffit) :
 
   ```sql
-  UPDATE users SET "validated" = true WHERE email = 'prenom.nom@exemple.gouv.fr';
+  UPDATE users SET "isValidated" = true, "isAdmin" = true WHERE email = 'prenom.nom@exemple.gouv.fr';
   ```
 
 - La particularité ProConnect du `userinfo` renvoyé en **JWT signé** est gérée par
@@ -428,7 +434,8 @@ erDiagram
         string image "nullable"
         string firstName "nullable"
         string lastName "nullable"
-        boolean validated "défaut false (autorisation)"
+        boolean isValidated "défaut false (autorisation)"
+        boolean isAdmin "défaut false (accès /admin)"
         DateTime createdAt
         DateTime updatedAt
     }

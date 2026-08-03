@@ -5,7 +5,7 @@ import { getSessionCookie } from "better-auth/cookies";
 const PUBLIC_PATHS = ["/", "/connexion"];
 
 // Optimistic protection based on the presence of the session cookie (no DB call here).
-// The real check (valid session + validated account) is done in app/(protected)/layout.tsx,
+// The real check (valid session + isValidated account) is done in app/(protected)/layout.tsx,
 // Server Component side.
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

@@ -55,6 +55,15 @@ describe("HeaderDahlia", () => {
     const liens = screen.getAllByRole("link", { name: /Se déconnecter/ });
     expect(liens[0].getAttribute("href")).toBe("/api/auth/proconnect-logout");
     expect(screen.queryAllByText(/Se connecter/)).toHaveLength(0);
+    expect(screen.queryAllByRole("link", { name: /Administration/ })).toHaveLength(0);
+  });
+
+  it("affiche le lien Administration pour un administrateur", () => {
+    render(<HeaderDahlia user={{ firstName: "Jean", lastName: "Dupont", isAdmin: true }} />);
+
+    const liens = screen.getAllByRole("link", { name: /Administration/ });
+    expect(liens.length).toBeGreaterThan(0);
+    expect(liens[0].getAttribute("href")).toBe("/admin/users");
   });
 
   it("se replie sur name quand prénom et nom sont absents", () => {
