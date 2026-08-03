@@ -62,6 +62,7 @@ describe("enrichCaseFile", () => {
 
   beforeEach(() => {
     prisma = mockDeep<PrismaClient>();
+    prisma.jurisdiction.upsert.mockResolvedValue({ id: 1, name: "", shortName: "TA069" });
     vi.spyOn(console, "log").mockImplementation(() => {});
     vi.spyOn(console, "warn").mockImplementation(() => {});
   });

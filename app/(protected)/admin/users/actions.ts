@@ -1,36 +1,25 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
-import { Prisma } from "@prisma/client";
-import { auth } from "@/app/lib/auth";
+import {
+  type AdminMutationResult,
+  type ParseResult,
+  describePrismaError,
+  requireAdmin,
+} from "@/app/lib/admin-actions";
 import { prisma } from "@/app/lib/prisma";
 
-export type UserMutationResult = { ok: true } | { ok: false; error: string };
+export type UserMutationResult = AdminMutationResult;
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ADMIN_USERS_PATH = "/admin/users";
-
-type AdminSession = { userId: string };
-
-async function requireAdmin(): Promise<AdminSession | UserMutationResult> {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user?.isAdmin) {
-    return { ok: false, error: "Accès réservé aux administrateurs." };
-  }
-  return { userId: session.user.id };
-}
-
-function isAdminSession(value: AdminSession | UserMutationResult): value is AdminSession {
-  return "userId" in value;
-}
 
 function parseOptionalText(formData: FormData, key: string): string | null {
   const value = String(formData.get(key) ?? "").trim();
   return value || null;
 }
 
-function parseEmail(formData: FormData): { email: string } | UserMutationResult {
+function parseEmail(formData: FormData): ParseResult<{ email: string }> {
   const email = String(formData.get("email") ?? "")
     .trim()
     .toLowerCase();
@@ -40,7 +29,7 @@ function parseEmail(formData: FormData): { email: string } | UserMutationResult 
   if (!EMAIL_PATTERN.test(email)) {
     return { ok: false, error: "L'email n'est pas valide." };
   }
-  return { email };
+  return { ok: true, email };
 }
 
 function parseBooleanFlag(formData: FormData, key: string): boolean {
@@ -55,14 +44,11 @@ function buildDisplayName(
   return [firstName, lastName].filter(Boolean).join(" ").trim() || email;
 }
 
-function describePrismaError(error: unknown): string {
-  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-    return "Un utilisateur avec cet email existe déjà.";
-  }
-  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
-    return "Utilisateur introuvable.";
-  }
-  return error instanceof Error ? error.message : String(error);
+function describeUserPrismaError(error: unknown): string {
+  return describePrismaError(error, {
+    P2002: "Un utilisateur avec cet email existe déjà.",
+    P2025: "Utilisateur introuvable.",
+  });
 }
 
 export async function createUserFormAction(
@@ -70,10 +56,10 @@ export async function createUserFormAction(
   formData: FormData,
 ): Promise<UserMutationResult> {
   const admin = await requireAdmin();
-  if (!isAdminSession(admin)) return admin;
+  if (!admin.ok) return admin;
 
   const parsedEmail = parseEmail(formData);
-  if (!("email" in parsedEmail)) return parsedEmail;
+  if (!parsedEmail.ok) return parsedEmail;
 
   const firstName = parseOptionalText(formData, "firstName");
   const lastName = parseOptionalText(formData, "lastName");
@@ -98,7 +84,7 @@ export async function createUserFormAction(
     revalidatePath(ADMIN_USERS_PATH);
     return { ok: true };
   } catch (error) {
-    return { ok: false, error: describePrismaError(error) };
+    return { ok: false, error: describeUserPrismaError(error) };
   }
 }
 
@@ -107,7 +93,7 @@ export async function updateUserFormAction(
   formData: FormData,
 ): Promise<UserMutationResult> {
   const admin = await requireAdmin();
-  if (!isAdminSession(admin)) return admin;
+  if (!admin.ok) return admin;
 
   const userId = String(formData.get("id") ?? "").trim();
   if (!userId) {
@@ -115,7 +101,7 @@ export async function updateUserFormAction(
   }
 
   const parsedEmail = parseEmail(formData);
-  if (!("email" in parsedEmail)) return parsedEmail;
+  if (!parsedEmail.ok) return parsedEmail;
 
   const firstName = parseOptionalText(formData, "firstName");
   const lastName = parseOptionalText(formData, "lastName");
@@ -146,7 +132,7 @@ export async function updateUserFormAction(
     revalidatePath(ADMIN_USERS_PATH);
     return { ok: true };
   } catch (error) {
-    return { ok: false, error: describePrismaError(error) };
+    return { ok: false, error: describeUserPrismaError(error) };
   }
 }
 
@@ -155,7 +141,7 @@ export async function deleteUserFormAction(
   formData: FormData,
 ): Promise<UserMutationResult> {
   const admin = await requireAdmin();
-  if (!isAdminSession(admin)) return admin;
+  if (!admin.ok) return admin;
 
   const userId = String(formData.get("id") ?? "").trim();
   if (!userId) {
@@ -171,6 +157,6 @@ export async function deleteUserFormAction(
     revalidatePath(ADMIN_USERS_PATH);
     return { ok: true };
   } catch (error) {
-    return { ok: false, error: describePrismaError(error) };
+    return { ok: false, error: describeUserPrismaError(error) };
   }
 }

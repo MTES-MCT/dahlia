@@ -22,6 +22,7 @@ describe("runScrape", () => {
 
   beforeEach(() => {
     prisma = mockDeep<PrismaClient>();
+    prisma.jurisdiction.upsert.mockResolvedValue({ id: 1, name: "", shortName: "TA069" });
     prisma.caseFile.updateMany.mockResolvedValue({ count: 0 });
     vi.spyOn(console, "log").mockImplementation(() => {});
     vi.spyOn(console, "warn").mockImplementation(() => {});

@@ -39,6 +39,12 @@ model CaseFile {
   assignedToLegalEntityDivisionId Int
   assignedToLegalEntityDivision   LegalEntityDivision @relation(fields: [assignedToLegalEntityDivisionId], references: [id])
 
+  // Juridiction Télérecours d'où provient le dossier (celle passée en
+  // --jurisdiction au scraper). Nullable : les dossiers importés avant
+  // l'introduction du modèle restent à null jusqu'à leur prochain scrape.
+  jurisdictionId Int?
+  jurisdiction   Jurisdiction? @relation(fields: [jurisdictionId], references: [id])
+
   urgencyId Int?
   urgency   Urgency? @relation(fields: [urgencyId], references: [id])
 
@@ -70,7 +76,7 @@ model CaseFile {
   lastHearingConvocationDate DateTime?
   // Generated in Postgres: COALESCE(productionDeadlineDate, lastHearingConvocationDate).
   // Prisma 7 does not model generated columns; declared as a plain nullable field.
-  memoryDeadlineDate DateTime?
+  memoryDeadlineDate         DateTime?
 
   // Set to true when a case file present in DB is no longer returned by the
   // Telerecours list scrape within the same perimeter (see scrape-telerecours

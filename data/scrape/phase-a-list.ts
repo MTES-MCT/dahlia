@@ -1,5 +1,6 @@
 import { describeError, sleep } from "../telerecours/http";
 import { upsertCaseFile } from "../persistence/upsert-case-file";
+import { upsertJurisdiction } from "../persistence/upsert-jurisdiction";
 import { divisionWhere, enrichmentTargetsWhere } from "./where";
 import type { Args, ScrapeDeps } from "./pipeline";
 
@@ -14,6 +15,10 @@ export async function phaseA(
   const { prisma, client } = deps;
   const rateLimitMs = deps.rateLimitMs ?? DEFAULT_RATE_LIMIT_MS;
   console.log(`\n══ Phase A — scrape liste /api/case-file (${args.jurisdiction}) ══`);
+
+  // Resolved once for the whole run: every case file upserted below is tagged
+  // with the jurisdiction the scrape was run against.
+  const jurisdictionId = await upsertJurisdiction(prisma, args.jurisdiction);
 
   const statusGroupIds = args.all
     ? undefined
@@ -75,7 +80,7 @@ export async function phaseA(
       seen.add(item.caseFileNumber);
 
       try {
-        const upserted = await upsertCaseFile(prisma, item, args.anonymize);
+        const upserted = await upsertCaseFile(prisma, item, args.anonymize, jurisdictionId);
         if (upserted) upsertCount++;
         else skippedCaseFileNumbers.push(item.caseFileNumber);
       } catch (error) {

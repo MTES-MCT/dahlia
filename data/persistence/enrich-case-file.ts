@@ -12,6 +12,7 @@ import { computeContentHash } from "./content-hash";
 import { paginate } from "./paginate";
 import { upsertCaseFileActorsFromApi } from "./upsert-case-file-actors";
 import { upsertActor, upsertCaseFile } from "./upsert-case-file";
+import { upsertJurisdiction } from "./upsert-jurisdiction";
 
 function parseDate(value: string | null | undefined): Date | undefined {
   if (!value) return undefined;
@@ -310,7 +311,10 @@ export async function enrichCaseFile(
   // Re-upsert the base CaseFile (in case the detail brings fields missing from
   // the list view) then fill the detail columns.
   if (detail.assignedToLegalEntityDivision && detail.lastStatus && detail.mainClaimant) {
-    await upsertCaseFile(prisma, detail, anonymize);
+    // Tag the case file with the jurisdiction this enrichment was fetched from.
+    // Also covers the webapp's single-case-file refresh, which never runs phase A.
+    const jurisdictionId = await upsertJurisdiction(prisma, jurisdiction);
+    await upsertCaseFile(prisma, detail, anonymize, jurisdictionId);
   }
   await upsertCaseFileDetail(prisma, detail);
 

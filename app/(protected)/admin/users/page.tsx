@@ -72,11 +72,11 @@ export default async function AdminUsersPage({ searchParams }: Props) {
     <UsersActionsProvider>
       <div
         className={clsx(
-          fr.cx("fr-mt-3w", "fr-mb-2w"),
+          fr.cx("fr-mb-2w"),
           "flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between",
         )}
       >
-        <h1 className={fr.cx("fr-h2", "fr-mb-0")}>Administration des utilisateurs</h1>
+        <h1 className={fr.cx("fr-h2", "fr-mb-0")}>Utilisateurs</h1>
         <CreateUserButton />
       </div>
 

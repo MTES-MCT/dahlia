@@ -118,9 +118,7 @@ export async function updateCaseFileDetailsFormAction(
     productionDeadlineType = deadlineType.value;
 
     if (productionDeadlineType) {
-      const rawProductionDeadlineDate = String(
-        formData.get("productionDeadlineDate") ?? "",
-      ).trim();
+      const rawProductionDeadlineDate = String(formData.get("productionDeadlineDate") ?? "").trim();
       const parsedDate = parseProductionDeadlineDate(rawProductionDeadlineDate);
       if (parsedDate === "invalid") {
         return { ok: false, error: "Date limite de production invalide." };

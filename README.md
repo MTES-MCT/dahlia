@@ -284,6 +284,7 @@ erDiagram
         string keywords "array"
         int recipientContactCount "nullable"
         int assignedToLegalEntityDivisionId FK
+        int jurisdictionId FK "nullable"
         int urgencyId FK
         int lastStatusId FK
         DateTime lastStatusDate
@@ -304,6 +305,12 @@ erDiagram
         int id PK
         string name
         string shortName UK
+    }
+
+    Jurisdiction {
+        int id PK
+        string name
+        string shortName UK "code Télérecours, ex. TA069"
     }
 
     Urgency {
@@ -441,6 +448,7 @@ erDiagram
     }
 
     LegalEntityDivision ||--o{ CaseFile : "assignedTo"
+    Jurisdiction        ||--o{ CaseFile : "scrapedFrom"
     Urgency             ||--o{ CaseFile : "has urgency"
     Status              ||--o{ CaseFile : "lastStatus"
     Chamber             ||--o{ CaseFile : "chamber"

@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { getActorDisplayName } from "@/app/lib/case-file-format";
-import { CASE_FILES_DASHBOARD_INCLUDE, HEARING_CONVOCATION_SORT_KEY } from "@/app/lib/case-files-dashboard-columns";
+import {
+  CASE_FILES_DASHBOARD_INCLUDE,
+  HEARING_CONVOCATION_SORT_KEY,
+} from "@/app/lib/case-files-dashboard-columns";
 import { fetchCaseFileDetail, fetchCaseFilesTableData } from "./case-files";
 import { prisma } from "@/app/lib/prisma";
 
@@ -489,10 +492,7 @@ describe("case-files", () => {
       await fetchCaseFilesTableData(1, 10, null, "descending", "dossier:TA069");
 
       const expectedWhere = {
-        AND: [
-          { isDeleted: false },
-          { caseFileNumber: { contains: "TA069", mode: "insensitive" } },
-        ],
+        AND: [{ isDeleted: false }, { caseFileNumber: { contains: "TA069", mode: "insensitive" } }],
       };
 
       expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(

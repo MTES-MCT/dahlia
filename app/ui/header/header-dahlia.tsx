@@ -27,7 +27,7 @@ export function HeaderDahlia({ user }: { user?: HeaderDahliaUser | null }) {
           ? [
               {
                 iconId: "fr-icon-settings-5-line" as const,
-                linkProps: { href: "/admin/users" },
+                linkProps: { href: "/admin" },
                 text: "Administration",
               },
             ]

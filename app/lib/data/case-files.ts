@@ -1,9 +1,6 @@
 import { Prisma, type LitigationType, type RightType } from "@prisma/client";
 import { cache } from "react";
-import {
-  CASE_FILE_ACTOR_INCLUDE,
-  buildMainActorSearchFilter,
-} from "@/app/lib/case-file-actors";
+import { CASE_FILE_ACTOR_INCLUDE, buildMainActorSearchFilter } from "@/app/lib/case-file-actors";
 import {
   LITIGATION_TYPE_LABELS,
   LITIGATION_TYPE_SHORT_LABELS,

@@ -28,9 +28,7 @@ describe("CaseFileDossierCell", () => {
   });
 
   it("affiche le lien, le titre en italique et le badge de statut", () => {
-    render(
-      <CaseFileDossierCell caseFile={buildCaseFile()} href="/case_files/TA069%2F12345" />,
-    );
+    render(<CaseFileDossierCell caseFile={buildCaseFile()} href="/case_files/TA069%2F12345" />);
 
     const link = screen.getByRole("link", { name: "TA069/12345" });
     expect(link.getAttribute("href")).toBe("/case_files/TA069%2F12345");

@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { Actor, CaseFile } from "../telerecours/types";
 import { anonymizeActor } from "../anonymize";
 import { upsertCaseFileActorLink } from "./upsert-case-file-actors";
+import { upsertLegalEntityDivision } from "./upsert-legal-entity-division";
 
 // The Prisma client is passed in so that this module can be reused both by the
 // standalone scraping script (its own `new PrismaClient`) and by the webapp
@@ -35,10 +36,13 @@ export async function upsertActor(
 // Upsert the base CaseFile and its directly-referenced entities (qualities,
 // division, urgency, status, last hearing/conclusion, case-file actors) from a
 // list-view payload. Returns false (and skips) when a required field is absent.
+// `jurisdictionId` is the Jurisdiction the scrape ran against (see
+// upsertJurisdiction); when omitted the column is left untouched.
 export async function upsertCaseFile(
   prisma: PrismaClient,
   caseFile: CaseFile,
   anonymize: boolean = false,
+  jurisdictionId?: number,
 ): Promise<boolean> {
   const missingFields: string[] = [];
   if (!caseFile.assignedToLegalEntityDivision) missingFields.push("assignedToLegalEntityDivision");
@@ -56,18 +60,7 @@ export async function upsertCaseFile(
     return false;
   }
 
-  await prisma.legalEntityDivision.upsert({
-    where: { id: caseFile.assignedToLegalEntityDivision.id },
-    update: {
-      name: caseFile.assignedToLegalEntityDivision.name,
-      shortName: caseFile.assignedToLegalEntityDivision.shortName,
-    },
-    create: {
-      id: caseFile.assignedToLegalEntityDivision.id,
-      name: caseFile.assignedToLegalEntityDivision.name,
-      shortName: caseFile.assignedToLegalEntityDivision.shortName,
-    },
-  });
+  await upsertLegalEntityDivision(prisma, caseFile.assignedToLegalEntityDivision);
 
   if (caseFile.urgency) {
     await prisma.urgency.upsert({
@@ -166,6 +159,8 @@ export async function upsertCaseFile(
       deletedAt: null,
       procedureState: caseFile.procedureState,
       assignedToLegalEntityDivisionId: caseFile.assignedToLegalEntityDivision.id,
+      // `undefined` leaves the column as-is rather than clearing it.
+      jurisdictionId,
       urgencyId: caseFile.urgency?.id,
       lastStatusId: caseFile.lastStatus.id,
       lastStatusDate: new Date(caseFile.lastStatus.statusDate),
@@ -178,6 +173,7 @@ export async function upsertCaseFile(
       caseFileNumber: caseFile.caseFileNumber,
       procedureState: caseFile.procedureState,
       assignedToLegalEntityDivisionId: caseFile.assignedToLegalEntityDivision.id,
+      jurisdictionId,
       urgencyId: caseFile.urgency?.id,
       lastStatusId: caseFile.lastStatus.id,
       lastStatusDate: new Date(caseFile.lastStatus.statusDate),
