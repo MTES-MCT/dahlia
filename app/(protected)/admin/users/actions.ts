@@ -5,7 +5,7 @@ import {
   type AdminMutationResult,
   type ParseResult,
   describePrismaError,
-  requireAdmin,
+  withAdminAction,
 } from "@/app/lib/admin-actions";
 import { prisma } from "@/app/lib/prisma";
 
@@ -51,112 +51,100 @@ function describeUserPrismaError(error: unknown): string {
   });
 }
 
-export async function createUserFormAction(
-  _prevState: UserMutationResult | null,
-  formData: FormData,
-): Promise<UserMutationResult> {
-  const admin = await requireAdmin();
-  if (!admin.ok) return admin;
+export const createUserFormAction = withAdminAction(
+  async (_admin, _prevState: UserMutationResult | null, formData: FormData) => {
+    const parsedEmail = parseEmail(formData);
+    if (!parsedEmail.ok) return parsedEmail;
 
-  const parsedEmail = parseEmail(formData);
-  if (!parsedEmail.ok) return parsedEmail;
+    const firstName = parseOptionalText(formData, "firstName");
+    const lastName = parseOptionalText(formData, "lastName");
+    const isValidated = parseBooleanFlag(formData, "isValidated");
+    const isAdmin = parseBooleanFlag(formData, "isAdmin");
 
-  const firstName = parseOptionalText(formData, "firstName");
-  const lastName = parseOptionalText(formData, "lastName");
-  const isValidated = parseBooleanFlag(formData, "isValidated");
-  const isAdmin = parseBooleanFlag(formData, "isAdmin");
+    try {
+      await prisma.user.create({
+        data: {
+          id: crypto.randomUUID(),
+          email: parsedEmail.email,
+          // Must be true so Better Auth can implicitly link ProConnect on first
+          // login (requireLocalEmailVerified defaults to true).
+          emailVerified: true,
+          name: buildDisplayName(firstName, lastName, parsedEmail.email),
+          firstName,
+          lastName,
+          isValidated,
+          isAdmin,
+        },
+      });
+      revalidatePath(ADMIN_USERS_PATH);
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: describeUserPrismaError(error) };
+    }
+  },
+);
 
-  try {
-    await prisma.user.create({
-      data: {
-        id: crypto.randomUUID(),
-        email: parsedEmail.email,
-        // Must be true so Better Auth can implicitly link ProConnect on first
-        // login (requireLocalEmailVerified defaults to true).
-        emailVerified: true,
-        name: buildDisplayName(firstName, lastName, parsedEmail.email),
-        firstName,
-        lastName,
-        isValidated,
-        isAdmin,
-      },
-    });
-    revalidatePath(ADMIN_USERS_PATH);
-    return { ok: true };
-  } catch (error) {
-    return { ok: false, error: describeUserPrismaError(error) };
-  }
-}
+export const updateUserFormAction = withAdminAction(
+  async (admin, _prevState: UserMutationResult | null, formData: FormData) => {
+    const userId = String(formData.get("id") ?? "").trim();
+    if (!userId) {
+      return { ok: false, error: "Identifiant utilisateur manquant." };
+    }
 
-export async function updateUserFormAction(
-  _prevState: UserMutationResult | null,
-  formData: FormData,
-): Promise<UserMutationResult> {
-  const admin = await requireAdmin();
-  if (!admin.ok) return admin;
+    const parsedEmail = parseEmail(formData);
+    if (!parsedEmail.ok) return parsedEmail;
 
-  const userId = String(formData.get("id") ?? "").trim();
-  if (!userId) {
-    return { ok: false, error: "Identifiant utilisateur manquant." };
-  }
+    const firstName = parseOptionalText(formData, "firstName");
+    const lastName = parseOptionalText(formData, "lastName");
+    const isValidated = parseBooleanFlag(formData, "isValidated");
+    const isAdmin = parseBooleanFlag(formData, "isAdmin");
 
-  const parsedEmail = parseEmail(formData);
-  if (!parsedEmail.ok) return parsedEmail;
+    if (userId === admin.userId && !isAdmin) {
+      return {
+        ok: false,
+        error: "Vous ne pouvez pas retirer vos propres droits d'administrateur.",
+      };
+    }
 
-  const firstName = parseOptionalText(formData, "firstName");
-  const lastName = parseOptionalText(formData, "lastName");
-  const isValidated = parseBooleanFlag(formData, "isValidated");
-  const isAdmin = parseBooleanFlag(formData, "isAdmin");
+    try {
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          email: parsedEmail.email,
+          // Keep verified so a re-invited / edited user can still link ProConnect.
+          emailVerified: true,
+          name: buildDisplayName(firstName, lastName, parsedEmail.email),
+          firstName,
+          lastName,
+          isValidated,
+          isAdmin,
+        },
+      });
+      revalidatePath(ADMIN_USERS_PATH);
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: describeUserPrismaError(error) };
+    }
+  },
+);
 
-  if (userId === admin.userId && !isAdmin) {
-    return {
-      ok: false,
-      error: "Vous ne pouvez pas retirer vos propres droits d'administrateur.",
-    };
-  }
+export const deleteUserFormAction = withAdminAction(
+  async (admin, _prevState: UserMutationResult | null, formData: FormData) => {
+    const userId = String(formData.get("id") ?? "").trim();
+    if (!userId) {
+      return { ok: false, error: "Identifiant utilisateur manquant." };
+    }
 
-  try {
-    await prisma.user.update({
-      where: { id: userId },
-      data: {
-        email: parsedEmail.email,
-        // Keep verified so a re-invited / edited user can still link ProConnect.
-        emailVerified: true,
-        name: buildDisplayName(firstName, lastName, parsedEmail.email),
-        firstName,
-        lastName,
-        isValidated,
-        isAdmin,
-      },
-    });
-    revalidatePath(ADMIN_USERS_PATH);
-    return { ok: true };
-  } catch (error) {
-    return { ok: false, error: describeUserPrismaError(error) };
-  }
-}
+    if (userId === admin.userId) {
+      return { ok: false, error: "Vous ne pouvez pas supprimer votre propre compte." };
+    }
 
-export async function deleteUserFormAction(
-  _prevState: UserMutationResult | null,
-  formData: FormData,
-): Promise<UserMutationResult> {
-  const admin = await requireAdmin();
-  if (!admin.ok) return admin;
-
-  const userId = String(formData.get("id") ?? "").trim();
-  if (!userId) {
-    return { ok: false, error: "Identifiant utilisateur manquant." };
-  }
-
-  if (userId === admin.userId) {
-    return { ok: false, error: "Vous ne pouvez pas supprimer votre propre compte." };
-  }
-
-  try {
-    await prisma.user.delete({ where: { id: userId } });
-    revalidatePath(ADMIN_USERS_PATH);
-    return { ok: true };
-  } catch (error) {
-    return { ok: false, error: describeUserPrismaError(error) };
-  }
-}
+    try {
+      await prisma.user.delete({ where: { id: userId } });
+      revalidatePath(ADMIN_USERS_PATH);
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: describeUserPrismaError(error) };
+    }
+  },
+);
