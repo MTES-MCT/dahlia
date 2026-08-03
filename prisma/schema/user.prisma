@@ -1,8 +1,8 @@
-// Modèles d'authentification gérés par better-auth (cf. app/lib/auth.ts).
-// Schéma conforme au « core schema » de better-auth (User/Session/Account/
-// Verification). Champs métier ajoutés sur User : firstName, lastName et
-// validated (autorisation : un compte n'accède aux pages connectées qu'une fois
-// validé manuellement en base par un administrateur).
+// Authentication models managed by better-auth (see app/lib/auth.ts).
+// Schema follows better-auth's core schema (User/Session/Account/Verification).
+// Business fields on User: firstName, lastName, isValidated (access gate: a
+// freshly created account cannot reach protected pages until validated), and
+// isAdmin (access to /admin/*).
 
 model User {
   id            String  @id
@@ -11,10 +11,11 @@ model User {
   emailVerified Boolean @default(false)
   image         String?
 
-  // Champs métier
-  firstName String?
-  lastName  String?
-  validated Boolean @default(false)
+  // Business fields
+  firstName   String?
+  lastName    String?
+  isValidated Boolean @default(false)
+  isAdmin     Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
