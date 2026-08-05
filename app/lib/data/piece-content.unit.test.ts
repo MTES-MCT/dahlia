@@ -10,19 +10,20 @@ vi.mock("@/app/lib/mocked-pieces", () => ({
 }));
 
 vi.mock("@/app/lib/telerecours", () => ({
-  getTelerecoursClient: vi.fn(() => ({
+  getTelerecoursClientForCaseFile: vi.fn(async () => ({
     client: { downloadFile: downloadFileMock },
     jurisdiction: "TA069",
   })),
 }));
 
 import { fetchPieceContent } from "./piece-content";
-import { getTelerecoursClient } from "@/app/lib/telerecours";
+import { getTelerecoursClientForCaseFile } from "@/app/lib/telerecours";
 
-const mockedGetTelerecoursClient = vi.mocked(getTelerecoursClient);
+const mockedGetTelerecoursClientForCaseFile = vi.mocked(getTelerecoursClientForCaseFile);
 
 function attachedFile(
   overrides: {
+    caseFileNumber?: string;
     encodedFileId?: string;
     fileTypeLabel?: string | null;
     mimeType?: string | null;
@@ -32,6 +33,7 @@ function attachedFile(
   } = {},
 ) {
   return {
+    caseFileNumber: "TA069-001",
     encodedFileId: "file-abc",
     fileTypeLabel: "Requête",
     mimeType: "application/pdf",
@@ -74,7 +76,7 @@ describe("fetchPieceContent", () => {
       const result = await fetchPieceContent(file);
 
       expect(readMockedPdfMock).toHaveBeenCalledWith("Requête");
-      expect(mockedGetTelerecoursClient).not.toHaveBeenCalled();
+      expect(mockedGetTelerecoursClientForCaseFile).not.toHaveBeenCalled();
       expect(result.mimeType).toBe("application/pdf");
       expect(result.downloadName).toBe("requete.pdf");
       expect(Array.from(result.data)).toEqual(Array.from(source));
@@ -120,7 +122,7 @@ describe("fetchPieceContent", () => {
       const file = attachedFile({ encodedFileId: "enc-123" });
       const result = await fetchPieceContent(file);
 
-      expect(mockedGetTelerecoursClient).toHaveBeenCalled();
+      expect(mockedGetTelerecoursClientForCaseFile).toHaveBeenCalledWith("TA069-001");
       expect(downloadFileMock).toHaveBeenCalledWith("enc-123", "TA069");
       expect(readMockedPdfMock).not.toHaveBeenCalled();
       expect(result.mimeType).toBe("image/png");
