@@ -1,6 +1,11 @@
 import { fr } from "@codegouvfr/react-dsfr";
 import clsx from "clsx";
-import { formatDateFr, formatDateTimeFr, getActorDisplayName, getCaseFileDisplayName } from "@/app/lib/case-file-format";
+import {
+  formatDateFr,
+  formatDateTimeFr,
+  getActorDisplayName,
+  getCaseFileDisplayName,
+} from "@/app/lib/case-file-format";
 import {
   getMainClaimantActor,
   getMainDefenderActor,

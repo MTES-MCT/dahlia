@@ -2,6 +2,8 @@ import { PrismaClient } from "@prisma/client";
 import { Actor, CaseFile } from "../telerecours/types";
 import { anonymizeActor } from "../anonymize";
 import { upsertCaseFileActorLink } from "./upsert-case-file-actors";
+import { upsertHearingWithConclusion } from "./upsert-hearing";
+import { upsertLegalEntityDivision } from "./upsert-legal-entity-division";
 
 // The Prisma client is passed in so that this module can be reused both by the
 // standalone scraping script (its own `new PrismaClient`) and by the webapp
@@ -35,10 +37,13 @@ export async function upsertActor(
 // Upsert the base CaseFile and its directly-referenced entities (qualities,
 // division, urgency, status, last hearing/conclusion, case-file actors) from a
 // list-view payload. Returns false (and skips) when a required field is absent.
+// `jurisdictionId` is the Jurisdiction the scrape ran against (see
+// upsertJurisdiction); when omitted the column is left untouched.
 export async function upsertCaseFile(
   prisma: PrismaClient,
   caseFile: CaseFile,
   anonymize: boolean = false,
+  jurisdictionId?: number,
 ): Promise<boolean> {
   const missingFields: string[] = [];
   if (!caseFile.assignedToLegalEntityDivision) missingFields.push("assignedToLegalEntityDivision");
@@ -56,18 +61,7 @@ export async function upsertCaseFile(
     return false;
   }
 
-  await prisma.legalEntityDivision.upsert({
-    where: { id: caseFile.assignedToLegalEntityDivision.id },
-    update: {
-      name: caseFile.assignedToLegalEntityDivision.name,
-      shortName: caseFile.assignedToLegalEntityDivision.shortName,
-    },
-    create: {
-      id: caseFile.assignedToLegalEntityDivision.id,
-      name: caseFile.assignedToLegalEntityDivision.name,
-      shortName: caseFile.assignedToLegalEntityDivision.shortName,
-    },
-  });
+  await upsertLegalEntityDivision(prisma, caseFile.assignedToLegalEntityDivision);
 
   if (caseFile.urgency) {
     await prisma.urgency.upsert({
@@ -101,60 +95,8 @@ export async function upsertCaseFile(
     },
   });
 
-  if (caseFile.lastHearing?.lastConclusion?.conclusionOperativePart) {
-    await prisma.conclusionOperativePart.upsert({
-      where: { id: caseFile.lastHearing.lastConclusion.conclusionOperativePart.id },
-      update: { label: caseFile.lastHearing.lastConclusion.conclusionOperativePart.label },
-      create: {
-        id: caseFile.lastHearing.lastConclusion.conclusionOperativePart.id,
-        label: caseFile.lastHearing.lastConclusion.conclusionOperativePart.label,
-      },
-    });
-  }
-
-  const lastConclusion = caseFile.lastHearing?.lastConclusion;
-  if (lastConclusion) {
-    if (lastConclusion.id == null || lastConclusion.publicationDate == null) {
-      console.warn(
-        `⚠ Skipping Conclusion upsert for case file ${caseFile.caseFileNumber}: ` +
-          `missing required field (id=${lastConclusion.id}, publicationDate=${lastConclusion.publicationDate})`,
-      );
-    } else {
-      const operativePartId = lastConclusion.conclusionOperativePart?.id ?? null;
-      await prisma.conclusion.upsert({
-        where: { id: lastConclusion.id },
-        update: {
-          conclusionSense: lastConclusion.conclusionSense,
-          publicationDate: new Date(lastConclusion.publicationDate),
-          author: lastConclusion.author,
-          conclusionOperativePartId: operativePartId,
-        },
-        create: {
-          id: lastConclusion.id,
-          conclusionSense: lastConclusion.conclusionSense,
-          publicationDate: new Date(lastConclusion.publicationDate),
-          author: lastConclusion.author,
-          conclusionOperativePartId: operativePartId,
-        },
-      });
-    }
-  }
-
   if (caseFile.lastHearing) {
-    await prisma.hearing.upsert({
-      where: { hearingId: caseFile.lastHearing.hearingId },
-      update: {
-        convocationDate: new Date(caseFile.lastHearing.convocationDate),
-        room: caseFile.lastHearing.room,
-        lastConclusionId: caseFile.lastHearing.lastConclusion?.id,
-      },
-      create: {
-        hearingId: caseFile.lastHearing.hearingId,
-        convocationDate: new Date(caseFile.lastHearing.convocationDate),
-        room: caseFile.lastHearing.room,
-        lastConclusionId: caseFile.lastHearing.lastConclusion?.id,
-      },
-    });
+    await upsertHearingWithConclusion(prisma, caseFile.lastHearing);
   }
 
   await prisma.caseFile.upsert({
@@ -166,6 +108,8 @@ export async function upsertCaseFile(
       deletedAt: null,
       procedureState: caseFile.procedureState,
       assignedToLegalEntityDivisionId: caseFile.assignedToLegalEntityDivision.id,
+      // `undefined` leaves the column as-is rather than clearing it.
+      jurisdictionId,
       urgencyId: caseFile.urgency?.id,
       lastStatusId: caseFile.lastStatus.id,
       lastStatusDate: new Date(caseFile.lastStatus.statusDate),
@@ -178,6 +122,7 @@ export async function upsertCaseFile(
       caseFileNumber: caseFile.caseFileNumber,
       procedureState: caseFile.procedureState,
       assignedToLegalEntityDivisionId: caseFile.assignedToLegalEntityDivision.id,
+      jurisdictionId,
       urgencyId: caseFile.urgency?.id,
       lastStatusId: caseFile.lastStatus.id,
       lastStatusDate: new Date(caseFile.lastStatus.statusDate),
@@ -187,6 +132,22 @@ export async function upsertCaseFile(
         : null,
     },
   });
+
+  if (caseFile.lastHearing) {
+    await prisma.caseFileHearing.upsert({
+      where: {
+        caseFileNumber_hearingId: {
+          caseFileNumber: caseFile.caseFileNumber,
+          hearingId: caseFile.lastHearing.hearingId,
+        },
+      },
+      update: {},
+      create: {
+        caseFileNumber: caseFile.caseFileNumber,
+        hearingId: caseFile.lastHearing.hearingId,
+      },
+    });
+  }
 
   await upsertCaseFileActorLink(
     prisma,

@@ -63,7 +63,7 @@ describe("HeaderDahlia", () => {
 
     const liens = screen.getAllByRole("link", { name: /Administration/ });
     expect(liens.length).toBeGreaterThan(0);
-    expect(liens[0].getAttribute("href")).toBe("/admin/users");
+    expect(liens[0].getAttribute("href")).toBe("/admin");
   });
 
   it("se replie sur name quand prénom et nom sont absents", () => {

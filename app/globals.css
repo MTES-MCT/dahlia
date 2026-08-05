@@ -39,6 +39,19 @@
     inset -1px 0 0 0 var(--border-default-grey);
 }
 
+/* Multiple selects (e.g. the user permission scope). `.fr-select` is designed
+   for single-line dropdowns: it forces `appearance: none`, a chevron
+   background image and the right padding that goes with it, none of which make
+   sense for a list box. Restore the native list rendering. */
+.fr-select[multiple] {
+  appearance: auto;
+  -webkit-appearance: auto;
+  -moz-appearance: auto;
+  background-image: none;
+  padding-right: 1rem;
+  height: auto;
+}
+
 /* Case file details modal: wider than react-dsfr "large" (lg-8 / 8 cols).
    Scope to the modal shell only (.fr-grid-row--center), not inner form grids. */
 @media (min-width: 62em) {

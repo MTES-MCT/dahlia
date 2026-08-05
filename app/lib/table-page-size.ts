@@ -7,6 +7,8 @@ export const TABLE_PAGE_SIZE_IDS = {
   pieces: "pieces",
   historique: "historique",
   users: "users",
+  jurisdictions: "jurisdictions",
+  divisions: "divisions",
 } as const;
 
 export type TablePageSizeId = (typeof TABLE_PAGE_SIZE_IDS)[keyof typeof TABLE_PAGE_SIZE_IDS];
@@ -22,6 +24,8 @@ export const DEFAULT_TABLE_PAGE_SIZES: Record<TablePageSizeId, TablePageSize> = 
   pieces: 10,
   historique: 10,
   users: 30,
+  jurisdictions: 30,
+  divisions: 30,
 };
 
 export function getTablePageSizeStorageKey(id: TablePageSizeId): string {

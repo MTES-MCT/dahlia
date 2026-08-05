@@ -144,7 +144,7 @@ describe("GET /case_files/[caseFileNumber]/pieces/download", () => {
     expect(response.headers.get("Content-Type")).toBe("application/zip");
     expect(response.headers.get("Cache-Control")).toBe("no-store");
     expect(response.headers.get("Content-Disposition")).toBe(
-      'attachment; filename="pieces-TA069/2024/001-2026-07-13.zip"; filename*=UTF-8\'\'pieces-TA069%2F2024%2F001-2026-07-13.zip',
+      "attachment; filename=\"pieces-TA069/2024/001-2026-07-13.zip\"; filename*=UTF-8''pieces-TA069%2F2024%2F001-2026-07-13.zip",
     );
 
     expect(mockedFetchAttachedFile).toHaveBeenCalledWith("file-1");

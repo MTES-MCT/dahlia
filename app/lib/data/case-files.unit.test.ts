@@ -1,7 +1,15 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import type { Prisma } from "@prisma/client";
 import { getActorDisplayName } from "@/app/lib/case-file-format";
-import { CASE_FILES_DASHBOARD_INCLUDE, HEARING_CONVOCATION_SORT_KEY } from "@/app/lib/case-files-dashboard-columns";
-import { fetchCaseFileDetail, fetchCaseFilesTableData } from "./case-files";
+import {
+  CASE_FILES_DASHBOARD_INCLUDE,
+  HEARING_CONVOCATION_SORT_KEY,
+} from "@/app/lib/case-files-dashboard-columns";
+import {
+  fetchAllCaseFilesForExport,
+  fetchCaseFileDetail,
+  fetchCaseFilesTableData,
+} from "./case-files";
 import { prisma } from "@/app/lib/prisma";
 
 vi.mock("@/app/lib/prisma", () => ({
@@ -9,9 +17,17 @@ vi.mock("@/app/lib/prisma", () => ({
     caseFile: {
       findMany: vi.fn(),
       count: vi.fn(),
-      findUnique: vi.fn(),
+      findFirst: vi.fn(),
     },
   },
+}));
+
+// Permission scope: an empty fragment (administrator) by default, so the tests
+// below assert the search filter alone. The scoped cases set their own value.
+const mockCaseFileScopeWhere = vi.fn(async () => ({}) as Prisma.CaseFileWhereInput);
+
+vi.mock("@/app/lib/case-file-scope", () => ({
+  caseFileScopeWhere: () => mockCaseFileScopeWhere(),
 }));
 
 const actorBase = {
@@ -123,6 +139,7 @@ const mockCaseFile = {
 describe("case-files", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockCaseFileScopeWhere.mockResolvedValue({});
   });
 
   describe("getActorDisplayName", () => {
@@ -194,21 +211,34 @@ describe("case-files", () => {
     // Wrapped in React `cache()` so `generateMetadata` and the page body of the
     // detail route share one query; it must still behave like a plain lookup.
     it("charge le dossier par son numéro avec ses relations", async () => {
-      vi.mocked(prisma.caseFile.findUnique).mockResolvedValue(mockCaseFile as never);
+      vi.mocked(prisma.caseFile.findFirst).mockResolvedValue(mockCaseFile as never);
 
       const result = await fetchCaseFileDetail("CF-2024-001");
 
       expect(result).toBe(mockCaseFile);
-      expect(vi.mocked(prisma.caseFile.findUnique)).toHaveBeenCalledWith({
+      expect(vi.mocked(prisma.caseFile.findFirst)).toHaveBeenCalledWith({
         where: { caseFileNumber: "CF-2024-001" },
         include: expect.objectContaining({ caseFileActors: expect.anything() }),
       });
     });
 
     it("renvoie null quand le dossier n'existe pas", async () => {
-      vi.mocked(prisma.caseFile.findUnique).mockResolvedValue(null);
+      vi.mocked(prisma.caseFile.findFirst).mockResolvedValue(null);
 
       expect(await fetchCaseFileDetail("CF-INCONNU")).toBeNull();
+    });
+
+    it("restreint la recherche au périmètre de droit de l'utilisateur", async () => {
+      mockCaseFileScopeWhere.mockResolvedValue({ jurisdictionId: { in: [7] } });
+      vi.mocked(prisma.caseFile.findFirst).mockResolvedValue(null);
+
+      // Out of scope reads exactly like an unknown case file, so the detail page
+      // renders its 404 without leaking the existence of the dossier.
+      expect(await fetchCaseFileDetail("CF-HORS-PERIMETRE")).toBeNull();
+      expect(vi.mocked(prisma.caseFile.findFirst)).toHaveBeenCalledWith({
+        where: { caseFileNumber: "CF-HORS-PERIMETRE", jurisdictionId: { in: [7] } },
+        include: expect.anything(),
+      });
     });
   });
 
@@ -489,10 +519,7 @@ describe("case-files", () => {
       await fetchCaseFilesTableData(1, 10, null, "descending", "dossier:TA069");
 
       const expectedWhere = {
-        AND: [
-          { isDeleted: false },
-          { caseFileNumber: { contains: "TA069", mode: "insensitive" } },
-        ],
+        AND: [{ isDeleted: false }, { caseFileNumber: { contains: "TA069", mode: "insensitive" } }],
       };
 
       expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
@@ -658,6 +685,54 @@ describe("case-files", () => {
               { lastStatus: { label: "Terminé" } },
             ],
           },
+        }),
+      );
+    });
+
+    it("ajoute le périmètre de droit à la liste et à son décompte", async () => {
+      mockCaseFileScopeWhere.mockResolvedValue({ jurisdictionId: { in: [3, 8] } });
+      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
+      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
+
+      await fetchCaseFilesTableData(1, 10, null, "descending");
+
+      // The rows and their count must share the exact same filter, otherwise the
+      // pagination would advertise dossiers the user cannot see.
+      const expectedWhere = { isDeleted: false, jurisdictionId: { in: [3, 8] } };
+      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expectedWhere }),
+      );
+      expect(vi.mocked(prisma.caseFile.count)).toHaveBeenCalledWith({ where: expectedWhere });
+    });
+
+    it("ne renvoie aucun dossier quand le périmètre est vide", async () => {
+      // An empty scope yields `IN ()`, which also rules out the case files that
+      // carry no jurisdiction at all.
+      mockCaseFileScopeWhere.mockResolvedValue({ jurisdictionId: { in: [] } });
+      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
+      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
+
+      const result = await fetchCaseFilesTableData(1, 10, null, "descending");
+
+      expect(result).toEqual({ rows: [], totalPages: 0, totalCount: 0 });
+      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { isDeleted: false, jurisdictionId: { in: [] } },
+        }),
+      );
+    });
+  });
+
+  describe("fetchAllCaseFilesForExport", () => {
+    it("restreint l'export au périmètre de droit", async () => {
+      mockCaseFileScopeWhere.mockResolvedValue({ jurisdictionId: { in: [3] } });
+      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
+
+      await fetchAllCaseFilesForExport(null, "descending");
+
+      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { isDeleted: false, jurisdictionId: { in: [3] } },
         }),
       );
     });

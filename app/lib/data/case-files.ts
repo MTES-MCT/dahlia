@@ -1,9 +1,6 @@
 import { Prisma, type LitigationType, type RightType } from "@prisma/client";
 import { cache } from "react";
-import {
-  CASE_FILE_ACTOR_INCLUDE,
-  buildMainActorSearchFilter,
-} from "@/app/lib/case-file-actors";
+import { CASE_FILE_ACTOR_INCLUDE, buildMainActorSearchFilter } from "@/app/lib/case-file-actors";
 import {
   LITIGATION_TYPE_LABELS,
   LITIGATION_TYPE_SHORT_LABELS,
@@ -15,6 +12,7 @@ import {
   type CaseFileDashboardRow,
 } from "@/app/lib/case-files-dashboard-columns";
 import { prisma } from "@/app/lib/prisma";
+import { caseFileScopeWhere } from "@/app/lib/case-file-scope";
 import { normalizeForSearch, parseSearchQuery, type FacetKey } from "@/app/lib/case-file-search";
 import { buildWordAndFilter, combineAnd, facetSearchWords } from "@/app/lib/search-where";
 
@@ -141,6 +139,18 @@ function buildWhere(query: string | null, statusLabel: string | null): Prisma.Ca
   return combineAnd(conditions);
 }
 
+// Search filter narrowed to the current user's permission scope. Every listing
+// query goes through it so the rows and their count can never disagree. The
+// scope is merged rather than AND-wrapped: its `jurisdictionId` key cannot
+// collide with the search conditions, and an administrator's empty fragment
+// leaves the filter strictly unchanged.
+async function buildScopedWhere(
+  query: string | null,
+  statusLabel: string | null,
+): Promise<Prisma.CaseFileWhereInput> {
+  return { ...buildWhere(query, statusLabel), ...(await caseFileScopeWhere()) };
+}
+
 async function fetchCaseFiles(
   page: number,
   numberOfCaseFiles: number,
@@ -150,7 +160,7 @@ async function fetchCaseFiles(
   statusLabel: string | null = null,
 ): Promise<CaseFileWithRelations[]> {
   const direction: Prisma.SortOrder = sortOrder === "ascending" ? "asc" : "desc";
-  const where = buildWhere(query, statusLabel);
+  const where = await buildScopedWhere(query, statusLabel);
   const orderBy = sortBy ? buildOrderBy(sortBy, direction) : undefined;
 
   return prisma.caseFile.findMany({
@@ -166,7 +176,7 @@ async function fetchCaseFilesCount(
   query: string | null = null,
   statusLabel: string | null = null,
 ): Promise<number> {
-  const where = buildWhere(query, statusLabel);
+  const where = await buildScopedWhere(query, statusLabel);
   return prisma.caseFile.count({ where });
 }
 
@@ -184,7 +194,11 @@ const CASE_FILE_DETAIL_INCLUDE = {
   assignedToLegalEntityDivision: true,
   lastDecisionReading: true,
   lastHearing: { include: { lastConclusion: { include: { conclusionOperativePart: true } } } },
-  hearings: { include: { lastConclusion: { include: { conclusionOperativePart: true } } } },
+  caseFileHearings: {
+    include: {
+      hearing: { include: { lastConclusion: { include: { conclusionOperativePart: true } } } },
+    },
+  },
   events: {
     include: { measure: true, actor: true, attachedFiles: true },
     orderBy: { eventDate: "desc" as const },
@@ -193,10 +207,12 @@ const CASE_FILE_DETAIL_INCLUDE = {
   relatedTargets: { include: { caseFile: true } },
 } satisfies Prisma.CaseFileInclude;
 
-// Memoized per request so `generateMetadata` and the page body share a single query.
+// Memoized per request so `generateMetadata` and the page body share a single
+// query. `findFirst` rather than `findUnique`, because the permission scope adds
+// a non-unique condition: out of scope reads as "not found" (404).
 export const fetchCaseFileDetail = cache(async (caseFileNumber: string) => {
-  return prisma.caseFile.findUnique({
-    where: { caseFileNumber },
+  return prisma.caseFile.findFirst({
+    where: { caseFileNumber, ...(await caseFileScopeWhere()) },
     include: CASE_FILE_DETAIL_INCLUDE,
   });
 });
@@ -204,8 +220,8 @@ export const fetchCaseFileDetail = cache(async (caseFileNumber: string) => {
 export type CaseFileDetail = Prisma.PromiseReturnType<typeof fetchCaseFileDetail>;
 
 export async function fetchCaseFileDebugSnapshot(caseFileNumber: string) {
-  return prisma.caseFile.findUnique({
-    where: { caseFileNumber },
+  return prisma.caseFile.findFirst({
+    where: { caseFileNumber, ...(await caseFileScopeWhere()) },
     include: {
       ...CASE_FILE_DETAIL_INCLUDE,
       attachedFiles: { include: { fileFamilyType: true } },
@@ -220,7 +236,7 @@ export async function fetchAllCaseFilesForExport(
   statusLabel: string | null = null,
 ): Promise<CaseFileWithRelations[]> {
   const direction: Prisma.SortOrder = sortOrder === "ascending" ? "asc" : "desc";
-  const where = buildWhere(query, statusLabel);
+  const where = await buildScopedWhere(query, statusLabel);
   const orderBy = sortBy ? buildOrderBy(sortBy, direction) : undefined;
 
   return prisma.caseFile.findMany({

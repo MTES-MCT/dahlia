@@ -62,6 +62,7 @@ describe("enrichCaseFile", () => {
 
   beforeEach(() => {
     prisma = mockDeep<PrismaClient>();
+    prisma.jurisdiction.upsert.mockResolvedValue({ id: 1, name: "", shortName: "TA069" });
     vi.spyOn(console, "log").mockImplementation(() => {});
     vi.spyOn(console, "warn").mockImplementation(() => {});
   });
@@ -93,6 +94,8 @@ describe("enrichCaseFile", () => {
     await enrichCaseFile(prisma, client, "TA069-001", "TA069", true);
 
     expect(prisma.hearing.upsert).toHaveBeenCalledOnce();
+    expect(prisma.caseFileHearing.upsert).toHaveBeenCalledOnce();
+    expect(prisma.caseFileHearing.deleteMany).toHaveBeenCalledOnce();
     expect(prisma.caseFileEvent.upsert).toHaveBeenCalledOnce();
     expect(prisma.attachedFile.upsert).toHaveBeenCalledOnce();
     // lastProducer derived from the "Réception mémoire" event (actor 1001).

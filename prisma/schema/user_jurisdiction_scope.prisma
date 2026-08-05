@@ -1,0 +1,16 @@
+// Permission scope of a user: the jurisdictions whose case files they are
+// allowed to work on. An empty scope means no jurisdiction at all.
+// Enforcement is not implemented yet: this table only records the association.
+model UserJurisdictionScope {
+  userId         String
+  jurisdictionId Int
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jurisdiction Jurisdiction @relation(fields: [jurisdictionId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@id([userId, jurisdictionId])
+  @@index([jurisdictionId])
+  @@map("user_jurisdiction_scopes")
+}

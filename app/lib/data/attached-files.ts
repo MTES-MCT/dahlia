@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/app/lib/prisma";
+import { caseFileRelationScopeWhere } from "@/app/lib/case-file-scope";
 import { normalizeForSearch, parseSearchQuery } from "@/app/lib/case-file-search";
 import { PIECES_FACET_KEYS, type PiecesFacetKey } from "@/app/lib/pieces-table";
 import { buildWordAndFilter, combineAnd, facetSearchWords } from "@/app/lib/search-where";
@@ -109,7 +110,10 @@ export async function fetchCaseFilePiecesFiltered(
   sortOrder: SortOrder,
   query: string | null,
 ): Promise<CaseFilePiece[]> {
-  const where = buildPiecesWhere(caseFileNumber, query);
+  const where = {
+    ...buildPiecesWhere(caseFileNumber, query),
+    ...(await caseFileRelationScopeWhere()),
+  };
   return prisma.attachedFile.findMany({
     where,
     select: PIECES_LIST_SELECT,
@@ -117,10 +121,12 @@ export async function fetchCaseFilePiecesFiltered(
   });
 }
 
-// Fetch a single attached file (pièce). Returns null when unknown.
+// Fetch a single attached file (pièce). Returns null when unknown *or* when its
+// case file lies outside the current user's permission scope — which is what
+// makes the pièce routes (viewer and zip download) answer 404 in that case.
 export async function fetchAttachedFile(encodedFileId: string) {
-  return prisma.attachedFile.findUnique({
-    where: { encodedFileId },
+  return prisma.attachedFile.findFirst({
+    where: { encodedFileId, ...(await caseFileRelationScopeWhere()) },
   });
 }
 

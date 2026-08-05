@@ -8,7 +8,7 @@
       "Bash(curl --get:*)",
       "Bash(curl:*)",
       "Bash(grep:*)",
-      "Bash(pnpm lint)",
+      "Bash(pnpm lint *)",
       "Bash(pnpm test *)",
       "Bash(pnpm test:unit *)",
       "Bash(pnpm test:integration *)",
