@@ -153,12 +153,8 @@ describe("DataTable", () => {
     expect(style?.textContent).not.toContain("@media");
     expect(style?.textContent).toContain("table-layout: fixed");
     expect(style?.textContent).not.toContain("min-width:");
-    expect(style?.textContent).toContain(
-      ".dt-sizing-pieces col:nth-child(1){width:40rem;}",
-    );
-    expect(style?.textContent).toContain(
-      ".dt-sizing-pieces col:nth-child(2){width:9rem;}",
-    );
+    expect(style?.textContent).toContain(".dt-sizing-pieces col:nth-child(1){width:40rem;}");
+    expect(style?.textContent).toContain(".dt-sizing-pieces col:nth-child(2){width:9rem;}");
     expect(container.querySelector(".dt-sizing-pieces col")).toBeTruthy();
     expect(container.querySelector(".dt-sizing-pieces")).toBeTruthy();
     expect(container.querySelector(".fr-table--layout-fixed")).toBeTruthy();

@@ -34,10 +34,19 @@ vi.mock("next/headers", () => ({
   headers: vi.fn(async () => new Headers()),
 }));
 
-function buildFormData(fields: Record<string, string>): FormData {
+function buildFormData(
+  fields: Record<string, string>,
+  // Repeated fields, e.g. the `jurisdictionIds` multiple select.
+  multiValueFields: Record<string, string[]> = {},
+): FormData {
   const formData = new FormData();
   for (const [key, value] of Object.entries(fields)) {
     formData.set(key, value);
+  }
+  for (const [key, values] of Object.entries(multiValueFields)) {
+    for (const value of values) {
+      formData.append(key, value);
+    }
   }
   return formData;
 }
@@ -109,6 +118,47 @@ describe("admin users actions", () => {
       expect(mockRevalidatePath).toHaveBeenCalledWith("/admin/users");
     });
 
+    it("crée le périmètre de droit à partir des juridictions sélectionnées", async () => {
+      mockAdminSession();
+      mockUserCreate.mockResolvedValue({});
+
+      const result = await createUserFormAction(
+        null,
+        buildFormData({ email: "alice@example.gouv.fr" }, { jurisdictionIds: ["1", "3", "1"] }),
+      );
+
+      expect(result).toEqual({ ok: true });
+      expect(mockUserCreate).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          // Duplicates are collapsed, order preserved.
+          jurisdictionScopes: { create: [{ jurisdictionId: 1 }, { jurisdictionId: 3 }] },
+        }),
+      });
+    });
+
+    it("crée un périmètre vide quand aucune juridiction n'est sélectionnée", async () => {
+      mockAdminSession();
+      mockUserCreate.mockResolvedValue({});
+
+      await createUserFormAction(null, buildFormData({ email: "alice@example.gouv.fr" }));
+
+      expect(mockUserCreate).toHaveBeenCalledWith({
+        data: expect.objectContaining({ jurisdictionScopes: { create: [] } }),
+      });
+    });
+
+    it("refuse un identifiant de juridiction invalide", async () => {
+      mockAdminSession();
+
+      const result = await createUserFormAction(
+        null,
+        buildFormData({ email: "alice@example.gouv.fr" }, { jurisdictionIds: ["1", "abc"] }),
+      );
+
+      expect(result).toEqual({ ok: false, error: "Juridiction invalide." });
+      expect(mockUserCreate).not.toHaveBeenCalled();
+    });
+
     it("signale un email déjà utilisé", async () => {
       mockAdminSession();
       mockUserCreate.mockRejectedValue(
@@ -157,8 +207,47 @@ describe("admin users actions", () => {
           emailVerified: true,
           isValidated: true,
           isAdmin: false,
+          jurisdictionScopes: { deleteMany: {}, create: [] },
         },
       });
+    });
+
+    it("remplace intégralement le périmètre de droit", async () => {
+      mockAdminSession();
+      mockUserUpdate.mockResolvedValue({});
+
+      const result = await updateUserFormAction(
+        null,
+        buildFormData({ id: "u2", email: "bob@example.gouv.fr" }, { jurisdictionIds: ["2", "5"] }),
+      );
+
+      expect(result).toEqual({ ok: true });
+      expect(mockUserUpdate).toHaveBeenCalledWith({
+        where: { id: "u2" },
+        data: expect.objectContaining({
+          jurisdictionScopes: {
+            deleteMany: {},
+            create: [{ jurisdictionId: 2 }, { jurisdictionId: 5 }],
+          },
+        }),
+      });
+    });
+
+    it("signale une juridiction inexistante", async () => {
+      mockAdminSession();
+      mockUserUpdate.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError("Foreign key constraint", {
+          code: "P2003",
+          clientVersion: "test",
+        }),
+      );
+
+      const result = await updateUserFormAction(
+        null,
+        buildFormData({ id: "u2", email: "bob@example.gouv.fr" }, { jurisdictionIds: ["999"] }),
+      );
+
+      expect(result).toEqual({ ok: false, error: "Juridiction introuvable." });
     });
 
     it("empêche un admin de se retirer ses droits", async () => {

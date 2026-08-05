@@ -37,10 +37,7 @@ describe("ColumnHeader", () => {
 
   it("rend le bouton de filtre quand facetFields est fourni", () => {
     render(
-      <ColumnHeader
-        label="Requérant"
-        facetFields={[{ key: "requerant", label: "Requérant" }]}
-      />,
+      <ColumnHeader label="Requérant" facetFields={[{ key: "requerant", label: "Requérant" }]} />,
     );
 
     expect(screen.getByRole("button", { name: /Filtrer par Requérant/ })).toBeTruthy();

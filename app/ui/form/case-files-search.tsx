@@ -5,8 +5,7 @@ import { CaseFilesSearchByStatus } from "@/app/ui/form/case-files-search-by-stat
 import { TableSearchBar } from "@/app/ui/form/table-search-bar";
 import { type DataTableSearchConfig } from "@/app/ui/table/data-table";
 
-const PLACEHOLDER =
-  'ex. « dupont » ou « dossier:TA069 requerant:prefet titre:dalo »';
+const PLACEHOLDER = "ex. « dupont » ou « dossier:TA069 requerant:prefet titre:dalo »";
 
 export type CaseFilesSearchProps = {
   // Distinct status labels from the database, sorted for the filter dropdown.

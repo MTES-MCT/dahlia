@@ -36,6 +36,32 @@ export async function upsertCaseFileActorLink(
   }
   const qualityCode = await upsertQuality(prisma, actor.quality, "R");
   await upsertActor(prisma, actor, anonymize);
+
+  // Partial unique indexes allow at most one main claimant / defender per case
+  // file. Clear the flag on any previous holder before assigning it here,
+  // otherwise a main-actor identity change fails the upsert with a unique
+  // violation on caseFileNumber.
+  if (role.isMainClaimant) {
+    await prisma.caseFileActor.updateMany({
+      where: {
+        caseFileNumber,
+        isMainClaimant: true,
+        actorId: { not: actor.id },
+      },
+      data: { isMainClaimant: false },
+    });
+  }
+  if (role.isMainDefender) {
+    await prisma.caseFileActor.updateMany({
+      where: {
+        caseFileNumber,
+        isMainDefender: true,
+        actorId: { not: actor.id },
+      },
+      data: { isMainDefender: false },
+    });
+  }
+
   await prisma.caseFileActor.upsert({
     where: {
       caseFileNumber_actorId: { caseFileNumber, actorId: actor.id },

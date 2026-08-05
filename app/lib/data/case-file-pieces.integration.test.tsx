@@ -14,6 +14,19 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("next/headers", () => ({
   cookies: vi.fn().mockResolvedValue({ get: () => undefined }),
+  headers: vi.fn(async () => new Headers()),
+}));
+
+// Connected as an administrator: this suite is about the pièces workspace, not
+// about the permission scope (see case-file-scope.integration.test.ts).
+vi.mock("@/app/lib/auth", () => ({
+  auth: {
+    api: {
+      getSession: vi.fn(async () => ({
+        user: { id: "admin-integration", isValidated: true, isAdmin: true },
+      })),
+    },
+  },
 }));
 
 import { useSearchParams } from "next/navigation";

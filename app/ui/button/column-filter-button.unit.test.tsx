@@ -54,7 +54,9 @@ describe("ColumnFilterButton", () => {
     setSearchParams("dahliaq=requerant:dupont");
     render(<ColumnFilterButton label="Requérant" facetFields={REQUERANT_FACET_FIELDS} />);
 
-    expect(getToggleButton().getAttribute("aria-label")).toContain("filtre actif : Requérant : dupont");
+    expect(getToggleButton().getAttribute("aria-label")).toContain(
+      "filtre actif : Requérant : dupont",
+    );
   });
 
   it("injecte la facette dans la recherche et réinitialise la page au submit", () => {
@@ -112,9 +114,7 @@ describe("ColumnFilterButton", () => {
     }
 
     it("affiche un champ par type de recherche dossier", () => {
-      render(
-        <ColumnFilterButton label="Dossier" facetFields={DOSSIER_FACET_FIELDS} />,
-      );
+      render(<ColumnFilterButton label="Dossier" facetFields={DOSSIER_FACET_FIELDS} />);
 
       fireEvent.click(getDossierToggleButton());
 
@@ -126,9 +126,7 @@ describe("ColumnFilterButton", () => {
 
     it("injecte plusieurs facettes dossier au submit", () => {
       setSearchParams("page=2");
-      render(
-        <ColumnFilterButton label="Dossier" facetFields={DOSSIER_FACET_FIELDS} />,
-      );
+      render(<ColumnFilterButton label="Dossier" facetFields={DOSSIER_FACET_FIELDS} />);
 
       fireEvent.click(getDossierToggleButton());
       fireEvent.change(screen.getByPlaceholderText("Numéro"), { target: { value: "TA069" } });
@@ -144,9 +142,7 @@ describe("ColumnFilterButton", () => {
 
     it("seede chaque champ avec la facette courante", () => {
       setSearchParams("dahliaq=dossier:TA069%20requerant:dupont%20titre:prefet");
-      render(
-        <ColumnFilterButton label="Dossier" facetFields={DOSSIER_FACET_FIELDS} />,
-      );
+      render(<ColumnFilterButton label="Dossier" facetFields={DOSSIER_FACET_FIELDS} />);
 
       fireEvent.click(getDossierToggleButton());
 

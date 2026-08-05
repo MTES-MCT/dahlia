@@ -148,10 +148,7 @@ class TelerecoursCaseFileClient implements TelerecoursClient {
    * Fetch status groups from Telerecours (/api/parametres/statusGroups).
    * Cached per jurisdiction and statusType for the lifetime of this client.
    */
-  async getStatusGroups(
-    jurisdiction: string,
-    statusType: StatusGroupType,
-  ): Promise<StatusGroup[]> {
+  async getStatusGroups(jurisdiction: string, statusType: StatusGroupType): Promise<StatusGroup[]> {
     const cacheKey = `${jurisdiction}:${statusType}`;
     const cached = this.statusGroupsCache.get(cacheKey);
     if (cached) {

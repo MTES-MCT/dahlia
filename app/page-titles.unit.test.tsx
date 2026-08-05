@@ -5,6 +5,8 @@ import { metadata as homeMetadata } from "./page";
 import { metadata as connexionMetadata } from "./connexion/page";
 import { metadata as dashboardMetadata } from "./(protected)/case_files/page";
 import { metadata as adminUsersMetadata } from "./(protected)/admin/users/page";
+import { metadata as adminJurisdictionMetadata } from "./(protected)/admin/jurisdiction/page";
+import { metadata as adminDivisionsMetadata } from "./(protected)/admin/divisions/page";
 import { generateMetadata as caseFileMetadata } from "./(protected)/case_files/[caseFileNumber]/page";
 import { fetchCaseFileDetail } from "@/app/lib/data/case-files";
 
@@ -93,6 +95,16 @@ describe("Titres des pages", () => {
     expect(resolveTitle(adminUsersMetadata.title)).toBe("Utilisateurs - Administration - DAHLIA");
   });
 
+  it("intitule la page d'administration des juridictions", () => {
+    expect(resolveTitle(adminJurisdictionMetadata.title)).toBe(
+      "Juridiction - Administration - DAHLIA",
+    );
+  });
+
+  it("intitule la page d'administration des divisions", () => {
+    expect(resolveTitle(adminDivisionsMetadata.title)).toBe("Divisions - Administration - DAHLIA");
+  });
+
   it("intitule une fiche dossier avec le libellé du dossier", async () => {
     mockedFetchCaseFileDetail.mockResolvedValue(caseFile as never);
 
@@ -125,6 +137,8 @@ describe("Titres des pages", () => {
       connexionMetadata.title,
       dashboardMetadata.title,
       adminUsersMetadata.title,
+      adminJurisdictionMetadata.title,
+      adminDivisionsMetadata.title,
     ].map(resolveTitle);
 
     expect(new Set(titles).size).toBe(titles.length);

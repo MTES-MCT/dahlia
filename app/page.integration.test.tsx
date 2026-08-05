@@ -2,8 +2,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import Home from "./page";
 
-const SERVICE_PUBLIC_URL =
-  "https://www.service-public.gouv.fr/particuliers/vosdroits/F18005";
+const SERVICE_PUBLIC_URL = "https://www.service-public.gouv.fr/particuliers/vosdroits/F18005";
 
 vi.mock("@/src/dsfr-bootstrap", () => ({
   StartDsfrOnHydration: () => null,

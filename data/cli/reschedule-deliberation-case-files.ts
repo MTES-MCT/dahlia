@@ -1,7 +1,15 @@
 import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { addDays, addMonths, addWeeks, setHours, setMilliseconds, setMinutes, setSeconds } from "date-fns";
+import {
+  addDays,
+  addMonths,
+  addWeeks,
+  setHours,
+  setMilliseconds,
+  setMinutes,
+  setSeconds,
+} from "date-fns";
 
 const SOURCE_STATUS_LABEL = "En cours de déliberé";
 const TARGET_STATUS_LABEL = "Inscrit au rôle d'une audience";
@@ -77,13 +85,13 @@ async function main(): Promise<number> {
     }
 
     const targetStatus = dryRun
-      ? (await prisma.status.findFirst({ where: { label: TARGET_STATUS_LABEL } })) ?? {
+      ? ((await prisma.status.findFirst({ where: { label: TARGET_STATUS_LABEL } })) ?? {
           id: TARGET_STATUS_FALLBACK.id,
           label: TARGET_STATUS_LABEL,
           category: TARGET_STATUS_FALLBACK.category,
           groupId: TARGET_STATUS_FALLBACK.groupId,
           labelNormalized: null,
-        }
+        })
       : await ensureTargetStatus(prisma);
 
     const now = new Date();
@@ -94,8 +102,7 @@ async function main(): Promise<number> {
     for (const [index, caseFile] of caseFiles.entries()) {
       const convocationDate = hearingConvocationDateForIndex(index, now);
       const hearingId = devScheduledHearingId(caseFile.caseFileNumber);
-      const scheduleLabel =
-        index === 0 ? "in 2 days" : index === 1 ? "in 1 week" : "in 1 month";
+      const scheduleLabel = index === 0 ? "in 2 days" : index === 1 ? "in 1 week" : "in 1 month";
 
       console.log(
         `  ${caseFile.caseFileNumber}: status → "${TARGET_STATUS_LABEL}", ` +
@@ -110,14 +117,20 @@ async function main(): Promise<number> {
       await prisma.$transaction([
         prisma.hearing.upsert({
           where: { hearingId },
-          update: {
-            convocationDate,
-            caseFileNumber: caseFile.caseFileNumber,
+          update: { convocationDate },
+          create: { hearingId, convocationDate },
+        }),
+        prisma.caseFileHearing.upsert({
+          where: {
+            caseFileNumber_hearingId: {
+              caseFileNumber: caseFile.caseFileNumber,
+              hearingId,
+            },
           },
+          update: {},
           create: {
-            hearingId,
-            convocationDate,
             caseFileNumber: caseFile.caseFileNumber,
+            hearingId,
           },
         }),
         prisma.caseFile.update({

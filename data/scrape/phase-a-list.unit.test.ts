@@ -29,6 +29,7 @@ describe("phaseA", () => {
 
   beforeEach(() => {
     prisma = mockDeep<PrismaClient>();
+    prisma.jurisdiction.upsert.mockResolvedValue({ id: 1, name: "", shortName: "TA069" });
     // Silence the script's progress logs during tests.
     vi.spyOn(console, "log").mockImplementation(() => {});
     vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -47,6 +48,31 @@ describe("phaseA", () => {
     expect(prisma.caseFile.upsert).toHaveBeenCalledOnce();
     // Without --all, phase A restricts the list to the INPROGRESS status groups.
     expect(client.getInProgressStatusGroupIds).toHaveBeenCalledWith("TA069");
+  });
+
+  it("tags every upserted case file with the scraped jurisdiction", async () => {
+    prisma.jurisdiction.upsert.mockResolvedValue({ id: 42, name: "", shortName: "TA075" });
+    const client = fakeTelerecoursClient({
+      getCaseFiles: vi
+        .fn()
+        .mockResolvedValue(page([caseFileFixture({ caseFileNumber: "TA075-001" })])),
+    });
+
+    await phaseA({ ...baseArgs, jurisdiction: "TA075" }, makeDeps(prisma, client));
+
+    // The jurisdiction row is resolved once per run, keyed on its Telerecours
+    // code, and left with an empty name (edited manually later).
+    expect(prisma.jurisdiction.upsert).toHaveBeenCalledExactlyOnceWith({
+      where: { shortName: "TA075" },
+      update: {},
+      create: { shortName: "TA075" },
+    });
+    expect(prisma.caseFile.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({ jurisdictionId: 42 }),
+        update: expect.objectContaining({ jurisdictionId: 42 }),
+      }),
+    );
   });
 
   it("skips a case file missing a required field without failing the run", async () => {

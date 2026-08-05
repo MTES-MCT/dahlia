@@ -1,7 +1,7 @@
 import "server-only";
 import { type AttachedFileDetail } from "@/app/lib/data/attached-files";
 import { pieceDownloadFileName } from "@/app/lib/piece-display";
-import { getTelerecoursClient } from "@/app/lib/telerecours";
+import { getTelerecoursClientForCaseFile } from "@/app/lib/telerecours";
 import { readMockedPdf } from "@/app/lib/mocked-pieces";
 
 export type PieceContent = {
@@ -38,7 +38,8 @@ export async function fetchPieceContent(
     return { data: toBytes(data), mimeType: "application/pdf", downloadName };
   }
 
-  const { client, jurisdiction } = getTelerecoursClient();
+  // Credentials follow the case file's own jurisdiction (e.g. TA034 vs TA069).
+  const { client, jurisdiction } = await getTelerecoursClientForCaseFile(file.caseFileNumber);
   const { data, mimeType } = await client.downloadFile(file.encodedFileId, jurisdiction);
   return {
     data: toBytes(data),

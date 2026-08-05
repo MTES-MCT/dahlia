@@ -12,6 +12,8 @@ import { computeContentHash } from "./content-hash";
 import { paginate } from "./paginate";
 import { upsertCaseFileActorsFromApi } from "./upsert-case-file-actors";
 import { upsertActor, upsertCaseFile } from "./upsert-case-file";
+import { upsertHearingWithConclusion } from "./upsert-hearing";
+import { upsertJurisdiction } from "./upsert-jurisdiction";
 
 function parseDate(value: string | null | undefined): Date | undefined {
   if (!value) return undefined;
@@ -126,60 +128,7 @@ async function upsertHearingForCaseFile(
   caseFileNumber: string,
   hearing: Hearing,
 ): Promise<void> {
-  if (hearing.lastConclusion?.conclusionOperativePart) {
-    await prisma.conclusionOperativePart.upsert({
-      where: { id: hearing.lastConclusion.conclusionOperativePart.id },
-      update: { label: hearing.lastConclusion.conclusionOperativePart.label },
-      create: {
-        id: hearing.lastConclusion.conclusionOperativePart.id,
-        label: hearing.lastConclusion.conclusionOperativePart.label,
-      },
-    });
-  }
-  if (hearing.lastConclusion?.id != null && hearing.lastConclusion.publicationDate != null) {
-    await prisma.conclusion.upsert({
-      where: { id: hearing.lastConclusion.id },
-      update: {
-        conclusionSense: hearing.lastConclusion.conclusionSense,
-        publicationDate: new Date(hearing.lastConclusion.publicationDate),
-        author: hearing.lastConclusion.author,
-        conclusionOperativePartId: hearing.lastConclusion.conclusionOperativePart?.id ?? null,
-      },
-      create: {
-        id: hearing.lastConclusion.id,
-        conclusionSense: hearing.lastConclusion.conclusionSense,
-        publicationDate: new Date(hearing.lastConclusion.publicationDate),
-        author: hearing.lastConclusion.author,
-        conclusionOperativePartId: hearing.lastConclusion.conclusionOperativePart?.id ?? null,
-      },
-    });
-  }
-
-  await prisma.hearing.upsert({
-    where: { hearingId: hearing.hearingId },
-    update: {
-      convocationDate: new Date(hearing.convocationDate),
-      room: hearing.room,
-      creationDate: parseDate(hearing.creationDate),
-      modificationDates: (hearing.modificationDates ?? []).map((d) => new Date(d)),
-      lastConclusionId: hearing.lastConclusion?.id ?? null,
-      caseFileNumber,
-    },
-    create: {
-      hearingId: hearing.hearingId,
-      convocationDate: new Date(hearing.convocationDate),
-      room: hearing.room,
-      creationDate: parseDate(hearing.creationDate),
-      modificationDates: (hearing.modificationDates ?? []).map((d) => new Date(d)),
-      lastConclusionId: hearing.lastConclusion?.id ?? null,
-      caseFileNumber,
-    },
-  });
-
-  await prisma.caseFile.updateMany({
-    where: { lastHearingId: hearing.hearingId },
-    data: { lastHearingConvocationDate: new Date(hearing.convocationDate) },
-  });
+  await upsertHearingWithConclusion(prisma, hearing, caseFileNumber);
 }
 
 async function upsertCaseFileEvent(
@@ -310,7 +259,10 @@ export async function enrichCaseFile(
   // Re-upsert the base CaseFile (in case the detail brings fields missing from
   // the list view) then fill the detail columns.
   if (detail.assignedToLegalEntityDivision && detail.lastStatus && detail.mainClaimant) {
-    await upsertCaseFile(prisma, detail, anonymize);
+    // Tag the case file with the jurisdiction this enrichment was fetched from.
+    // Also covers the webapp's single-case-file refresh, which never runs phase A.
+    const jurisdictionId = await upsertJurisdiction(prisma, jurisdiction);
+    await upsertCaseFile(prisma, detail, anonymize, jurisdictionId);
   }
   await upsertCaseFileDetail(prisma, detail);
 
@@ -332,6 +284,13 @@ export async function enrichCaseFile(
     await upsertHearingForCaseFile(prisma, caseFileNumber, hearing);
     hearings.push(hearing);
   }
+  const hearingIds = hearings.map((h) => h.hearingId);
+  await prisma.caseFileHearing.deleteMany({
+    where: {
+      caseFileNumber,
+      ...(hearingIds.length > 0 ? { hearingId: { notIn: hearingIds } } : {}),
+    },
+  });
   const hearingsCount = hearings.length;
 
   // 4. All events (measures)

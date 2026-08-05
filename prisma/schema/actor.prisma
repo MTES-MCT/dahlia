@@ -31,8 +31,8 @@ model Actor {
 
   caseFileEvents CaseFileEvent[] @relation("CaseFileEventActor")
 
-  representedIn  ActorRepresentation[] @relation("RepresentedActor")
-  representsIn   ActorRepresentation[] @relation("RepresentativeActor")
+  representedIn ActorRepresentation[] @relation("RepresentedActor")
+  representsIn  ActorRepresentation[] @relation("RepresentativeActor")
 
   // Index sur les colonnes calculées (GENERATED ALWAYS) cf. migrations
   // actor_display_name & search_unaccent. Déclarés ici pour que Prisma ne

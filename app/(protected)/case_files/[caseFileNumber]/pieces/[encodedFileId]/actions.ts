@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/app/lib/prisma";
+import { fetchAttachedFile } from "@/app/lib/data/attached-files";
 
 export type UpdatePieceResult = { ok: true } | { ok: false; error: string };
 
@@ -22,6 +23,12 @@ async function persistPieceMetadata(
     const number = input.number.trim();
     if (number && !/^\d+$/.test(number)) {
       return { ok: false, error: "Le numéro ne doit contenir que des chiffres." };
+    }
+
+    // Scoped read: null when the pièce is unknown *or* belongs to a case file
+    // outside the caller's permission scope. Same wording in both cases.
+    if (!(await fetchAttachedFile(encodedFileId))) {
+      return { ok: false, error: "Pièce introuvable." };
     }
 
     const file = await prisma.attachedFile.update({

@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/app/lib/prisma";
+import { caseFileRelationScopeWhere } from "@/app/lib/case-file-scope";
 import { normalizeForSearch, parseSearchQuery } from "@/app/lib/case-file-search";
 import {
   HISTORIQUE_DEFAULT_ORDER,
@@ -107,6 +108,15 @@ function buildEventsWhere(
   return combineAnd(conditions);
 }
 
+// Search filter narrowed to the current user's permission scope, shared by the
+// page query and its count.
+async function buildScopedEventsWhere(
+  caseFileNumber: string,
+  query: string | null,
+): Promise<Prisma.CaseFileEventWhereInput> {
+  return { ...buildEventsWhere(caseFileNumber, query), ...(await caseFileRelationScopeWhere()) };
+}
+
 export type CaseFileEventListRow = CaseFileEventRow;
 
 export type CaseFileEventsTableData = PaginatedTableData<CaseFileEventRow>;
@@ -120,7 +130,7 @@ async function fetchCaseFileEventsPage(
   query: string | null,
 ): Promise<CaseFileEventRow[]> {
   return prisma.caseFileEvent.findMany({
-    where: buildEventsWhere(caseFileNumber, query),
+    where: await buildScopedEventsWhere(caseFileNumber, query),
     include: EVENT_LIST_INCLUDE,
     orderBy: buildEventsOrderBy(sortBy, toSortOrder(sortOrder)),
     skip: (page - 1) * pageSize,
@@ -132,7 +142,7 @@ async function fetchCaseFileEventsCount(
   caseFileNumber: string,
   query: string | null,
 ): Promise<number> {
-  return prisma.caseFileEvent.count({ where: buildEventsWhere(caseFileNumber, query) });
+  return prisma.caseFileEvent.count({ where: await buildScopedEventsWhere(caseFileNumber, query) });
 }
 
 export async function fetchCaseFileEventsTableData(

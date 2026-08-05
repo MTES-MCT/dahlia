@@ -7,6 +7,7 @@ import { Button } from "@codegouvfr/react-dsfr/Button";
 import { createModal } from "@codegouvfr/react-dsfr/Modal";
 import { useIsModalOpen } from "@codegouvfr/react-dsfr/Modal/useIsModalOpen";
 import { createUserFormAction } from "@/app/(protected)/admin/users/actions";
+import type { JurisdictionListRow } from "@/app/lib/data/jurisdictions";
 import { EMPTY_USER_FORM_VALUES, UserFormFields } from "@/app/ui/admin/user-form-fields";
 
 const createUserModal = createModal({
@@ -14,7 +15,7 @@ const createUserModal = createModal({
   id: "admin-create-user-modal",
 });
 
-function CreateUserForm() {
+function CreateUserForm({ jurisdictions }: { jurisdictions: JurisdictionListRow[] }) {
   const [result, formAction, isPending] = useActionState(createUserFormAction, null);
 
   useEffect(() => {
@@ -25,7 +26,7 @@ function CreateUserForm() {
 
   return (
     <form action={formAction} className={fr.cx("fr-mb-2w")}>
-      <UserFormFields values={EMPTY_USER_FORM_VALUES} />
+      <UserFormFields values={EMPTY_USER_FORM_VALUES} jurisdictions={jurisdictions} />
 
       <Button
         type="submit"
@@ -45,7 +46,7 @@ function CreateUserForm() {
   );
 }
 
-export function CreateUserButton() {
+export function CreateUserButton({ jurisdictions }: { jurisdictions: JurisdictionListRow[] }) {
   const [formOpenGeneration, setFormOpenGeneration] = useState(0);
 
   useIsModalOpen(createUserModal, {
@@ -68,7 +69,7 @@ export function CreateUserButton() {
       </Button>
 
       <createUserModal.Component title="Créer un utilisateur" iconId="fr-icon-user-add-line">
-        <CreateUserForm key={formOpenGeneration} />
+        <CreateUserForm key={formOpenGeneration} jurisdictions={jurisdictions} />
       </createUserModal.Component>
     </>
   );

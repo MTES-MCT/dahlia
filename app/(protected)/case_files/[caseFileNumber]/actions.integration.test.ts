@@ -1,12 +1,26 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
 
+const mockGetSession = vi.fn();
+
 vi.mock("@/app/lib/prisma", async () => {
   const { testPrisma } = await import("@/data/test-support/integration-db");
   return { prisma: testPrisma };
 });
 
+vi.mock("@/app/lib/auth", () => ({
+  auth: {
+    api: {
+      getSession: (...args: unknown[]) => mockGetSession(...args),
+    },
+  },
+}));
+
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
+}));
+
+vi.mock("next/headers", () => ({
+  headers: vi.fn(async () => new Headers()),
 }));
 
 import { revalidatePath } from "next/cache";
@@ -87,6 +101,12 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
 
   beforeEach(async () => {
     vi.mocked(revalidatePath).mockClear();
+    mockGetSession.mockReset();
+    // Administrator by default: the tests below are about the form itself, not
+    // about the permission scope (which has its own tests at the end).
+    mockGetSession.mockResolvedValue({
+      user: { id: "admin-integration", isValidated: true, isAdmin: true },
+    });
     await resetTestDatabase();
     await seedCaseFile();
   });
@@ -290,5 +310,93 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
 
     expect(result).toEqual({ ok: false, error: expect.any(String) });
     expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  describe("périmètre de droit", () => {
+    // Attach the seeded case file to a jurisdiction, and connect as a
+    // non-administrator whose scope holds `scopedTo`.
+    async function seedScopedUser(options: {
+      caseFileJurisdiction: string | null;
+      scopedTo: string;
+    }): Promise<void> {
+      const scoped = await testPrisma.jurisdiction.create({
+        data: { name: "", shortName: options.scopedTo },
+      });
+      if (options.caseFileJurisdiction) {
+        const jurisdiction =
+          options.caseFileJurisdiction === options.scopedTo
+            ? scoped
+            : await testPrisma.jurisdiction.create({
+                data: { name: "", shortName: options.caseFileJurisdiction },
+              });
+        await testPrisma.caseFile.update({
+          where: { caseFileNumber: CASE_FILE_NUMBER },
+          data: { jurisdictionId: jurisdiction.id },
+        });
+      }
+
+      await testPrisma.user.create({
+        data: {
+          id: "scoped-user",
+          email: "scoped@example.gouv.fr",
+          emailVerified: true,
+          name: "Scoped User",
+          isValidated: true,
+          isAdmin: false,
+          jurisdictionScopes: { create: [{ jurisdictionId: scoped.id }] },
+        },
+      });
+      mockGetSession.mockResolvedValue({
+        user: { id: "scoped-user", isValidated: true, isAdmin: false },
+      });
+    }
+
+    async function editSummary(summary: string) {
+      return updateCaseFileDetailsFormAction(
+        null,
+        buildFormData({
+          caseFileNumber: CASE_FILE_NUMBER,
+          litigationType: "REFERE",
+          rightType: "DALO",
+          summary,
+        }),
+      );
+    }
+
+    it("autorise la modification d'un dossier du périmètre", async () => {
+      await seedScopedUser({ caseFileJurisdiction: "TA069", scopedTo: "TA069" });
+
+      expect(await editSummary("Dans mon périmètre")).toEqual({ ok: true });
+
+      const updated = await testPrisma.caseFile.findUniqueOrThrow({
+        where: { caseFileNumber: CASE_FILE_NUMBER },
+      });
+      expect(updated.summary).toBe("Dans mon périmètre");
+    });
+
+    it("refuse la modification d'un dossier d'une autre juridiction", async () => {
+      await seedScopedUser({ caseFileJurisdiction: "TA075", scopedTo: "TA069" });
+
+      expect(await editSummary("Interdit")).toEqual({ ok: false, error: "Dossier introuvable." });
+
+      const unchanged = await testPrisma.caseFile.findUniqueOrThrow({
+        where: { caseFileNumber: CASE_FILE_NUMBER },
+      });
+      expect(unchanged.summary).toBeNull();
+      expect(revalidatePath).not.toHaveBeenCalled();
+    });
+
+    it("refuse la modification d'un dossier sans juridiction", async () => {
+      // Case files imported before the Jurisdiction model carry no jurisdiction:
+      // they are reachable by administrators only.
+      await seedScopedUser({ caseFileJurisdiction: null, scopedTo: "TA069" });
+
+      expect(await editSummary("Interdit")).toEqual({ ok: false, error: "Dossier introuvable." });
+
+      const unchanged = await testPrisma.caseFile.findUniqueOrThrow({
+        where: { caseFileNumber: CASE_FILE_NUMBER },
+      });
+      expect(unchanged.summary).toBeNull();
+    });
   });
 });

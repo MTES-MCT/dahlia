@@ -1,14 +1,11 @@
 import "server-only";
+import { prisma } from "@/app/lib/prisma";
 import { getTelerecoursCaseFileClient } from "@/data/telerecours/client";
-
-// Default jurisdiction used when talking to Télérecours from the UI (refresh,
-// file download, …). Centralised here so every server entry point agrees.
-export const DEFAULT_JURISDICTION = "TA069";
 
 // Build (or reuse) the Télérecours client for a jurisdiction, reading the
 // matching credentials from the environment. Throws a readable error when the
 // credentials are missing so callers can surface it to the user.
-export function getTelerecoursClient(jurisdiction: string = DEFAULT_JURISDICTION) {
+export function getTelerecoursClient(jurisdiction: string) {
   const username = process.env[`${jurisdiction}_TELERECOURS_USERNAME`];
   const password = process.env[`${jurisdiction}_TELERECOURS_PASSWORD`];
   if (!username || !password) {
@@ -18,4 +15,22 @@ export function getTelerecoursClient(jurisdiction: string = DEFAULT_JURISDICTION
     );
   }
   return { client: getTelerecoursCaseFileClient({ username, password }), jurisdiction };
+}
+
+// Resolve the case file's jurisdiction (Télérecours code, e.g. "TA034") then
+// build the matching client. Used by UI entry points (refresh, pièce download)
+// so each dossier talks to Télérecours with its own credentials.
+export async function getTelerecoursClientForCaseFile(caseFileNumber: string) {
+  const caseFile = await prisma.caseFile.findUnique({
+    where: { caseFileNumber },
+    select: { jurisdiction: { select: { shortName: true } } },
+  });
+  const jurisdiction = caseFile?.jurisdiction?.shortName;
+  if (!jurisdiction) {
+    throw new Error(
+      `Juridiction inconnue pour le dossier ${caseFileNumber}. ` +
+        `Impossible d'appeler Télérecours.`,
+    );
+  }
+  return getTelerecoursClient(jurisdiction);
 }

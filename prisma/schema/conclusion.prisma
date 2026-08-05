@@ -1,5 +1,10 @@
+// Conclusion attached to a hearing. Telerecours conclusion ids are not global:
+// the same numeric id can exist on different hearings, so the PK is composite.
 model Conclusion {
-  id              Int      @id
+  id        Int
+  hearingId String
+  hearing   Hearing @relation("HearingConclusions", fields: [hearingId], references: [hearingId], onDelete: Cascade)
+
   conclusionSense String?
   publicationDate DateTime
   author          String?
@@ -7,8 +12,10 @@ model Conclusion {
   conclusionOperativePartId Int?
   conclusionOperativePart   ConclusionOperativePart? @relation(fields: [conclusionOperativePartId], references: [id])
 
-  hearing Hearing?
+  // Back-relation for Hearing.lastConclusion (at most one hearing points here as last).
+  hearingAsLast Hearing? @relation("HearingLastConclusion")
 
+  @@id([id, hearingId])
   @@map("conclusions")
 }
 
