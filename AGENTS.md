@@ -65,12 +65,26 @@ applique aussitôt et échoue avant qu'on puisse corriger le SQL.
 
 ## Architecture & conventions
 
+### Organisation des dossiers (Next.js App Router)
+
+- **`app/`** : routes App Router. Groupes de routes entre parenthèses (ex. `(protected)/`) pour le layout/auth sans segment d'URL. Pages publiques hors de ce groupe (`/`, `/connexion`).
+- **`app/**/page.tsx`** : UI de la route (Server Component par défaut). Charge les données via `app/lib/data/*`, compose des composants `app/ui/*`, exporte `metadata` / `generateMetadata`. `params` et `searchParams` sont des Promises (Next 16) : toujours `await` avant usage.
+- **`app/**/layout.tsx`** : layout partagé (shell, garde d'accès). Le layout `(protected)` vérifie session + `isValidated` ; ne pas y mettre de fetch métier de page.
+- **`app/**/actions.ts`** : Server Actions (`'use server'` en tête de fichier), colocalisées avec la route qu'elles mutent. Gardes d'accès (`canAccessCaseFile`, `requireAdmin` / `withAdminAction`) **avant** toute écriture ; `revalidatePath` après mutation réussie. Helpers transverses dans `app/lib/` (`admin-actions.ts`, `form-actions.ts`), pas de JSX.
+- **`app/**/route.ts`** : Route Handlers pour réponses non-UI (export CSV, téléchargement de pièce, API auth). Pas de `page.tsx` et `route.ts` GET sur le même segment.
+- **`app/lib/`** : code serveur / partagé **sans UI React** — Prisma, auth, scope, formatage, parsing de query, helpers de formulaires. Importable depuis pages, actions et route handlers.
+- **`app/lib/data/*.ts`** : couche d'accès lecture (requêtes Prisma) appelée depuis les Server Components. Pas d'appels Prisma directs dans `page.tsx` ni dans `app/ui/`.
+- **`app/ui/`** : composants React réutilisables (Server Components par défaut), organisés par domaine (`table/`, `form/`, `admin/`, …). Pas de requêtes Prisma ici ; recevoir les données en props depuis la page.
+- **`data/`** (racine) : pipeline d'import / scraping Télérecours (CLI, client API, persistence). **Hors** App Router ; scripts standalone qui peuvent instancier leur propre `PrismaClient`. La webapp peut en réimporter des briques (`enrichCaseFile`, client Télérecours, `describeError`) depuis une Server Action ou un `route.ts`.
+- **`proxy.ts`** (racine, Next 16) : équivalent du middleware — redirection auth globale. Ne pas y mettre de logique métier de dossier.
+
+### Données, UI et styles
+
 - **Schéma Prisma multi-fichiers** : `prisma/schema/*.prisma` (un fichier par domaine, agrégés automatiquement). `schema.prisma` ne contient que datasource + generator ; l'URL de connexion vit dans `prisma.config.ts` (`DATABASE_URL`), **pas** dans le schéma (changement Prisma 7).
 - **Tables en snake_case** via `@@map` (ex. `case_files`), modèles/champs en camelCase côté code.
 - **Client Prisma** : importer depuis `@/app/lib/prisma` (singleton sur `globalThis` pour survivre au HMR). Ne jamais instancier `new PrismaClient()` ailleurs (sauf scripts standalone dans `data/`).
-- **Accès données** : fonctions dans `app/lib/data/*.ts`, appelées depuis les Server Components (`app/**/page.tsx`). Les pages `await searchParams` (Next 16).
 - **Périmètre de droit** : toute requête sur `CaseFile`, `AttachedFile` ou `CaseFileEvent` doit être cloisonnée via `app/lib/case-file-scope.ts` (`caseFileScopeWhere()` / `caseFileRelationScopeWhere()`), et toute Server Action qui écrit sur un dossier doit d'abord appeler `canAccessCaseFile()`. Un dossier hors périmètre se comporte comme un dossier inexistant (404). Règle détaillée dans le README, section « Périmètre de droit ».
-- **Composants client** : `'use client'` uniquement quand nécessaire (ex. `app/ui/sortable-column-header.tsx` qui utilise `useRouter`/`useSearchParams`). Le tri/pagination passent par les query params de l'URL.
+- **Composants client** : `'use client'` uniquement quand nécessaire (hooks navigateur, état local interactif — ex. `useRouter` / `useSearchParams`). Le tri/pagination passent par les query params de l'URL.
 - **DSFR** : utiliser les composants `@codegouvfr/react-dsfr/*` et `fr.cx(...)` pour les classes. Bootstrap DSFR dans `src/dsfr-bootstrap/` et `app/layout.tsx`.
 - **Tailwind** : utiliser Tailwind v4 en complément du DSFR lorsque le DSFR ne propose pas la classe voulue ou pour personnaliser. Combiner avec `fr.cx(...)` et `clsx(...)` si besoin.
 - **Styles** : éviter au maximum l'attribut `style` ; préférer des classes DSFR ou Tailwind. Si l'attribut `style` est nécessaire, demander confirmation à l'utilisateur en justifiant pourquoi les classes ne conviennent pas.
