@@ -36,6 +36,20 @@ function parseBooleanFlag(formData: FormData, key: string): boolean {
   return formData.get(key) === "on";
 }
 
+// Permission scope: ids of the jurisdictions selected in the multiple select.
+// No selection means an empty scope, which is a valid value.
+function parseJurisdictionIds(formData: FormData): ParseResult<{ jurisdictionIds: number[] }> {
+  const ids = new Set<number>();
+  for (const raw of formData.getAll("jurisdictionIds")) {
+    const id = Number.parseInt(String(raw), 10);
+    if (!Number.isInteger(id) || id <= 0) {
+      return { ok: false, error: "Juridiction invalide." };
+    }
+    ids.add(id);
+  }
+  return { ok: true, jurisdictionIds: [...ids] };
+}
+
 function buildDisplayName(
   firstName: string | null,
   lastName: string | null,
@@ -48,6 +62,7 @@ function describeUserPrismaError(error: unknown): string {
   return describePrismaError(error, {
     P2002: "Un utilisateur avec cet email existe déjà.",
     P2025: "Utilisateur introuvable.",
+    P2003: "Juridiction introuvable.",
   });
 }
 
@@ -55,6 +70,9 @@ export const createUserFormAction = withAdminAction(
   async (_admin, _prevState: UserMutationResult | null, formData: FormData) => {
     const parsedEmail = parseEmail(formData);
     if (!parsedEmail.ok) return parsedEmail;
+
+    const parsedJurisdictions = parseJurisdictionIds(formData);
+    if (!parsedJurisdictions.ok) return parsedJurisdictions;
 
     const firstName = parseOptionalText(formData, "firstName");
     const lastName = parseOptionalText(formData, "lastName");
@@ -74,6 +92,11 @@ export const createUserFormAction = withAdminAction(
           lastName,
           isValidated,
           isAdmin,
+          jurisdictionScopes: {
+            create: parsedJurisdictions.jurisdictionIds.map((jurisdictionId) => ({
+              jurisdictionId,
+            })),
+          },
         },
       });
       revalidatePath(ADMIN_USERS_PATH);
@@ -93,6 +116,9 @@ export const updateUserFormAction = withAdminAction(
 
     const parsedEmail = parseEmail(formData);
     if (!parsedEmail.ok) return parsedEmail;
+
+    const parsedJurisdictions = parseJurisdictionIds(formData);
+    if (!parsedJurisdictions.ok) return parsedJurisdictions;
 
     const firstName = parseOptionalText(formData, "firstName");
     const lastName = parseOptionalText(formData, "lastName");
@@ -118,6 +144,13 @@ export const updateUserFormAction = withAdminAction(
           lastName,
           isValidated,
           isAdmin,
+          // Full replacement of the permission scope, in a single transaction.
+          jurisdictionScopes: {
+            deleteMany: {},
+            create: parsedJurisdictions.jurisdictionIds.map((jurisdictionId) => ({
+              jurisdictionId,
+            })),
+          },
         },
       });
       revalidatePath(ADMIN_USERS_PATH);

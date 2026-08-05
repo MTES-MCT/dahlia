@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { fetchJurisdictionsTableData } from "./jurisdictions";
+import { fetchJurisdictionOptions, fetchJurisdictionsTableData } from "./jurisdictions";
 import { prisma } from "@/app/lib/prisma";
 
 vi.mock("@/app/lib/prisma", () => ({
@@ -88,5 +88,22 @@ describe("fetchJurisdictionsTableData", () => {
         orderBy: { name: "desc" },
       }),
     );
+  });
+});
+
+describe("fetchJurisdictionOptions", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(prisma.jurisdiction.findMany).mockResolvedValue(mockJurisdictions as never);
+  });
+
+  it("retourne toutes les juridictions triées par code, sans pagination", async () => {
+    const result = await fetchJurisdictionOptions();
+
+    expect(result).toEqual(mockJurisdictions);
+    expect(prisma.jurisdiction.findMany).toHaveBeenCalledWith({
+      select: { id: true, name: true, shortName: true },
+      orderBy: { shortName: "asc" },
+    });
   });
 });

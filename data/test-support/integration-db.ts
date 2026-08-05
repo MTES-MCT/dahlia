@@ -123,6 +123,8 @@ const TABLES = [
   "urgencies",
   "chambers",
   "legal_entity_divisions",
+  "jurisdictions",
+  "user_jurisdiction_scopes",
   "sessions",
   "accounts",
   "verifications",

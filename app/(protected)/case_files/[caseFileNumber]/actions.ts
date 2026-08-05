@@ -5,6 +5,7 @@ import { LitigationType, RightType } from "@prisma/client";
 import type { ProductionDeadlineType } from "@prisma/client";
 import { PRODUCTION_DEADLINE_TYPE_VALUES } from "@/app/lib/case-file-enums";
 import { prisma } from "@/app/lib/prisma";
+import { canAccessCaseFile } from "@/app/lib/case-file-scope";
 import { describeError } from "@/data/telerecours/http";
 import { getTelerecoursClient } from "@/app/lib/telerecours";
 import { enrichCaseFile } from "@/data/persistence/enrich-case-file";
@@ -15,6 +16,12 @@ export type RefreshCaseFileResult = { ok: true } | { ok: false; error: string };
 // reusing the same enrichment pipeline as the scraping script. The Télérecours
 // client is a singleton per jurisdiction (see getTelerecoursCaseFileClient).
 export async function refreshCaseFile(caseFileNumber: string): Promise<RefreshCaseFileResult> {
+  // The case file number comes from the client: re-check it against the caller's
+  // permission scope before hitting Télérecours and writing to the database.
+  if (!(await canAccessCaseFile(caseFileNumber))) {
+    return { ok: false, error: "Dossier introuvable." };
+  }
+
   try {
     const { client, jurisdiction } = getTelerecoursClient();
 
@@ -88,6 +95,12 @@ export async function updateCaseFileDetailsFormAction(
   const caseFileNumber = String(formData.get("caseFileNumber") ?? "").trim();
   if (!caseFileNumber) {
     return { ok: false, error: "Numéro de dossier manquant." };
+  }
+
+  // Same wording as an unknown case file, so the answer does not reveal that a
+  // case file outside the caller's permission scope exists.
+  if (!(await canAccessCaseFile(caseFileNumber))) {
+    return { ok: false, error: "Dossier introuvable." };
   }
 
   const litigation = parseEnumValue(

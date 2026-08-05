@@ -1,6 +1,7 @@
 import { fr } from "@codegouvfr/react-dsfr";
 import type { Metadata } from "next";
 import clsx from "clsx";
+import { fetchJurisdictionOptions } from "@/app/lib/data/jurisdictions";
 import { fetchUsersTableData, type UserListRow } from "@/app/lib/data/users";
 import { buildTableSearchContext } from "@/app/lib/table-search-context";
 import { USERS_FACET_KEYS, USERS_PARAMS } from "@/app/lib/users-table";
@@ -41,6 +42,14 @@ function usersColumns(): DataTableColumn<UserListRow>[] {
       render: (user) => user.email,
     },
     {
+      key: "jurisdictions",
+      label: "Juridictions",
+      render: (user) =>
+        user.jurisdictions.length > 0
+          ? user.jurisdictions.map((jurisdiction) => jurisdiction.shortName).join(", ")
+          : "—",
+    },
+    {
       key: "isValidated",
       label: "Validé",
       render: (user) => formatBooleanFr(user.isValidated),
@@ -65,11 +74,14 @@ type Props = {
 
 export default async function AdminUsersPage({ searchParams }: Props) {
   const resolvedSearchParams = await searchParams;
-  const table = await fetchUsersTableData(resolvedSearchParams);
+  const [table, jurisdictions] = await Promise.all([
+    fetchUsersTableData(resolvedSearchParams),
+    fetchJurisdictionOptions(),
+  ]);
   const search = buildTableSearchContext(resolvedSearchParams, USERS_PARAMS, "/admin/users");
 
   return (
-    <UsersActionsProvider>
+    <UsersActionsProvider jurisdictions={jurisdictions}>
       <div
         className={clsx(
           fr.cx("fr-mb-2w"),
@@ -77,7 +89,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
         )}
       >
         <h1 className={fr.cx("fr-h2", "fr-mb-0")}>Utilisateurs</h1>
-        <CreateUserButton />
+        <CreateUserButton jurisdictions={jurisdictions} />
       </div>
 
       <DataTable

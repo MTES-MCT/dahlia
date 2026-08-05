@@ -23,6 +23,9 @@ model User {
   sessions Session[]
   accounts Account[]
 
+  // Permission scope: jurisdictions this user is allowed to work on.
+  jurisdictionScopes UserJurisdictionScope[]
+
   @@map("users")
 }
 

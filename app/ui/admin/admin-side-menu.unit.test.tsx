@@ -54,8 +54,8 @@ describe("AdminSideMenu", () => {
     mockUsePathname.mockReturnValue("/admin/divisions");
     const { container } = render(<AdminSideMenu />);
 
-    expect(container.querySelector('a[href="/admin/divisions"]')?.getAttribute("aria-current")).toBe(
-      "page",
-    );
+    expect(
+      container.querySelector('a[href="/admin/divisions"]')?.getAttribute("aria-current"),
+    ).toBe("page");
   });
 });

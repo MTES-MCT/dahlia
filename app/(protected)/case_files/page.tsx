@@ -1,6 +1,8 @@
 import { fr } from "@codegouvfr/react-dsfr";
+import { Alert } from "@codegouvfr/react-dsfr/Alert";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
+import { getCurrentCaseFileScope } from "@/app/lib/case-file-scope";
 import { fetchCaseFilesTableData, HEARING_CONVOCATION_SORT_KEY } from "@/app/lib/data/case-files";
 import { fetchDashboardStatusFilterOptions } from "@/app/lib/data/statuses";
 import {
@@ -25,6 +27,8 @@ import { MemoryDeadlineCell } from "@/app/ui/table/memory-deadline-cell";
 export const metadata: Metadata = {
   title: "Tableau de bord",
 };
+
+const PAGE_HEADING = "Affaires suivies par la DDETS du Rhône";
 
 function setStatutSearchParam(
   params: URLSearchParams,
@@ -83,6 +87,22 @@ type Props = {
 };
 
 export default async function Page({ searchParams }: Props) {
+  // A validated user whose permission scope holds no jurisdiction would face an
+  // empty table with no explanation: tell them what to do instead.
+  const scope = await getCurrentCaseFileScope();
+  if (!scope.unrestricted && scope.jurisdictionIds.length === 0) {
+    return (
+      <>
+        <h1 className={fr.cx("fr-mt-3w", "fr-h2")}>{PAGE_HEADING}</h1>
+        <Alert
+          severity="info"
+          title="Aucune juridiction ne vous est attribuée"
+          description="Contactez un administrateur pour accéder aux dossiers."
+        />
+      </>
+    );
+  }
+
   const {
     page: pageParam,
     sortBy: sortByParam,
@@ -138,7 +158,7 @@ export default async function Page({ searchParams }: Props) {
 
   return (
     <>
-      <h1 className={fr.cx("fr-mt-3w", "fr-h2")}>Affaires suivies par la DDETS du Rhône</h1>
+      <h1 className={fr.cx("fr-mt-3w", "fr-h2")}>{PAGE_HEADING}</h1>
 
       <DataTable
         minWidth="50rem"

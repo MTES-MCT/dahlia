@@ -10,7 +10,8 @@ model Jurisdiction {
   name      String @default("")
   shortName String @unique
 
-  caseFiles CaseFile[]
+  caseFiles  CaseFile[]
+  userScopes UserJurisdictionScope[]
 
   @@map("jurisdictions")
 }

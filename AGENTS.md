@@ -69,6 +69,7 @@ applique aussitôt et échoue avant qu'on puisse corriger le SQL.
 - **Tables en snake_case** via `@@map` (ex. `case_files`), modèles/champs en camelCase côté code.
 - **Client Prisma** : importer depuis `@/app/lib/prisma` (singleton sur `globalThis` pour survivre au HMR). Ne jamais instancier `new PrismaClient()` ailleurs (sauf scripts standalone dans `data/`).
 - **Accès données** : fonctions dans `app/lib/data/*.ts`, appelées depuis les Server Components (`app/**/page.tsx`). Les pages `await searchParams` (Next 16).
+- **Périmètre de droit** : toute requête sur `CaseFile`, `AttachedFile` ou `CaseFileEvent` doit être cloisonnée via `app/lib/case-file-scope.ts` (`caseFileScopeWhere()` / `caseFileRelationScopeWhere()`), et toute Server Action qui écrit sur un dossier doit d'abord appeler `canAccessCaseFile()`. Un dossier hors périmètre se comporte comme un dossier inexistant (404). Règle détaillée dans le README, section « Périmètre de droit ».
 - **Composants client** : `'use client'` uniquement quand nécessaire (ex. `app/ui/sortable-column-header.tsx` qui utilise `useRouter`/`useSearchParams`). Le tri/pagination passent par les query params de l'URL.
 - **DSFR** : utiliser les composants `@codegouvfr/react-dsfr/*` et `fr.cx(...)` pour les classes. Bootstrap DSFR dans `src/dsfr-bootstrap/` et `app/layout.tsx`.
 - **Tailwind** : utiliser Tailwind v4 en complément du DSFR lorsque le DSFR ne propose pas la classe voulue ou pour personnaliser. Combiner avec `fr.cx(...)` et `clsx(...)` si besoin.

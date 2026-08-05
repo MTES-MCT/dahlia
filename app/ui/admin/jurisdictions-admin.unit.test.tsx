@@ -1,9 +1,6 @@
 import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
 import { render, screen, cleanup, within, fireEvent } from "@testing-library/react";
-import {
-  JurisdictionRowActions,
-  JurisdictionsActionsProvider,
-} from "./jurisdictions-actions";
+import { JurisdictionRowActions, JurisdictionsActionsProvider } from "./jurisdictions-actions";
 import type { JurisdictionListRow } from "@/app/lib/data/jurisdictions";
 
 vi.mock("@/app/(protected)/admin/jurisdiction/actions", () => ({

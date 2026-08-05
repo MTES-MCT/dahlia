@@ -4,9 +4,7 @@ import { auth } from "@/app/lib/auth";
 
 export type AdminMutationResult = { ok: true } | { ok: false; error: string };
 
-export type AdminAuthResult =
-  | { ok: true; userId: string }
-  | { ok: false; error: string };
+export type AdminAuthResult = { ok: true; userId: string } | { ok: false; error: string };
 
 export type ParseResult<T extends Record<string, unknown>> =
   | ({ ok: true } & T)

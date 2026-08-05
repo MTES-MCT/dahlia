@@ -80,7 +80,9 @@ describe("admin jurisdiction actions", () => {
     it("exige un nom non vide", async () => {
       mockAdminSession();
 
-      expect(await updateJurisdictionFormAction(null, buildFormData({ id: "1", name: "  " }))).toEqual({
+      expect(
+        await updateJurisdictionFormAction(null, buildFormData({ id: "1", name: "  " })),
+      ).toEqual({
         ok: false,
         error: "Le nom est obligatoire.",
       });

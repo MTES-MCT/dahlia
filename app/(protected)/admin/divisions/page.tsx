@@ -43,7 +43,11 @@ type Props = {
 export default async function AdminDivisionsPage({ searchParams }: Props) {
   const resolvedSearchParams = await searchParams;
   const table = await fetchDivisionsTableData(resolvedSearchParams);
-  const search = buildTableSearchContext(resolvedSearchParams, DIVISIONS_PARAMS, "/admin/divisions");
+  const search = buildTableSearchContext(
+    resolvedSearchParams,
+    DIVISIONS_PARAMS,
+    "/admin/divisions",
+  );
 
   return (
     <DivisionsActionsProvider>

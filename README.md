@@ -108,6 +108,37 @@ sont montées sur `/api/auth/*`.
   un `getUserInfo` personnalisé (vérification via JWKS avec `jose`). La
   déconnexion fait un logout complet (`end_session_endpoint`).
 
+### Périmètre de droit (cloisonnement par juridiction)
+
+Être validé ne donne accès qu'aux dossiers de **son** périmètre. Ce périmètre est
+la liste de juridictions associée à l'utilisateur depuis `/admin/users`
+(table `user_jurisdiction_scopes`).
+
+| Utilisateur                              | Dossiers visibles                                          |
+| ---------------------------------------- | ---------------------------------------------------------- |
+| Administrateur (`isAdmin`)               | tous, y compris ceux sans juridiction                      |
+| Utilisateur validé                       | ceux dont `CaseFile.jurisdictionId` est dans son périmètre |
+| Périmètre vide, non validé, non connecté | aucun                                                      |
+
+Un dossier dont `jurisdictionId` est `NULL` n'est donc visible que des administrateurs.
+
+La règle est appliquée **dans la couche d'accès aux données**, jamais dans un
+layout ni dans un middleware (un layout ne se re-rend pas à chaque navigation et
+les Route Handlers ne le traversent pas). Elle vit dans un module unique,
+[app/lib/case-file-scope.ts](app/lib/case-file-scope.ts) :
+
+- `caseFileScopeWhere()` → fragment `WHERE` à fusionner dans toute requête sur
+  `CaseFile` (`{}` pour un administrateur, `{ jurisdictionId: { in: […] } }` sinon) ;
+- `caseFileRelationScopeWhere()` → le même filtre porté par la relation
+  `caseFile`, pour les tables satellites (`AttachedFile`, `CaseFileEvent`) ;
+- `canAccessCaseFile(caseFileNumber)` → garde des Server Actions qui écrivent sur
+  un dossier sans le lire.
+
+Conséquences côté UI : un dossier hors périmètre est un **404** (`notFound()`),
+indistinguable d'un dossier inexistant ; les routes de pièces répondent 404 ;
+l'export `.xlsx` ne contient que les dossiers du périmètre ; et un utilisateur
+sans aucune juridiction voit un message d'explication à la place du tableau.
+
 ## Import des données (scraping Télérecours)
 
 Le script [data/cli/scrape-telerecours.ts](data/cli/scrape-telerecours.ts) interroge
@@ -447,8 +478,16 @@ erDiagram
         DateTime updatedAt
     }
 
+    UserJurisdictionScope {
+        string userId PK,FK
+        int jurisdictionId PK,FK
+        DateTime createdAt
+    }
+
     LegalEntityDivision ||--o{ CaseFile : "assignedTo"
     Jurisdiction        ||--o{ CaseFile : "scrapedFrom"
+    User                ||--o{ UserJurisdictionScope : "périmètre de droit"
+    Jurisdiction        ||--o{ UserJurisdictionScope : "périmètre de droit"
     Urgency             ||--o{ CaseFile : "has urgency"
     Status              ||--o{ CaseFile : "lastStatus"
     Chamber             ||--o{ CaseFile : "chamber"

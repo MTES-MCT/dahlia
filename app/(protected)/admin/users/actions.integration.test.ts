@@ -33,12 +33,40 @@ import {
 
 const ADMIN_ID = "admin-integration";
 
-function buildFormData(fields: Record<string, string>): FormData {
+function buildFormData(
+  fields: Record<string, string>,
+  // Repeated fields, e.g. the `jurisdictionIds` multiple select.
+  multiValueFields: Record<string, string[]> = {},
+): FormData {
   const formData = new FormData();
   for (const [key, value] of Object.entries(fields)) {
     formData.set(key, value);
   }
+  for (const [key, values] of Object.entries(multiValueFields)) {
+    for (const value of values) {
+      formData.append(key, value);
+    }
+  }
   return formData;
+}
+
+async function seedJurisdictions(): Promise<{ lyon: number; paris: number }> {
+  const lyon = await testPrisma.jurisdiction.create({
+    data: { name: "Tribunal administratif de Lyon", shortName: "TA069" },
+  });
+  const paris = await testPrisma.jurisdiction.create({
+    data: { name: "Tribunal administratif de Paris", shortName: "TA075" },
+  });
+  return { lyon: lyon.id, paris: paris.id };
+}
+
+async function scopeShortNames(userId: string): Promise<string[]> {
+  const scopes = await testPrisma.userJurisdictionScope.findMany({
+    where: { userId },
+    select: { jurisdiction: { select: { shortName: true } } },
+    orderBy: { jurisdiction: { shortName: "asc" } },
+  });
+  return scopes.map((scope) => scope.jurisdiction.shortName);
 }
 
 async function seedAdmin(): Promise<void> {
@@ -132,6 +160,72 @@ describe("admin users CRUD (integration)", () => {
     expect(updated.lastName).toBe("Dupont");
     expect(updated.isValidated).toBe(true);
     expect(updated.isAdmin).toBe(true);
+  });
+
+  it("enregistre puis remplace le périmètre de droit", async () => {
+    const { lyon, paris } = await seedJurisdictions();
+
+    const created = await createUserFormAction(
+      null,
+      buildFormData(
+        { email: "scope@example.gouv.fr", isValidated: "on" },
+        { jurisdictionIds: [String(lyon), String(paris)] },
+      ),
+    );
+    expect(created).toEqual({ ok: true });
+
+    const user = await testPrisma.user.findUniqueOrThrow({
+      where: { email: "scope@example.gouv.fr" },
+    });
+    expect(await scopeShortNames(user.id)).toEqual(["TA069", "TA075"]);
+
+    const updated = await updateUserFormAction(
+      null,
+      buildFormData(
+        { id: user.id, email: "scope@example.gouv.fr", isValidated: "on" },
+        { jurisdictionIds: [String(paris)] },
+      ),
+    );
+    expect(updated).toEqual({ ok: true });
+    expect(await scopeShortNames(user.id)).toEqual(["TA075"]);
+
+    // No selection at all clears the scope entirely.
+    const cleared = await updateUserFormAction(
+      null,
+      buildFormData({ id: user.id, email: "scope@example.gouv.fr", isValidated: "on" }),
+    );
+    expect(cleared).toEqual({ ok: true });
+    expect(await scopeShortNames(user.id)).toEqual([]);
+  });
+
+  it("supprime le périmètre de droit en cascade avec l'utilisateur", async () => {
+    const { lyon } = await seedJurisdictions();
+
+    await createUserFormAction(
+      null,
+      buildFormData({ email: "cascade@example.gouv.fr" }, { jurisdictionIds: [String(lyon)] }),
+    );
+    const user = await testPrisma.user.findUniqueOrThrow({
+      where: { email: "cascade@example.gouv.fr" },
+    });
+    expect(await scopeShortNames(user.id)).toEqual(["TA069"]);
+
+    expect(await deleteUserFormAction(null, buildFormData({ id: user.id }))).toEqual({ ok: true });
+    expect(await testPrisma.userJurisdictionScope.count({ where: { userId: user.id } })).toBe(0);
+    // The jurisdiction itself must survive the user deletion.
+    expect(await testPrisma.jurisdiction.count()).toBe(2);
+  });
+
+  it("refuse une juridiction inexistante", async () => {
+    const result = await createUserFormAction(
+      null,
+      buildFormData({ email: "bad.scope@example.gouv.fr" }, { jurisdictionIds: ["999999"] }),
+    );
+
+    expect(result).toEqual({ ok: false, error: "Juridiction introuvable." });
+    expect(
+      await testPrisma.user.findUnique({ where: { email: "bad.scope@example.gouv.fr" } }),
+    ).toBeNull();
   });
 
   it("refuse un email déjà pris à la création", async () => {

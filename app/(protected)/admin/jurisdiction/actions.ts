@@ -18,11 +18,7 @@ const ADMIN_JURISDICTION_PATH = "/admin/jurisdiction";
 // Telerecours code and must never be changed from the UI.
 export const updateJurisdictionFormAction = withAdminAction(
   async (_admin, _prevState: JurisdictionMutationResult | null, formData: FormData) => {
-    const parsedId = parsePositiveIntField(
-      formData,
-      "id",
-      "Identifiant de juridiction manquant.",
-    );
+    const parsedId = parsePositiveIntField(formData, "id", "Identifiant de juridiction manquant.");
     if (!parsedId.ok) return parsedId;
 
     const parsedName = parseRequiredText(formData, "name", "Le nom est obligatoire.");

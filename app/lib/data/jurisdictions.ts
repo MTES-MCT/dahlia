@@ -98,6 +98,19 @@ async function fetchJurisdictionsCount(query: string | null): Promise<number> {
   return prisma.jurisdiction.count({ where: buildJurisdictionsWhere(query) });
 }
 
+// Full jurisdiction list (unpaginated), used to populate the user permission
+// scope selector in the admin user forms.
+export async function fetchJurisdictionOptions(): Promise<JurisdictionListRow[]> {
+  return prisma.jurisdiction.findMany({
+    select: {
+      id: true,
+      name: true,
+      shortName: true,
+    },
+    orderBy: { shortName: "asc" },
+  });
+}
+
 export type JurisdictionsTableData = PaginatedTableData<JurisdictionListRow>;
 
 export async function fetchJurisdictionsTableData(

@@ -19,6 +19,11 @@ vi.mock("@/app/lib/fetch-paginated-table-data", async (importOriginal) => {
   };
 });
 
+const lyon = { id: 1, name: "Tribunal administratif de Lyon", shortName: "TA069" };
+const paris = { id: 2, name: "Tribunal administratif de Paris", shortName: "TA075" };
+
+// Shape returned by Prisma: permission scopes are join rows, flattened by the
+// data layer into a plain `jurisdictions` array.
 const mockUsers = [
   {
     id: "u1",
@@ -28,6 +33,7 @@ const mockUsers = [
     isValidated: true,
     isAdmin: false,
     createdAt: new Date("2026-01-01"),
+    jurisdictionScopes: [{ jurisdiction: lyon }, { jurisdiction: paris }],
   },
   {
     id: "u2",
@@ -37,6 +43,30 @@ const mockUsers = [
     isValidated: false,
     isAdmin: true,
     createdAt: new Date("2026-02-01"),
+    jurisdictionScopes: [],
+  },
+];
+
+const expectedRows = [
+  {
+    id: "u1",
+    firstName: "Alice",
+    lastName: "Martin",
+    email: "alice.martin@example.gouv.fr",
+    isValidated: true,
+    isAdmin: false,
+    createdAt: new Date("2026-01-01"),
+    jurisdictions: [lyon, paris],
+  },
+  {
+    id: "u2",
+    firstName: "Bob",
+    lastName: "Dupont",
+    email: "bob.dupont@example.gouv.fr",
+    isValidated: false,
+    isAdmin: true,
+    createdAt: new Date("2026-02-01"),
+    jurisdictions: [],
   },
 ];
 
@@ -50,7 +80,7 @@ describe("fetchUsersTableData", () => {
   it("retourne les utilisateurs paginés avec le tri par défaut (nom asc)", async () => {
     const result = await fetchUsersTableData({});
 
-    expect(result.rows).toEqual(mockUsers);
+    expect(result.rows).toEqual(expectedRows);
     expect(result.totalCount).toBe(2);
     expect(result.totalPages).toBe(1);
     expect(result.currentPage).toBe(1);
@@ -104,6 +134,21 @@ describe("fetchUsersTableData", () => {
     expect(prisma.user.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         orderBy: { email: "desc" },
+      }),
+    );
+  });
+
+  it("sélectionne le périmètre de droit trié par code juridiction", async () => {
+    await fetchUsersTableData({});
+
+    expect(prisma.user.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({
+          jurisdictionScopes: {
+            select: { jurisdiction: { select: { id: true, name: true, shortName: true } } },
+            orderBy: { jurisdiction: { shortName: "asc" } },
+          },
+        }),
       }),
     );
   });

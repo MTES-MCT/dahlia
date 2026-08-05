@@ -1,6 +1,7 @@
 import { Prisma, type User } from "@prisma/client";
 import { prisma } from "@/app/lib/prisma";
 import { parseSearchQuery } from "@/app/lib/case-file-search";
+import { type JurisdictionListRow } from "@/app/lib/data/jurisdictions";
 import {
   USERS_DEFAULT_ORDER,
   USERS_DEFAULT_SORT_BY,
@@ -20,7 +21,10 @@ import { parseTableQueryState } from "@/app/lib/table-query-state";
 export type UserListRow = Pick<
   User,
   "id" | "firstName" | "lastName" | "email" | "isValidated" | "isAdmin" | "createdAt"
->;
+> & {
+  // Permission scope: jurisdictions the user is allowed to work on (may be empty).
+  jurisdictions: JurisdictionListRow[];
+};
 
 function toSortOrder(sortOrder: SortOrder): Prisma.SortOrder {
   return sortOrder === "ascending" ? "asc" : "desc";
@@ -89,7 +93,7 @@ async function fetchUsersPage(
   sortOrder: SortOrder,
   query: string | null,
 ): Promise<UserListRow[]> {
-  return prisma.user.findMany({
+  const users = await prisma.user.findMany({
     where: buildUsersWhere(query),
     select: {
       id: true,
@@ -99,11 +103,23 @@ async function fetchUsersPage(
       isValidated: true,
       isAdmin: true,
       createdAt: true,
+      jurisdictionScopes: {
+        select: {
+          jurisdiction: { select: { id: true, name: true, shortName: true } },
+        },
+        orderBy: { jurisdiction: { shortName: "asc" } },
+      },
     },
     orderBy: buildUsersOrderBy(sortBy, toSortOrder(sortOrder)),
     skip: (page - 1) * pageSize,
     take: pageSize,
   });
+
+  // Flatten the join rows so consumers only see the jurisdictions themselves.
+  return users.map(({ jurisdictionScopes, ...user }) => ({
+    ...user,
+    jurisdictions: jurisdictionScopes.map((scope) => scope.jurisdiction),
+  }));
 }
 
 async function fetchUsersCount(query: string | null): Promise<number> {

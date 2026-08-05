@@ -5,10 +5,7 @@ import {
   type JurisdictionListRow,
 } from "@/app/lib/data/jurisdictions";
 import { buildTableSearchContext } from "@/app/lib/table-search-context";
-import {
-  JURISDICTIONS_FACET_KEYS,
-  JURISDICTIONS_PARAMS,
-} from "@/app/lib/jurisdictions-table";
+import { JURISDICTIONS_FACET_KEYS, JURISDICTIONS_PARAMS } from "@/app/lib/jurisdictions-table";
 import {
   JurisdictionRowActions,
   JurisdictionsActionsProvider,

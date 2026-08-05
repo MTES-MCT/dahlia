@@ -17,6 +17,7 @@ import { Button } from "@codegouvfr/react-dsfr/Button";
 import { createModal } from "@codegouvfr/react-dsfr/Modal";
 import { useIsModalOpen } from "@codegouvfr/react-dsfr/Modal/useIsModalOpen";
 import { deleteUserFormAction, updateUserFormAction } from "@/app/(protected)/admin/users/actions";
+import { type JurisdictionListRow } from "@/app/lib/data/jurisdictions";
 import { type UserListRow } from "@/app/lib/data/users";
 import { UserFormFields } from "@/app/ui/admin/user-form-fields";
 
@@ -45,7 +46,13 @@ function useUsersActions(): UsersActionsContextValue {
   return context;
 }
 
-function EditUserForm({ user }: { user: UserListRow }) {
+function EditUserForm({
+  user,
+  jurisdictions,
+}: {
+  user: UserListRow;
+  jurisdictions: JurisdictionListRow[];
+}) {
   const [result, formAction, isPending] = useActionState(updateUserFormAction, null);
 
   useEffect(() => {
@@ -64,7 +71,9 @@ function EditUserForm({ user }: { user: UserListRow }) {
           lastName: user.lastName,
           isValidated: user.isValidated,
           isAdmin: user.isAdmin,
+          jurisdictionIds: user.jurisdictions.map((jurisdiction) => jurisdiction.id),
         }}
+        jurisdictions={jurisdictions}
       />
 
       <Button
@@ -87,15 +96,21 @@ function EditUserForm({ user }: { user: UserListRow }) {
 
 function EditUserModal({
   user,
+  jurisdictions,
   formOpenGeneration,
 }: {
   user: UserListRow | null;
+  jurisdictions: JurisdictionListRow[];
   formOpenGeneration: number;
 }) {
   return (
     <editUserModal.Component title="Modifier l'utilisateur" iconId="fr-icon-edit-line">
       {user ? (
-        <EditUserForm key={`${formOpenGeneration}-${user.id}`} user={user} />
+        <EditUserForm
+          key={`${formOpenGeneration}-${user.id}`}
+          user={user}
+          jurisdictions={jurisdictions}
+        />
       ) : (
         <p className={fr.cx("fr-text--sm")}>Aucun utilisateur sélectionné.</p>
       )}
@@ -169,7 +184,14 @@ function DeleteUserModal({
   );
 }
 
-export function UsersActionsProvider({ children }: { children: ReactNode }) {
+export function UsersActionsProvider({
+  children,
+  jurisdictions,
+}: {
+  children: ReactNode;
+  // Jurisdictions available for the user permission scope selector.
+  jurisdictions: JurisdictionListRow[];
+}) {
   const [editUser, setEditUser] = useState<UserListRow | null>(null);
   const [deleteUser, setDeleteUser] = useState<UserListRow | null>(null);
   const [editOpenGeneration, setEditOpenGeneration] = useState(0);
@@ -202,7 +224,11 @@ export function UsersActionsProvider({ children }: { children: ReactNode }) {
   return (
     <UsersActionsContext.Provider value={value}>
       {children}
-      <EditUserModal user={editUser} formOpenGeneration={editOpenGeneration} />
+      <EditUserModal
+        user={editUser}
+        jurisdictions={jurisdictions}
+        formOpenGeneration={editOpenGeneration}
+      />
       <DeleteUserModal user={deleteUser} formOpenGeneration={deleteOpenGeneration} />
     </UsersActionsContext.Provider>
   );
