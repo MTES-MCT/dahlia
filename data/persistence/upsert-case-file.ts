@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { Actor, CaseFile } from "../telerecours/types";
 import { anonymizeActor } from "../anonymize";
 import { upsertCaseFileActorLink } from "./upsert-case-file-actors";
+import { upsertHearingWithConclusion } from "./upsert-hearing";
 import { upsertLegalEntityDivision } from "./upsert-legal-entity-division";
 
 // The Prisma client is passed in so that this module can be reused both by the
@@ -94,60 +95,8 @@ export async function upsertCaseFile(
     },
   });
 
-  if (caseFile.lastHearing?.lastConclusion?.conclusionOperativePart) {
-    await prisma.conclusionOperativePart.upsert({
-      where: { id: caseFile.lastHearing.lastConclusion.conclusionOperativePart.id },
-      update: { label: caseFile.lastHearing.lastConclusion.conclusionOperativePart.label },
-      create: {
-        id: caseFile.lastHearing.lastConclusion.conclusionOperativePart.id,
-        label: caseFile.lastHearing.lastConclusion.conclusionOperativePart.label,
-      },
-    });
-  }
-
-  const lastConclusion = caseFile.lastHearing?.lastConclusion;
-  if (lastConclusion) {
-    if (lastConclusion.id == null || lastConclusion.publicationDate == null) {
-      console.warn(
-        `⚠ Skipping Conclusion upsert for case file ${caseFile.caseFileNumber}: ` +
-          `missing required field (id=${lastConclusion.id}, publicationDate=${lastConclusion.publicationDate})`,
-      );
-    } else {
-      const operativePartId = lastConclusion.conclusionOperativePart?.id ?? null;
-      await prisma.conclusion.upsert({
-        where: { id: lastConclusion.id },
-        update: {
-          conclusionSense: lastConclusion.conclusionSense,
-          publicationDate: new Date(lastConclusion.publicationDate),
-          author: lastConclusion.author,
-          conclusionOperativePartId: operativePartId,
-        },
-        create: {
-          id: lastConclusion.id,
-          conclusionSense: lastConclusion.conclusionSense,
-          publicationDate: new Date(lastConclusion.publicationDate),
-          author: lastConclusion.author,
-          conclusionOperativePartId: operativePartId,
-        },
-      });
-    }
-  }
-
   if (caseFile.lastHearing) {
-    await prisma.hearing.upsert({
-      where: { hearingId: caseFile.lastHearing.hearingId },
-      update: {
-        convocationDate: new Date(caseFile.lastHearing.convocationDate),
-        room: caseFile.lastHearing.room,
-        lastConclusionId: caseFile.lastHearing.lastConclusion?.id,
-      },
-      create: {
-        hearingId: caseFile.lastHearing.hearingId,
-        convocationDate: new Date(caseFile.lastHearing.convocationDate),
-        room: caseFile.lastHearing.room,
-        lastConclusionId: caseFile.lastHearing.lastConclusion?.id,
-      },
-    });
+    await upsertHearingWithConclusion(prisma, caseFile.lastHearing);
   }
 
   await prisma.caseFile.upsert({
@@ -183,6 +132,22 @@ export async function upsertCaseFile(
         : null,
     },
   });
+
+  if (caseFile.lastHearing) {
+    await prisma.caseFileHearing.upsert({
+      where: {
+        caseFileNumber_hearingId: {
+          caseFileNumber: caseFile.caseFileNumber,
+          hearingId: caseFile.lastHearing.hearingId,
+        },
+      },
+      update: {},
+      create: {
+        caseFileNumber: caseFile.caseFileNumber,
+        hearingId: caseFile.lastHearing.hearingId,
+      },
+    });
+  }
 
   await upsertCaseFileActorLink(
     prisma,

@@ -117,14 +117,20 @@ async function main(): Promise<number> {
       await prisma.$transaction([
         prisma.hearing.upsert({
           where: { hearingId },
-          update: {
-            convocationDate,
-            caseFileNumber: caseFile.caseFileNumber,
+          update: { convocationDate },
+          create: { hearingId, convocationDate },
+        }),
+        prisma.caseFileHearing.upsert({
+          where: {
+            caseFileNumber_hearingId: {
+              caseFileNumber: caseFile.caseFileNumber,
+              hearingId,
+            },
           },
+          update: {},
           create: {
-            hearingId,
-            convocationDate,
             caseFileNumber: caseFile.caseFileNumber,
+            hearingId,
           },
         }),
         prisma.caseFile.update({

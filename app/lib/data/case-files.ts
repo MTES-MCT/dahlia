@@ -194,7 +194,11 @@ const CASE_FILE_DETAIL_INCLUDE = {
   assignedToLegalEntityDivision: true,
   lastDecisionReading: true,
   lastHearing: { include: { lastConclusion: { include: { conclusionOperativePart: true } } } },
-  hearings: { include: { lastConclusion: { include: { conclusionOperativePart: true } } } },
+  caseFileHearings: {
+    include: {
+      hearing: { include: { lastConclusion: { include: { conclusionOperativePart: true } } } },
+    },
+  },
   events: {
     include: { measure: true, actor: true, attachedFiles: true },
     orderBy: { eventDate: "desc" as const },

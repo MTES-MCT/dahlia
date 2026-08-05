@@ -55,9 +55,9 @@ model CaseFile {
   lastHearingId String?
   lastHearing   Hearing? @relation("CaseFileLastHearing", fields: [lastHearingId], references: [hearingId])
 
-  // Liste complète des audiences du dossier (alimentée par
-  // /api/case-file/<id>/hearings — phase B du scraper).
-  hearings Hearing[] @relation("CaseFileHearings")
+  // Full list of hearings for this case file (M2M via case_file_hearings,
+  // fed by /api/case-file/<id>/hearings — scrape phase B).
+  caseFileHearings CaseFileHearing[]
 
   procedureState String?
 

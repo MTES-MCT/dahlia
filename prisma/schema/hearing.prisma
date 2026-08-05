@@ -1,3 +1,18 @@
+// Participation of a case file in a hearing session (M2M).
+// Telerecours nests hearings under /api/case-file/<id>/hearings, but the same
+// hearingId can appear on several case files (shared session).
+model CaseFileHearing {
+  caseFileNumber String
+  caseFile       CaseFile @relation(fields: [caseFileNumber], references: [caseFileNumber], onDelete: Cascade)
+
+  hearingId String
+  hearing   Hearing @relation(fields: [hearingId], references: [hearingId], onDelete: Cascade)
+
+  @@id([caseFileNumber, hearingId])
+  @@index([hearingId])
+  @@map("case_file_hearings")
+}
+
 model Hearing {
   hearingId         String     @id
   convocationDate   DateTime
@@ -5,18 +20,19 @@ model Hearing {
   creationDate      DateTime?
   modificationDates DateTime[]
 
-  lastConclusionId Int?        @unique
-  lastConclusion   Conclusion? @relation(fields: [lastConclusionId], references: [id])
+  // "Current" conclusion for this hearing (mirrors CaseFile.lastHearing).
+  // Composite FK: conclusion ids are only unique within a hearing.
+  lastConclusionId Int?
+  lastConclusion   Conclusion? @relation("HearingLastConclusion", fields: [hearingId, lastConclusionId], references: [hearingId, id], onDelete: SetNull)
 
-  // Dossier auquel appartient l'audience (alimenté par
-  // /api/case-file/<id>/hearings — phase B du scraper).
-  caseFileNumber String?
-  caseFile       CaseFile? @relation("CaseFileHearings", fields: [caseFileNumber], references: [caseFileNumber], onDelete: SetNull)
+  // All conclusions observed for this hearing (mirrors CaseFile ↔ hearings list).
+  conclusions Conclusion[] @relation("HearingConclusions")
 
-  // Dossiers qui ont cette audience comme `lastHearing` (relation existante
-  // alimentée par la liste).
+  caseFileHearings CaseFileHearing[]
+
+  // Case files that have this hearing as `lastHearing`.
   caseFilesAsLast CaseFile[] @relation("CaseFileLastHearing")
 
-  @@index([caseFileNumber])
+  @@unique([hearingId, lastConclusionId])
   @@map("hearings")
 }

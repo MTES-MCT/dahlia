@@ -7,7 +7,7 @@ import { PRODUCTION_DEADLINE_TYPE_VALUES } from "@/app/lib/case-file-enums";
 import { prisma } from "@/app/lib/prisma";
 import { canAccessCaseFile } from "@/app/lib/case-file-scope";
 import { describeError } from "@/data/telerecours/http";
-import { getTelerecoursClient } from "@/app/lib/telerecours";
+import { getTelerecoursClientForCaseFile } from "@/app/lib/telerecours";
 import { enrichCaseFile } from "@/data/persistence/enrich-case-file";
 
 export type RefreshCaseFileResult = { ok: true } | { ok: false; error: string };
@@ -23,7 +23,8 @@ export async function refreshCaseFile(caseFileNumber: string): Promise<RefreshCa
   }
 
   try {
-    const { client, jurisdiction } = getTelerecoursClient();
+    // Credentials follow the case file's own jurisdiction (e.g. TA034 vs TA069).
+    const { client, jurisdiction } = await getTelerecoursClientForCaseFile(caseFileNumber);
 
     // Anonymize everywhere except in production, mirroring the scraping script.
     const anonymize = process.env.ENVIRONMENT !== "production";

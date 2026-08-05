@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   title: "Tableau de bord",
 };
 
-const PAGE_HEADING = "Affaires suivies par la DDETS du Rhône";
+const PAGE_HEADING = "Vos dossiers";
 
 function setStatutSearchParam(
   params: URLSearchParams,

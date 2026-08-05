@@ -369,12 +369,17 @@ erDiagram
         string room
         DateTime creationDate "nullable"
         DateTime modificationDates "array"
-        int lastConclusionId FK "unique, nullable"
-        string caseFileNumber FK "nullable"
+        int lastConclusionId FK "nullable, scoped by hearingId"
+    }
+
+    CaseFileHearing {
+        string caseFileNumber PK_FK
+        string hearingId PK_FK
     }
 
     Conclusion {
         int id PK
+        string hearingId PK_FK
         string conclusionSense
         DateTime publicationDate
         string author "nullable"
@@ -492,11 +497,13 @@ erDiagram
     Status              ||--o{ CaseFile : "lastStatus"
     Chamber             ||--o{ CaseFile : "chamber"
     CaseFile            |o--o| Hearing  : "lastHearing"
-    CaseFile            ||--o{ Hearing  : "hearings"
+    CaseFile            ||--o{ CaseFileHearing : "caseFileHearings"
+    Hearing             ||--o{ CaseFileHearing : "caseFiles"
     Actor               ||--o{ CaseFile : "mainClaimant"
     Actor               ||--o{ CaseFile : "mainDefender"
     Actor               |o--o{ CaseFile : "lastProducer"
     Hearing             |o--o| Conclusion : "lastConclusion"
+    Hearing             ||--o{ Conclusion : "conclusions"
     ConclusionOperativePart |o--o{ Conclusion : "operativePart"
     Quality             ||--o{ Actor    : "has quality"
     CaseFile            ||--o{ CaseFileEvent : "events"

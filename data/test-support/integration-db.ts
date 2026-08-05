@@ -111,6 +111,7 @@ const TABLES = [
   "measures",
   "actor_representations",
   "case_file_actors",
+  "case_file_hearings",
   "related_case_files",
   "last_decision_readings",
   "case_files",
