@@ -1,13 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { type AdminMutationResult, withAdminAction } from "@/app/lib/admin-actions";
 import {
-  type AdminMutationResult,
   describePrismaError,
   parsePositiveIntField,
   parseRequiredText,
-  withAdminAction,
-} from "@/app/lib/admin-actions";
+} from "@/app/lib/form-actions";
 import { prisma } from "@/app/lib/prisma";
 
 export type JurisdictionMutationResult = AdminMutationResult;

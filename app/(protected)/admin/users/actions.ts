@@ -1,12 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import {
-  type AdminMutationResult,
-  type ParseResult,
-  describePrismaError,
-  withAdminAction,
-} from "@/app/lib/admin-actions";
+import { type AdminMutationResult, withAdminAction } from "@/app/lib/admin-actions";
+import { type ParseResult, describePrismaError } from "@/app/lib/form-actions";
 import { prisma } from "@/app/lib/prisma";
 
 export type UserMutationResult = AdminMutationResult;
