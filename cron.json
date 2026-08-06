@@ -1,7 +1,11 @@
 {
   "jobs": [
     {
-      "command": "0 1 * * * pnpm scrape:telerecours -- --all",
+      "command": "0 1 * * * pnpm scrape:telerecours -- --all --jurisdiction TA069",
+      "size": "XL"
+    },
+    {
+      "command": "0 2 * * * pnpm scrape:telerecours -- --all --jurisdiction TA034",
       "size": "XL"
     }
   ]
