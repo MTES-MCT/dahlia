@@ -149,12 +149,13 @@ function PiecesSidebar({
     setError(null);
     startTransition(async () => {
       try {
-        const ids = pieces.map((piece) => piece.encodedFileId).filter((id) => selectedIds.has(id));
-        if (ids.length === 0) return;
+        const selected = pieces.filter((piece) => selectedIds.has(piece.encodedFileId));
+        if (selected.length === 0) return;
 
+        const ids = selected.map((piece) => piece.encodedFileId);
         const base = `/case_files/${encodeURIComponent(caseFileNumber)}/pieces`;
         const url =
-          ids.length === 1
+          selected.length === 1
             ? `${base}/${encodeURIComponent(ids[0])}/data`
             : `${base}/download?${ids.map((id) => `id=${encodeURIComponent(id)}`).join("&")}`;
 
@@ -168,9 +169,13 @@ function PiecesSidebar({
         const objectUrl = URL.createObjectURL(blob);
         const anchor = document.createElement("a");
         anchor.href = objectUrl;
+        // Single-file name comes from the (possibly just-edited) pièce, not the
+        // cached Content-Disposition on GET …/data.
         anchor.download =
-          filenameFromDisposition(response.headers.get("Content-Disposition")) ??
-          (ids.length === 1 ? "piece" : "pieces.zip");
+          selected.length === 1
+            ? pieceDownloadFileName(selected[0])
+            : (filenameFromDisposition(response.headers.get("Content-Disposition")) ??
+              "pieces.zip");
         document.body.appendChild(anchor);
         anchor.click();
         anchor.remove();
