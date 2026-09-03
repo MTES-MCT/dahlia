@@ -106,8 +106,8 @@ importers:
         specifier: ^29.1.1
         version: 29.1.1(@noble/hashes@2.2.0)
       postcss:
-        specifier: '>=8.5.26'
-        version: 8.5.26
+        specifier: '>=8.5.27'
+        version: 8.5.27
       prettier:
         specifier: 3.9.6
         version: 3.9.6
@@ -3058,8 +3058,8 @@ packages:
     resolution: {integrity: sha512-PS08Iboia9mts/2ygV3eLpY5ghnUcfLV/EXTOW1E2qYxJKGGBUtNjN76FYHnMs36RmARn41bC0AZmn+rR0OVpQ==}
     engines: {node: ^10 || ^12 || >=14}
 
-  postcss@8.5.26:
-    resolution: {integrity: sha512-u82N74LFzG8ca+dD8puPnplTXoGH4fTPpVGuIbt36G3qvNlkvfD0lEAZSxaly3KX8TS/L1A1gsCEmvKmBcVbkQ==}
+  postcss@8.5.27:
+    resolution: {integrity: sha512-79Iho8QeYyooJ8e9lCRyTVlyTAkS/kXBYKff6TMzS3kEWGQ8Ds5UEtXpGrSUDLUWok6QTvxeYy0GO8fopHnaSA==}
     engines: {node: ^10 || ^12 || >=14}
 
   postgres-array@2.0.0:
@@ -3462,9 +3462,6 @@ packages:
 
   symbol-tree@3.2.4:
     resolution: {integrity: sha512-9QNk5KwDF+Bvz+PyObkmSYjI5ksVUYtjW7AU22r2NKcfLJcXp96hkDWU3+XndOsUb+AQ9QhfzfCT2O+CNWT5Tw==}
-
-  tailwindcss@4.3.2:
-    resolution: {integrity: sha512-WtctNNSH8A9jlMIqxzuYumOHU5uGZyRv0Q5svQl+oEPy5w84YpBxdb7MdqyiSPQge5jTJ6zFQLq0PFygdccSBA==}
 
   tailwindcss@4.3.3:
     resolution: {integrity: sha512-gOhV3P7ufE62QDGg1zVaTgCR+EtPv92k2nIhVcVKcLmxT1sUBsQGhnZj175j+MqRt4zLF7ic+sCYjfhxMxj7YQ==}
@@ -4730,7 +4727,7 @@ snapshots:
       '@alloc/quick-lru': 5.2.0
       '@tailwindcss/node': 4.3.3
       '@tailwindcss/oxide': 4.3.3
-      postcss: 8.5.26
+      postcss: 8.5.27
       tailwindcss: 4.3.3
 
   '@testing-library/dom@10.4.1':
@@ -6752,7 +6749,7 @@ snapshots:
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
-  postcss@8.5.26:
+  postcss@8.5.27:
     dependencies:
       nanoid: 3.3.18
       picocolors: 1.1.1
@@ -7177,8 +7174,6 @@ snapshots:
 
   symbol-tree@3.2.4: {}
 
-  tailwindcss@4.3.2: {}
-
   tailwindcss@4.3.3: {}
 
   tapable@2.3.3: {}
@@ -7400,7 +7395,7 @@ snapshots:
     dependencies:
       lightningcss: 1.32.0
       picomatch: 4.0.5
-      postcss: 8.5.26
+      postcss: 8.5.27
       rolldown: 1.1.5
       tinyglobby: 0.2.17
     optionalDependencies:
