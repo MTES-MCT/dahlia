@@ -15,6 +15,8 @@ const baseArgs: Args = {
   anonymize: true,
   skipEnrichment: false,
   updatePieceNumbers: false,
+  classify: false,
+  classifyOverwrite: false,
 };
 
 function makeDeps(
