@@ -4,6 +4,7 @@ import { phaseA0 } from "./phase-a0-status-catalog";
 import { phaseA, reconcileDeleted } from "./phase-a-list";
 import { phaseB } from "./phase-b-enrich";
 import { phaseC } from "./phase-c-related";
+import { phaseD } from "./phase-d-classify";
 
 // Resolved run configuration (CLI args + env defaults), see cli/parse-args.ts.
 export interface Args {
@@ -16,6 +17,10 @@ export interface Args {
   anonymize: boolean;
   skipEnrichment: boolean;
   updatePieceNumbers: boolean;
+  // Phase D — deduce litigationType / rightType / summary from the scraped text.
+  classify: boolean;
+  // Phase D — also rewrite characteristics that already have a value.
+  classifyOverwrite: boolean;
 }
 
 // Everything the pipeline needs from the outside world. Injected so the phases
@@ -29,8 +34,8 @@ export interface ScrapeDeps {
 }
 
 // Orchestrate the full scrape: A.0 (status catalogue) → A (list) → A.5
-// (reconcile) → B (enrich) → C (related links). Returns a process exit code
-// (0 ok, 2 when nothing scraped).
+// (reconcile) → B (enrich) → C (related links) → D (classification, opt-in).
+// Returns a process exit code (0 ok, 2 when nothing scraped).
 export async function runScrape(args: Args, deps: ScrapeDeps): Promise<number> {
   await phaseA0(args, deps);
 
@@ -47,6 +52,10 @@ export async function runScrape(args: Args, deps: ScrapeDeps): Promise<number> {
     await phaseC(args, deps);
   } else {
     console.log("→ --skipEnrichment : phases B et C ignorées.");
+  }
+
+  if (args.classify) {
+    await phaseD(args, deps);
   }
 
   return 0;

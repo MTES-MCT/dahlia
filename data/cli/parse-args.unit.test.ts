@@ -27,6 +27,8 @@ describe("parseArgs", () => {
       all: false,
       skipEnrichment: false,
       updatePieceNumbers: false,
+      classify: false,
+      classifyOverwrite: false,
     });
   });
 
@@ -42,6 +44,7 @@ describe("parseArgs", () => {
         "--all",
         "--skipEnrichment",
         "--update-piece-numbers",
+        "--classify",
       ),
     );
     expect(args).toMatchObject({
@@ -51,7 +54,14 @@ describe("parseArgs", () => {
       all: true,
       skipEnrichment: true,
       updatePieceNumbers: true,
+      classify: true,
+      classifyOverwrite: false,
     });
+  });
+
+  it("--classify-overwrite implies --classify", () => {
+    const args = parseArgs(argv("--classify-overwrite"));
+    expect(args).toMatchObject({ classify: true, classifyOverwrite: true });
   });
 
   it("an explicit --legalEntityDivisionIds wins over the env default", () => {
