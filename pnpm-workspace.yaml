@@ -12,3 +12,7 @@ confirmModulesPurge: false
 verifyDepsBeforeRun: false
 overrides:
   deepmerge-ts: ">=8.0.2"
+  # CVE-2026-69152 / GHSA-rgw5-rvv9-x895 (DoS via unbounded intermediate arrays)
+  "brace-expansion@<1.1.18": ">=1.1.18"
+  "brace-expansion@>=2.0.0 <2.1.4": ">=2.1.4"
+  "brace-expansion@>=4.0.0 <5.0.9": ">=5.0.9"
