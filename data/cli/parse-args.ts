@@ -31,6 +31,8 @@ export function parseArgs(argv: string[] = process.argv): Args {
     anonymize: process.env.ENVIRONMENT !== "production",
     skipEnrichment: false,
     updatePieceNumbers: false,
+    classify: false,
+    classifyOverwrite: false,
   };
 
   // Distinguish an explicit --legalEntityDivisionIds from the env-derived
@@ -60,6 +62,13 @@ export function parseArgs(argv: string[] = process.argv): Args {
       args.skipEnrichment = true;
     } else if (arg === "--update-piece-numbers") {
       args.updatePieceNumbers = true;
+    } else if (arg === "--classify") {
+      args.classify = true;
+    } else if (arg === "--classify-overwrite") {
+      // Implies --classify: asking for a rewrite without running the phase
+      // would silently do nothing.
+      args.classify = true;
+      args.classifyOverwrite = true;
     }
   }
 
@@ -86,6 +95,8 @@ export function parseArgs(argv: string[] = process.argv): Args {
   console.log("  - anonymize set to", args.anonymize);
   console.log("  - skipEnrichment set to", args.skipEnrichment);
   console.log("  - updatePieceNumbers set to", args.updatePieceNumbers);
+  console.log("  - classify set to", args.classify);
+  console.log("  - classifyOverwrite set to", args.classifyOverwrite);
   console.log("  - divisionIdsFromCli set to", divisionIdsFromCli);
   console.log("--------------------------------------------------");
   return args;

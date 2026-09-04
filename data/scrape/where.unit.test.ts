@@ -11,6 +11,8 @@ const args = (over: Partial<Args> = {}): Args => ({
   anonymize: true,
   skipEnrichment: false,
   updatePieceNumbers: false,
+  classify: false,
+  classifyOverwrite: false,
   ...over,
 });
 

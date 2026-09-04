@@ -15,6 +15,8 @@ const baseArgs: Args = {
   anonymize: true,
   skipEnrichment: true,
   updatePieceNumbers: false,
+  classify: false,
+  classifyOverwrite: false,
 };
 
 describe("runScrape", () => {
@@ -50,5 +52,56 @@ describe("runScrape", () => {
     expect(client.getStatusGroups).toHaveBeenCalledWith("TA069", "ALL");
     expect(prisma.status.upsert).toHaveBeenCalledTimes(2);
     expect(prisma.caseFile.upsert).toHaveBeenCalledOnce();
+  });
+
+  it("skips phase D unless --classify is passed", async () => {
+    const client = fakeTelerecoursClient({
+      getCaseFiles: vi
+        .fn()
+        .mockResolvedValue(page([caseFileFixture({ caseFileNumber: "TA069-001" })])),
+    });
+
+    await runScrape(baseArgs, { prisma, client, rateLimitMs: 0 });
+
+    expect(prisma.caseFile.findMany).not.toHaveBeenCalled();
+  });
+
+  it("runs phase D on the scraped perimeter when --classify is passed", async () => {
+    const client = fakeTelerecoursClient({
+      getCaseFiles: vi
+        .fn()
+        .mockResolvedValue(page([caseFileFixture({ caseFileNumber: "TA069-001" })])),
+    });
+    prisma.caseFile.findMany.mockResolvedValue([
+      {
+        caseFileNumber: "TA069-001",
+        title: "DALO_Liquidation d'astreinte",
+        litigationType: null,
+        rightType: null,
+        summary: null,
+        lastDecisionReading: null,
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ] as any);
+
+    await runScrape({ ...baseArgs, classify: true }, { prisma, client, rateLimitMs: 0 });
+
+    expect(prisma.caseFile.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          isDeleted: false,
+          jurisdiction: { shortName: "TA069" },
+          assignedToLegalEntityDivisionId: { in: [2488] },
+        },
+      }),
+    );
+    expect(prisma.caseFile.update).toHaveBeenCalledWith({
+      where: { caseFileNumber: "TA069-001" },
+      data: {
+        litigationType: "LIQUIDATION_ASTREINTE",
+        rightType: "DALO",
+        summary: "Liquidation d'astreinte",
+      },
+    });
   });
 });
