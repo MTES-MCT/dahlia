@@ -10,3 +10,5 @@ ignoredBuiltDependencies:
   - unrs-resolver
 confirmModulesPurge: false
 verifyDepsBeforeRun: false
+overrides:
+  deepmerge-ts: ">=8.0.2"
