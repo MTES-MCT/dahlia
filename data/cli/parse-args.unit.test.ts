@@ -76,6 +76,20 @@ describe("parseArgs", () => {
     expect(args.legalEntityDivisionIds).toEqual([42, 43]);
   });
 
+  it("does not ask for help by default", () => {
+    expect(parseArgs(argv()).help).toBe(false);
+  });
+
+  it("sets help for --help and -h", () => {
+    expect(parseArgs(argv("--help")).help).toBe(true);
+    expect(parseArgs(argv("-h")).help).toBe(true);
+  });
+
+  it("does not resolve the env divisions when help is asked", () => {
+    process.env.TA069_TELERECOURS_DIVISIONS = "999";
+    expect(parseArgs(argv("--help")).legalEntityDivisionIds).toEqual([]);
+  });
+
   it("anonymizes by default outside production", () => {
     delete process.env.ENVIRONMENT;
     expect(parseArgs(argv()).anonymize).toBe(true);

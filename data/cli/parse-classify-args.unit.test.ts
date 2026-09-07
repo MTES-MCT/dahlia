@@ -43,6 +43,19 @@ describe("parseClassifyArgs", () => {
     });
   });
 
+  it("reads the CSV export path", () => {
+    const args = parseClassifyArgs(
+      argv("--jurisdiction", "TA069", "--export-csv", "audits/classification.csv"),
+    );
+    expect(args.exportCsv).toBe("audits/classification.csv");
+  });
+
+  it("ignores --export-csv without a path", () => {
+    expect(parseClassifyArgs(argv("--jurisdiction", "TA069", "--export-csv")).exportCsv).toBe(
+      undefined,
+    );
+  });
+
   it("--all-jurisdictions drops the jurisdiction filter", () => {
     const args = parseClassifyArgs(argv("--jurisdiction", "TA069", "--all-jurisdictions"));
     expect(args).toMatchObject({ jurisdiction: undefined, help: false });

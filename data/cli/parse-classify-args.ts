@@ -9,9 +9,12 @@ export const CLASSIFY_USAGE = `Usage: pnpm classify:case-files -- --jurisdiction
   --overwrite                      Réécrit aussi les caractéristiques déjà renseignées.
   --dry-run                        Affiche ce qui serait écrit, sans rien modifier.
   --verbose                        Affiche une ligne par dossier modifié.
+  --export-csv <fichier>           Écrit le résultat (un dossier par ligne) dans un fichier CSV.
 `;
 
 export interface ClassifyCliArgs extends ClassifyCaseFilesOptions {
+  // Path of the CSV report to write; undefined when --export-csv is absent.
+  exportCsv?: string;
   // True when --help was asked, or when neither --jurisdiction nor
   // --all-jurisdictions was given (guard against classifying every
   // jurisdiction by accident).
@@ -27,6 +30,7 @@ export function parseClassifyArgs(argv: string[] = process.argv): ClassifyCliArg
     overwrite: false,
     dryRun: false,
     verbose: false,
+    exportCsv: undefined,
     help: false,
   };
   let allJurisdictions = false;
@@ -45,6 +49,8 @@ export function parseClassifyArgs(argv: string[] = process.argv): ClassifyCliArg
       args.dryRun = true;
     } else if (arg === "--verbose") {
       args.verbose = true;
+    } else if (arg === "--export-csv" && i + 1 < argv.length) {
+      args.exportCsv = argv[++i];
     } else if (arg === "--help" || arg === "-h") {
       args.help = true;
     }
