@@ -139,6 +139,50 @@ indistinguable d'un dossier inexistant ; les routes de pièces répondent 404 ;
 l'export `.xlsx` ne contient que les dossiers du périmètre ; et un utilisateur
 sans aucune juridiction voit un message d'explication à la place du tableau.
 
+## En-têtes de sécurité HTTP
+
+[proxy.ts](proxy.ts) est le point unique où sont posés les en-têtes de sécurité
+de l'application (en plus de la redirection d'authentification). Les valeurs sont
+construites par [app/lib/security-headers.ts](app/lib/security-headers.ts).
+
+| En-tête                     | Valeur                                                         |
+| --------------------------- | -------------------------------------------------------------- |
+| `Content-Security-Policy`   | politique stricte avec **nonce par requête** (voir ci-dessous) |
+| `X-Content-Type-Options`    | `nosniff`                                                      |
+| `X-Frame-Options`           | `DENY` (doublon historique de `frame-ancestors 'none'`)        |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains; preload` (hors dev)      |
+| `Referrer-Policy`           | `strict-origin-when-cross-origin`                              |
+| `Permissions-Policy`        | `camera=(), microphone=(), geolocation=()`                     |
+
+### CSP à nonce
+
+À chaque requête, `proxy.ts` tire un nonce aléatoire et le place à trois endroits :
+
+1. dans la directive `script-src` de la CSP de **réponse** ;
+2. dans l'en-tête `content-security-policy` de la **requête** — Next.js le relit
+   pour l'apposer automatiquement sur ses propres scripts (bootstrap, données de
+   streaming RSC) ;
+3. dans l'en-tête de requête `x-nonce`, que [app/layout.tsx](app/layout.tsx)
+   transmet à react-dsfr (`<DsfrHead nonce>` + `<DsfrProvider doCheckNonce>`)
+   pour ses scripts inline de thème.
+
+`script-src` vaut donc `'self' 'nonce-…' 'strict-dynamic'` : aucun script inline
+non signé ne s'exécute. `'strict-dynamic'` laisse les scripts déjà autorisés
+charger leurs propres chunks.
+
+Deux assouplissements assumés :
+
+- `style-src 'unsafe-inline'` — le DSFR et plusieurs composants utilisent
+  l'attribut `style`, qu'un nonce ne peut pas couvrir ; ce n'est pas un vecteur
+  d'exécution de script.
+- `object-src 'self'` (et non `'none'`) — la prévisualisation des pièces
+  ([app/ui/piece-viewer.tsx](app/ui/piece-viewer.tsx)) intègre les PDF via
+  `<object>`, servi par notre propre route de téléchargement.
+
+En développement, la politique ajoute `'unsafe-eval'` (sourcemaps `eval` et Fast
+Refresh) et `ws:` dans `connect-src` (websocket HMR), et le HSTS n'est pas envoyé
+pour ne pas épingler `localhost` en HTTPS.
+
 ## Import des données (scraping Télérecours)
 
 Le script [data/cli/scrape-telerecours.ts](data/cli/scrape-telerecours.ts) interroge
