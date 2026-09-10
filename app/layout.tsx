@@ -10,6 +10,7 @@ import { headers } from "next/headers";
 import { auth } from "@/app/lib/auth";
 import { EnvironmentBanner } from "@/app/ui/header/environment-banner";
 import { HeaderDahlia } from "@/app/ui/header/header-dahlia";
+import { NONCE_HEADER } from "@/app/lib/security-headers";
 
 export const metadata: Metadata = {
   // Each route sets its own `title`, always suffixed with the app name (RGAA 8.5/8.6).
@@ -31,13 +32,18 @@ export default async function RootLayout({
   // Default language of the application, exposed as <html lang="fr"> (RGAA 8.3).
   const lang = "fr";
 
-  const session = await auth.api.getSession({ headers: await headers() });
+  const requestHeaders = await headers();
+  const session = await auth.api.getSession({ headers: requestHeaders });
   const user = session?.user;
+
+  // CSP nonce minted by proxy.ts, so react-dsfr can stamp its inline scripts.
+  const nonce = requestHeaders.get(NONCE_HEADER) ?? undefined;
 
   return (
     <html {...getHtmlAttributes({ lang })}>
       <head>
         <DsfrHead
+          nonce={nonce}
           preloadFonts={[
             //"Marianne-Light",
             //"Marianne-Light_Italic",
@@ -57,7 +63,7 @@ export default async function RootLayout({
         <EnvironmentBanner environment={process.env.ENVIRONMENT} />
         <HeaderDahlia user={user} />
 
-        <DsfrProvider lang={lang}>
+        <DsfrProvider lang={lang} doCheckNonce={nonce !== undefined}>
           <main className={`${fr.cx("fr-mx-3w")} ${clsx("flex-1")}`}>{children}</main>
         </DsfrProvider>
 

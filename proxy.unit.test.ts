@@ -73,3 +73,60 @@ describe("proxy (contrôle d’accès)", () => {
     expect(redirectLocation(response)).toBe("http://localhost:3000/connexion");
   });
 });
+
+describe("proxy (en-têtes de sécurité)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockedGetSessionCookie.mockReturnValue("session-token");
+  });
+
+  it.each([
+    ["X-Content-Type-Options", "nosniff"],
+    ["X-Frame-Options", "DENY"],
+    ["Referrer-Policy", "strict-origin-when-cross-origin"],
+  ])("pose %s sur les réponses", (header, value) => {
+    const response = proxy(makeRequest("/case_files"));
+
+    expect(response.headers.get(header)).toBe(value);
+  });
+
+  it("pose une CSP avec un nonce et l'expose via x-nonce à l'application", () => {
+    const response = proxy(makeRequest("/case_files"));
+
+    const csp = response.headers.get("content-security-policy");
+    expect(csp).toBeTruthy();
+
+    // Next.js relit le nonce depuis l'en-tête CSP de *requête* pour l'apposer
+    // sur ses propres scripts : les deux doivent concorder.
+    const nonce = response.headers.get("x-middleware-request-x-nonce");
+    expect(nonce).toBeTruthy();
+    expect(csp).toContain(`'nonce-${nonce}'`);
+    expect(response.headers.get("x-middleware-request-content-security-policy")).toBe(csp);
+  });
+
+  it("renouvelle le nonce à chaque requête", () => {
+    const first = proxy(makeRequest("/case_files"));
+    const second = proxy(makeRequest("/case_files"));
+
+    expect(first.headers.get("x-middleware-request-x-nonce")).not.toBe(
+      second.headers.get("x-middleware-request-x-nonce"),
+    );
+  });
+
+  it("pose aussi les en-têtes sur la redirection vers /connexion", () => {
+    mockedGetSessionCookie.mockReturnValue(null);
+
+    const response = proxy(makeRequest("/case_files"));
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
+    expect(response.headers.get("content-security-policy")).toContain("frame-ancestors 'none'");
+  });
+
+  it("pose les en-têtes sur les chemins publics", () => {
+    const response = proxy(makeRequest("/connexion"));
+
+    expect(response.headers.get("content-security-policy")).toContain("default-src 'self'");
+    expect(mockedGetSessionCookie).not.toHaveBeenCalled();
+  });
+});
