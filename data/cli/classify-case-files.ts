@@ -1,6 +1,8 @@
 import "dotenv/config";
+import { writeFileSync } from "node:fs";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { toClassificationCsv } from "../classification/classification-csv";
 import { classifyCaseFiles, logClassificationStats } from "../classification/classify-case-files";
 import { CLASSIFY_USAGE, parseClassifyArgs } from "./parse-classify-args";
 
@@ -19,6 +21,7 @@ async function main(): Promise<number> {
   console.log("  - legalEntityDivisionIds:", args.legalEntityDivisionIds);
   console.log("  - overwrite:", args.overwrite);
   console.log("  - dryRun:", args.dryRun);
+  console.log("  - exportCsv:", args.exportCsv ?? "(non)");
   console.log("--------------------------------------------------");
 
   const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
@@ -27,6 +30,13 @@ async function main(): Promise<number> {
   try {
     const stats = await classifyCaseFiles(prisma, args);
     logClassificationStats(stats, args.dryRun);
+    if (args.exportCsv) {
+      writeFileSync(args.exportCsv, toClassificationCsv(stats.changes, stats.unmatched), "utf8");
+      console.log(
+        `→ Export CSV : ${stats.changes.length} dossiers classés et ${stats.unmatched.length} ` +
+          `non reconnus écrits dans ${args.exportCsv}`,
+      );
+    }
     return 0;
   } finally {
     await prisma.$disconnect();

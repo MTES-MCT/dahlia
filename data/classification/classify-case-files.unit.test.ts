@@ -109,6 +109,7 @@ describe("classifyCaseFiles", () => {
       expect.objectContaining({
         where: {
           isDeleted: false,
+          AND: [{ title: { not: null } }, { title: { not: "" } }],
           jurisdiction: { shortName: "TA069" },
           assignedToLegalEntityDivisionId: { in: [2488] },
         },
@@ -122,7 +123,9 @@ describe("classifyCaseFiles", () => {
     await classifyCaseFiles(prisma, { overwrite: false });
 
     expect(prisma.caseFile.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { isDeleted: false } }),
+      expect.objectContaining({
+        where: { isDeleted: false, AND: [{ title: { not: null } }, { title: { not: "" } }] },
+      }),
     );
   });
 
