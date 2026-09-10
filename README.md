@@ -218,6 +218,7 @@ ciblé (`<JURIDICTION>_…`) :
 | `--skipEnrichment`               | `false`                   | N'exécute que la Phase A (liste des dossiers) et saute les Phases B et C (détails, audiences, mesures, pièces jointes, dossiers liés).                                              |
 | `--classify`                     | `false`                   | Exécute la Phase D : déduit `litigationType`, `rightType` et `summary` de chaque dossier du périmètre à partir de son texte (titre, décision). Voir « Classification automatique ». |
 | `--classify-overwrite`           | `false`                   | Implique `--classify`. Réécrit aussi les caractéristiques **déjà renseignées** (par défaut, seuls les champs vides sont remplis, pour ne pas écraser la saisie des utilisateurs).   |
+| `--help`, `-h`                   | —                         | Affiche la liste des options et quitte sans rien scraper.                                                                                                                           |
 
 ### Déroulé du script
 
@@ -273,6 +274,9 @@ pnpm scrape:telerecours -- --classify
 
 # Idem, en recalculant aussi les caractéristiques déjà renseignées
 pnpm scrape:telerecours -- --classify-overwrite
+
+# Afficher l'aide (liste des options)
+pnpm scrape:telerecours -- --help
 ```
 
 ### Architecture du code
@@ -310,6 +314,7 @@ data/
     rules.ts                   # DEFAULT_RULES — le moteur de règles, ordonné et commenté
     engine.ts                  # classify() — applique les règles (pure, sans I/O)
     classify-case-files.ts     # lecture/écriture Prisma + planCaseFileUpdate (option de réécriture)
+    classification-csv.ts      # toClassificationCsv — rendu CSV du résultat (--export-csv)
   anonymize.ts                 # anonymisation des acteurs
   telecharge-fichier.ts        # script standalone de téléchargement de pièce (pnpm download:dev)
 ```
@@ -374,18 +379,25 @@ pnpm classify:case-files -- --jurisdiction TA069
 
 # Recalculer et réécrire aussi les caractéristiques déjà renseignées
 pnpm classify:case-files -- --jurisdiction TA069 --overwrite
+
+# Simuler et exporter le résultat en CSV (une ligne par dossier classé)
+pnpm classify:case-files -- --jurisdiction TA069 --dry-run --export-csv audits/classification.csv
 ```
 
 ### Options du script
 
-| Option                           | Défaut     | Description                                                                                                              |
-| -------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `--jurisdiction <code>`          | _(requis)_ | Code juridiction (`Jurisdiction.shortName`, ex. `TA069`). Sans lui ni `--all-jurisdictions`, le script affiche l'aide.   |
-| `--all-jurisdictions`            | `false`    | Traite tous les dossiers, toutes juridictions confondues.                                                                |
-| `--legalEntityDivisionIds <ids>` | _(aucun)_  | Restreint le traitement à des divisions (ids séparés par des virgules).                                                  |
-| `--overwrite`                    | `false`    | Réécrit les champs déjà renseignés. Par défaut, seuls les champs vides sont remplis : la saisie utilisateur est intacte. |
-| `--dry-run`                      | `false`    | Affiche ce qui serait écrit, sans rien modifier.                                                                         |
-| `--verbose`                      | `false`    | Une ligne par dossier modifié (déjà implicite en `--dry-run`).                                                           |
+| Option                           | Défaut     | Description                                                                                                                                                                                                                 |
+| -------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--jurisdiction <code>`          | _(requis)_ | Code juridiction (`Jurisdiction.shortName`, ex. `TA069`). Sans lui ni `--all-jurisdictions`, le script affiche l'aide.                                                                                                      |
+| `--all-jurisdictions`            | `false`    | Traite tous les dossiers, toutes juridictions confondues.                                                                                                                                                                   |
+| `--legalEntityDivisionIds <ids>` | _(aucun)_  | Restreint le traitement à des divisions (ids séparés par des virgules).                                                                                                                                                     |
+| `--overwrite`                    | `false`    | Réécrit les champs déjà renseignés. Par défaut, seuls les champs vides sont remplis : la saisie utilisateur est intacte.                                                                                                    |
+| `--dry-run`                      | `false`    | Affiche ce qui serait écrit, sans rien modifier.                                                                                                                                                                            |
+| `--verbose`                      | `false`    | Une ligne par dossier modifié (déjà implicite en `--dry-run`).                                                                                                                                                              |
+| `--export-csv <fichier>`         | _(aucun)_  | Écrit le résultat dans un CSV : `caseFileNumber, title, litigationType, rightType, summary, rules`. Les dossiers classés d'abord, puis **tous** les non reconnus (numéro et titre seuls, colonnes de classification vides). |
+
+Les dossiers sans titre (`NULL` ou vide) sont ignorés : ils n'ont aucun texte à
+analyser, ils ne sont donc ni comptés ni listés dans les non-reconnus.
 
 La même fonctionnalité est disponible pendant la synchronisation Télérecours via
 `--classify` (activer la Phase D) et `--classify-overwrite` (activer la phase +

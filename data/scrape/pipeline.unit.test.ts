@@ -90,6 +90,7 @@ describe("runScrape", () => {
       expect.objectContaining({
         where: {
           isDeleted: false,
+          AND: [{ title: { not: null } }, { title: { not: "" } }],
           jurisdiction: { shortName: "TA069" },
           assignedToLegalEntityDivisionId: { in: [2488] },
         },

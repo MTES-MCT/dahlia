@@ -4,12 +4,17 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { getTelerecoursCaseFileClient } from "../telerecours/client";
 import { describeError } from "../telerecours/http";
 import { runScrape } from "../scrape/pipeline";
-import { getEnv, parseArgs } from "./parse-args";
+import { getEnv, parseArgs, SCRAPE_USAGE } from "./parse-args";
 
 // CLI entrypoint: wire the real Prisma client and Telerecours client, then hand
 // off to the pipeline. All scraping logic lives under scrape/ and persistence/.
 async function main(): Promise<number> {
   const args = parseArgs();
+  if (args.help) {
+    console.log(SCRAPE_USAGE);
+    return 0;
+  }
+
   const username = getEnv(`${args.jurisdiction}_TELERECOURS_USERNAME`);
   const password = getEnv(`${args.jurisdiction}_TELERECOURS_PASSWORD`);
   const client = getTelerecoursCaseFileClient({ username, password });

@@ -126,6 +126,64 @@ const cases: {
     },
   },
   {
+    // "liquidation de l'astreinte", with the article, as typed at TA034.
+    title: "LIQUIDATION DE L'ASTREINTE DU JUGEMENT DU DOSSIER DALO N° 2506462 DU 26 NOVEMBRE 2025.",
+    expected: {
+      litigationType: "LIQUIDATION_ASTREINTE",
+      rightType: "DALO",
+      summary: "Liquidation d'astreinte",
+    },
+  },
+  {
+    // The refusal is described without naming the commission.
+    title:
+      "DALO: ANNULATION DE LA DECISION EN DATE DU 4 MARS 2025 REFUSANT LA RECONNAISSANCE DU CARACTERE PRIORITAIRE DE SA DEMANDE DE LOGEMENT.",
+    expected: {
+      litigationType: "EXCES_DE_POUVOIR",
+      rightType: "DALO",
+      summary: "Refus de reconnaissance prioritaire",
+    },
+  },
+  {
+    // Same refusal, but the commission is named: the commission wording wins.
+    title:
+      "DALO : ANNULATION DE LA DECISION DU 3 JUIN 2025 PRISE PAR LA COMMISSION DE MEDIATION DE L'HERAULT REFUSANT LA RECONNAISSANCE DU CARACTERE PRIORITAIRE DE SA DEMANDE DE LOGEMENT.",
+    expected: {
+      litigationType: "EXCES_DE_POUVOIR",
+      rightType: "DALO",
+      summary: "Recours contre le rejet de la commission",
+    },
+  },
+  {
+    // Plural "décisions" + the commission's full name.
+    title:
+      "DALO - Annulation des décisions implicites du 17 février 2026 et du 9 mai 2026 par lesquelles la commission départementale du droit au logement opposable de l’Hérault a rejeté le recours amiable et le recours gracieux",
+    expected: {
+      litigationType: "EXCES_DE_POUVOIR",
+      rightType: "DALO",
+      summary: "Recours contre le rejet de la commission",
+    },
+  },
+  {
+    // No known situation: the generic "annulation d'une décision" fallback.
+    title:
+      "DALO - Annulation de la décision implicite de rejet de la demande du 19 janvier 2024 en vue d'une offre de logement",
+    expected: {
+      litigationType: "EXCES_DE_POUVOIR",
+      rightType: "DALO",
+      summary: "Recours en annulation d'une décision",
+    },
+  },
+  {
+    // Indemnity claim described by its purpose only; the right type stays unknown.
+    title:
+      "Condamnation du préfet de l'Hérault à verser au requérant la somme de 250 euros par mois de carence de l'administration, soit un montant total de 2 500 euros au titre de son trouble dans les conditions de l'existence au mois d'août 2026",
+    expected: {
+      litigationType: "INDEMNITAIRE",
+      summary: "Recours indemnitaire",
+    },
+  },
+  {
     // Only the right type can be deduced from a bare decision date.
     title: "DALO - Décision du 08/04/2025",
     expected: { rightType: "DALO" },
@@ -150,6 +208,18 @@ describe("DEFAULT_RULES", () => {
     });
     expect(result.rightType).toBe("DAHO");
     expect(result.matches[0].field).toBe("decision");
+  });
+
+  it("does not apply the generic annulment fallback to a decision's operative part", () => {
+    // An out-of-scope case file (aide sociale) whose ruling annuls a decision:
+    // the operative part must not turn it into a DALO/DAHO litigation.
+    const result = classify({
+      title:
+        "AIDE SOCIALE\r\nRefus bénéfice du parcours de sortie de la prostitution et d'insertion sociale et professionnelle - Décision du 09/07/2020",
+      decision: "Annulation de la décision du 9 juillet 2020",
+    });
+    expect(result.litigationType).toBeUndefined();
+    expect(result.summary).toBeUndefined();
   });
 
   it("has unique rule ids", () => {

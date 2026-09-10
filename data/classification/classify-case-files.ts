@@ -1,4 +1,5 @@
 import type { LitigationType, Prisma, PrismaClient, RightType } from "@prisma/client";
+import type { ClassificationChange } from "./classification-csv";
 import { classify, hasClassification } from "./engine";
 import { DEFAULT_RULES } from "./rules";
 import type { ClassificationInput, ClassificationResult, ClassificationRule } from "./types";
@@ -35,6 +36,11 @@ export interface ClassifyCaseFilesOptions {
   rules?: readonly ClassificationRule[];
 }
 
+export interface UnmatchedCaseFile {
+  caseFileNumber: string;
+  title: string | null;
+}
+
 export interface ClassifyCaseFilesStats {
   scanned: number;
   // Case files for which the rules produced at least one attribute.
@@ -43,8 +49,12 @@ export interface ClassifyCaseFilesStats {
   updated: number;
   // Fields written, per attribute.
   fields: { litigationType: number; rightType: number; summary: number };
-  // Case files the rules said nothing about, with their title (capped).
-  unmatched: { caseFileNumber: string; title: string | null }[];
+  // Every case file the rules said nothing about, with its title. Kept whole
+  // for the CSV export; the console report only prints a sample of it.
+  unmatched: UnmatchedCaseFile[];
+  // Every case file written (or that would be, in dry-run), in scan order:
+  // the reported lines, reusable for the CSV export.
+  changes: ClassificationChange[];
 }
 
 const UNMATCHED_SAMPLE_SIZE = 20;
@@ -87,7 +97,12 @@ export function planCaseFileUpdate(
 }
 
 function caseFilesWhere(options: ClassifyCaseFilesOptions): Prisma.CaseFileWhereInput {
-  const where: Prisma.CaseFileWhereInput = { isDeleted: false };
+  // A case file without a title carries no text to classify: skip it entirely
+  // so it neither gets scanned nor pollutes the unmatched sample.
+  const where: Prisma.CaseFileWhereInput = {
+    isDeleted: false,
+    AND: [{ title: { not: null } }, { title: { not: "" } }],
+  };
   if (options.jurisdiction) {
     where.jurisdiction = { shortName: options.jurisdiction };
   }
@@ -124,15 +139,14 @@ export async function classifyCaseFiles(
     updated: 0,
     fields: { litigationType: 0, rightType: 0, summary: 0 },
     unmatched: [],
+    changes: [],
   };
 
   for (const caseFile of caseFiles) {
     const result = classify(classificationInputOf(caseFile), rules);
 
     if (!hasClassification(result)) {
-      if (stats.unmatched.length < UNMATCHED_SAMPLE_SIZE) {
-        stats.unmatched.push({ caseFileNumber: caseFile.caseFileNumber, title: caseFile.title });
-      }
+      stats.unmatched.push({ caseFileNumber: caseFile.caseFileNumber, title: caseFile.title });
       continue;
     }
     stats.matched++;
@@ -143,12 +157,19 @@ export async function classifyCaseFiles(
 
     stats.updated++;
     for (const field of changed) stats.fields[field]++;
+    const ruleIds = result.matches.map((match) => match.ruleId);
+    stats.changes.push({
+      caseFileNumber: caseFile.caseFileNumber,
+      title: caseFile.title,
+      update,
+      ruleIds,
+    });
 
     if (options.verbose || options.dryRun) {
       const changes = changed.map((field) => `${field}=${String(update[field])}`).join(", ");
-      const ruleIds = result.matches.map((match) => match.ruleId).join(" + ");
+      const title = caseFile.title ? `${caseFile.title}, ` : "";
       console.log(
-        `  ${options.dryRun ? "[dry-run] " : ""}${caseFile.caseFileNumber}: ${changes} (${ruleIds})`,
+        `  ${options.dryRun ? "[dry-run] " : ""}${caseFile.caseFileNumber}: ${title}${changes} (${ruleIds.join(" + ")})`,
       );
     }
 
@@ -164,16 +185,18 @@ export async function classifyCaseFiles(
 }
 
 export function logClassificationStats(stats: ClassifyCaseFilesStats, dryRun = false): void {
+  if (stats.unmatched.length > 0) {
+    console.log(
+      `→ ${stats.unmatched.length} dossiers non reconnus, exemples (max ${UNMATCHED_SAMPLE_SIZE}) :`,
+    );
+    for (const { caseFileNumber, title } of stats.unmatched.slice(0, UNMATCHED_SAMPLE_SIZE)) {
+      console.log(`  - ${caseFileNumber}: ${JSON.stringify(title)}`);
+    }
+  }
   console.log(
     `✓ Classification : ${stats.scanned} dossiers analysés, ${stats.matched} reconnus, ` +
       `${stats.updated} ${dryRun ? "à mettre à jour" : "mis à jour"} ` +
       `(litigationType: ${stats.fields.litigationType}, rightType: ${stats.fields.rightType}, ` +
       `summary: ${stats.fields.summary}).`,
   );
-  if (stats.unmatched.length > 0) {
-    console.log(`→ Exemples de dossiers non reconnus (max ${UNMATCHED_SAMPLE_SIZE}) :`);
-    for (const { caseFileNumber, title } of stats.unmatched) {
-      console.log(`  - ${caseFileNumber}: ${JSON.stringify(title)}`);
-    }
-  }
 }

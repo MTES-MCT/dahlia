@@ -16,11 +16,36 @@ export function parseDivisionIds(value: string): number[] {
     .map(Number);
 }
 
+export const SCRAPE_USAGE = `Usage: pnpm scrape:telerecours -- [options]
+
+  --jurisdiction <code>            Code juridiction (défaut TA069). Détermine aussi les
+                                   variables d'env <code>_TELERECOURS_* lues.
+  --page <n>                       Page de départ (0-based) de la liste des dossiers (défaut 0).
+  --size <n>                       Nombre de dossiers par page (défaut 30).
+  --sort <champ>                   Critère de tri transmis tel quel à l'API.
+  --all                            Récupère tous les dossiers, sans filtre de statut.
+  --legalEntityDivisionIds <ids>   Filtre de divisions, séparées par des virgules (ex. 2488,1234).
+                                   Défaut : <JURIDICTION>_TELERECOURS_DIVISIONS.
+  --anonymize                      Anonymise les acteurs avant insertion (défaut hors production).
+  --no-anonymize                   Désactive l'anonymisation.
+  --skipEnrichment                 N'exécute que la phase A (saute les phases B et C).
+  --update-piece-numbers           Met à jour les numéros de pièces des fichiers déjà en base.
+  --classify                       Exécute la phase D : classification automatique des dossiers.
+  --classify-overwrite             Implique --classify ; réécrit aussi les champs déjà renseignés.
+  --help, -h                       Affiche cette aide.
+`;
+
+// Resolved run configuration plus the CLI-only --help flag, which short-circuits
+// the run in the entrypoint.
+export interface ScrapeCliArgs extends Args {
+  help: boolean;
+}
+
 // Parse process.argv into the resolved run configuration. Defaults come from the
 // environment when not provided on the CLI (anonymize unless production,
 // divisions from <JURISDICTION>_TELERECOURS_DIVISIONS).
-export function parseArgs(argv: string[] = process.argv): Args {
-  const args: Args = {
+export function parseArgs(argv: string[] = process.argv): ScrapeCliArgs {
+  const args: ScrapeCliArgs = {
     jurisdiction: "TA069",
     page: 0,
     size: 30,
@@ -33,6 +58,7 @@ export function parseArgs(argv: string[] = process.argv): Args {
     updatePieceNumbers: false,
     classify: false,
     classifyOverwrite: false,
+    help: false,
   };
 
   // Distinguish an explicit --legalEntityDivisionIds from the env-derived
@@ -69,8 +95,13 @@ export function parseArgs(argv: string[] = process.argv): Args {
       // would silently do nothing.
       args.classify = true;
       args.classifyOverwrite = true;
+    } else if (arg === "--help" || arg === "-h") {
+      args.help = true;
     }
   }
+
+  // Nothing to resolve or log when the run is only going to print the usage.
+  if (args.help) return args;
 
   // Default for divisions: <JURISDICTION>_TELERECOURS_DIVISIONS env var
   // (e.g. TA069_TELERECOURS_DIVISIONS=2488,1234), unless provided via CLI.
