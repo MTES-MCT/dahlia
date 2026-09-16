@@ -7,6 +7,7 @@ import { metadata as dashboardMetadata } from "./(protected)/case_files/page";
 import { metadata as adminUsersMetadata } from "./(protected)/admin/users/page";
 import { metadata as adminJurisdictionMetadata } from "./(protected)/admin/jurisdiction/page";
 import { metadata as adminDivisionsMetadata } from "./(protected)/admin/divisions/page";
+import { metadata as adminTagsMetadata } from "./(protected)/admin/tags/page";
 import { generateMetadata as caseFileMetadata } from "./(protected)/case_files/[caseFileNumber]/page";
 import { fetchCaseFileDetail } from "@/app/lib/data/case-files";
 
@@ -105,6 +106,10 @@ describe("Titres des pages", () => {
     expect(resolveTitle(adminDivisionsMetadata.title)).toBe("Divisions - Administration - DAHLIA");
   });
 
+  it("titre la page d'administration des tags", () => {
+    expect(resolveTitle(adminTagsMetadata.title)).toBe("Tags - Administration - DAHLIA");
+  });
+
   it("intitule une fiche dossier avec le libellé du dossier", async () => {
     mockedFetchCaseFileDetail.mockResolvedValue(caseFile as never);
 
@@ -139,6 +144,7 @@ describe("Titres des pages", () => {
       adminUsersMetadata.title,
       adminJurisdictionMetadata.title,
       adminDivisionsMetadata.title,
+      adminTagsMetadata.title,
     ].map(resolveTitle);
 
     expect(new Set(titles).size).toBe(titles.length);

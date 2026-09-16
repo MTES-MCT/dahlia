@@ -59,6 +59,9 @@ model CaseFile {
   // fed by /api/case-file/<id>/hearings — scrape phase B).
   caseFileHearings CaseFileHearing[]
 
+  // User-managed tags (M2M via case_file_tags), edited from the details modal.
+  caseFileTags CaseFileTag[]
+
   procedureState String?
 
   // User-managed classification fields (edited from the case-file details card).

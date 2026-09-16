@@ -14,6 +14,7 @@ import { type SortOrder } from "@/app/lib/table-sort";
 
 export const CASE_FILES_DASHBOARD_INCLUDE = {
   caseFileActors: { include: CASE_FILE_ACTOR_INCLUDE },
+  caseFileTags: { include: { tag: true }, orderBy: { tag: { label: "asc" } } },
   lastProducer: true,
   lastStatus: true,
   lastHearing: true,
@@ -73,7 +74,12 @@ export const CASE_FILES_DASHBOARD_COLUMNS: CaseFileDashboardColumnDef[] = [
     sortable: true,
     facetFields: DOSSIER_FACET_FIELDS,
     width: "50%",
-    exportValue: (caseFile) => getCaseFileDisplayName(caseFile),
+    // Tags are appended so the spreadsheet carries what the cell displays.
+    exportValue: (caseFile) => {
+      const displayName = getCaseFileDisplayName(caseFile);
+      const tagLabels = caseFile.caseFileTags.map(({ tag }) => tag.label);
+      return tagLabels.length > 0 ? `${displayName} [${tagLabels.join(", ")}]` : displayName;
+    },
   },
   {
     key: "depositDate",

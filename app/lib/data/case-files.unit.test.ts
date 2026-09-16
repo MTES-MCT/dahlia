@@ -385,6 +385,11 @@ describe("case-files", () => {
                 },
               },
               { lastProducer: { displayNameNormalized: { contains: "dupont" } } },
+              {
+                caseFileTags: {
+                  some: { tag: { label: { contains: "Dupont", mode: "insensitive" } } },
+                },
+              },
             ],
           },
         ],
@@ -427,6 +432,11 @@ describe("case-files", () => {
                 },
               },
               { lastProducer: { displayNameNormalized: { contains: "francois" } } },
+              {
+                caseFileTags: {
+                  some: { tag: { label: { contains: "Frànçois", mode: "insensitive" } } },
+                },
+              },
             ],
           },
         ],
@@ -568,6 +578,52 @@ describe("case-files", () => {
       );
     });
 
+    it("filtre sur les tags avec la facette tag:", async () => {
+      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
+      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
+
+      await fetchCaseFilesTableData(1, 10, null, "descending", "tag:urgent");
+
+      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            AND: [
+              { isDeleted: false },
+              {
+                caseFileTags: {
+                  some: { tag: { label: { contains: "urgent", mode: "insensitive" } } },
+                },
+              },
+            ],
+          },
+        }),
+      );
+    });
+
+    // A multi-word label stays a single condition: splitting it word by word
+    // would let each word match a *different* tag of the same case file.
+    it("garde un libellé de tag multi-mots en une seule condition", async () => {
+      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
+      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
+
+      await fetchCaseFilesTableData(1, 10, null, "descending", 'tag:"à relancer"');
+
+      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            AND: [
+              { isDeleted: false },
+              {
+                caseFileTags: {
+                  some: { tag: { label: { contains: "à relancer", mode: "insensitive" } } },
+                },
+              },
+            ],
+          },
+        }),
+      );
+    });
+
     it("combines free text (global OR) with a facet", async () => {
       vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
       vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
@@ -599,6 +655,11 @@ describe("case-files", () => {
                 },
               },
               { lastProducer: { displayNameNormalized: { contains: "dupont" } } },
+              {
+                caseFileTags: {
+                  some: { tag: { label: { contains: "dupont", mode: "insensitive" } } },
+                },
+              },
             ],
           },
           {
