@@ -149,7 +149,7 @@ construites par [app/lib/security-headers.ts](app/lib/security-headers.ts).
 | --------------------------- | -------------------------------------------------------------- |
 | `Content-Security-Policy`   | politique stricte avec **nonce par requête** (voir ci-dessous) |
 | `X-Content-Type-Options`    | `nosniff`                                                      |
-| `X-Frame-Options`           | `DENY` (doublon historique de `frame-ancestors 'none'`)        |
+| `X-Frame-Options`           | `DENY` (pages) / `SAMEORIGIN` (prévisualisation des pièces)    |
 | `Strict-Transport-Security` | `max-age=31536000; includeSubDomains; preload` (hors dev)      |
 | `Referrer-Policy`           | `strict-origin-when-cross-origin`                              |
 | `Permissions-Policy`        | `camera=(), microphone=(), geolocation=()`                     |
@@ -170,14 +170,17 @@ construites par [app/lib/security-headers.ts](app/lib/security-headers.ts).
 non signé ne s'exécute. `'strict-dynamic'` laisse les scripts déjà autorisés
 charger leurs propres chunks.
 
-Deux assouplissements assumés :
+Assouplissements assumés pour l'UI et la prévisualisation des pièces
+([app/ui/piece-viewer.tsx](app/ui/piece-viewer.tsx)) :
 
 - `style-src 'unsafe-inline'` — le DSFR et plusieurs composants utilisent
   l'attribut `style`, qu'un nonce ne peut pas couvrir ; ce n'est pas un vecteur
   d'exécution de script.
-- `object-src 'self'` (et non `'none'`) — la prévisualisation des pièces
-  ([app/ui/piece-viewer.tsx](app/ui/piece-viewer.tsx)) intègre les PDF via
-  `<object>`, servi par notre propre route de téléchargement.
+- `object-src 'self'` et `frame-src 'self'` (et non `'none'`) — les PDF sont
+  intégrés via `<object>` ; Chromium les traite aussi comme une frame interne.
+- Sur `GET …/pieces/<id>/data` uniquement : `X-Frame-Options: SAMEORIGIN` et
+  `frame-ancestors 'self'`. `DENY` / `'none'` bloquent aussi `<object>`
+  (Firefox envoie `Sec-Fetch-Dest: object`). Les pages HTML restent en `DENY`.
 
 En développement, la politique ajoute `'unsafe-eval'` (sourcemaps `eval` et Fast
 Refresh) et `ws:` dans `connect-src` (websocket HMR), et le HSTS n'est pas envoyé
