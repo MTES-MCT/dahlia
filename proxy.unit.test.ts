@@ -129,4 +129,21 @@ describe("proxy (en-têtes de sécurité)", () => {
     expect(response.headers.get("content-security-policy")).toContain("default-src 'self'");
     expect(mockedGetSessionCookie).not.toHaveBeenCalled();
   });
+
+  it("autorise l'embarquement same-origin sur la route /data des pièces", () => {
+    const response = proxy(
+      makeRequest("/case_files/2604001/pieces/L0FUVEFDSE1FTlQvNjk1OTQ4OQ/data"),
+    );
+
+    expect(response.headers.get("X-Frame-Options")).toBe("SAMEORIGIN");
+    expect(response.headers.get("content-security-policy")).toContain("frame-ancestors 'self'");
+    expect(response.headers.get("content-security-policy")).not.toContain("frame-ancestors 'none'");
+  });
+
+  it("garde DENY sur les pages HTML (anti-clickjacking)", () => {
+    const response = proxy(makeRequest("/case_files/2604001"));
+
+    expect(response.headers.get("X-Frame-Options")).toBe("DENY");
+    expect(response.headers.get("content-security-policy")).toContain("frame-ancestors 'none'");
+  });
 });

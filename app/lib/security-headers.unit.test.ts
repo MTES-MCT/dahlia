@@ -3,6 +3,7 @@ import {
   buildContentSecurityPolicy,
   buildSecurityHeaders,
   generateNonce,
+  isPieceDataPath,
 } from "./security-headers";
 
 // Same regex Next.js uses to recover the nonce from the request CSP header
@@ -48,8 +49,19 @@ describe("buildContentSecurityPolicy", () => {
     expect(directive(production, "frame-ancestors")).toBe("frame-ancestors 'none'");
   });
 
-  it("autorise <object> en même origine pour la prévisualisation des pièces", () => {
+  it("autorise <object> et frame en même origine pour la prévisualisation des pièces", () => {
     expect(directive(production, "object-src")).toBe("object-src 'self'");
+    expect(directive(production, "frame-src")).toBe("frame-src 'self'");
+  });
+
+  it("autorise le framing same-origin seulement pour les ressources embarquées", () => {
+    const embeddable = buildContentSecurityPolicy({
+      nonce: "abc123",
+      isDevelopment: false,
+      allowSameOriginEmbed: true,
+    });
+
+    expect(directive(embeddable, "frame-ancestors")).toBe("frame-ancestors 'self'");
   });
 
   it("force HTTPS en production", () => {
@@ -83,5 +95,34 @@ describe("buildSecurityHeaders", () => {
 
     expect(headers["Strict-Transport-Security"]).toBeUndefined();
     expect(headers["X-Content-Type-Options"]).toBe("nosniff");
+  });
+
+  it("autorise l'embarquement same-origin (PDF dans <object>)", () => {
+    const headers = buildSecurityHeaders({
+      nonce: "abc123",
+      isDevelopment: false,
+      allowSameOriginEmbed: true,
+    });
+
+    expect(headers["X-Frame-Options"]).toBe("SAMEORIGIN");
+    expect(headers["Content-Security-Policy"]).toContain("frame-ancestors 'self'");
+  });
+});
+
+describe("isPieceDataPath", () => {
+  it.each([
+    "/case_files/2604001/pieces/L0FUVEFDSE1FTlQvNjk1OTQ4OQ/data",
+    "/dossiers/2604001/pieces/L0FUVEFDSE1FTlQvNjk1OTQ4OQ/data",
+    "/case_files/TA069%2F12345/pieces/abc/data/",
+  ])("reconnaît %s", (pathname) => {
+    expect(isPieceDataPath(pathname)).toBe(true);
+  });
+
+  it.each([
+    "/case_files/2604001",
+    "/case_files/2604001/pieces/download",
+    "/case_files/2604001/pieces/abc/data/extra",
+  ])("ignore %s", (pathname) => {
+    expect(isPieceDataPath(pathname)).toBe(false);
   });
 });

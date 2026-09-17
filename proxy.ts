@@ -1,6 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getSessionCookie } from "better-auth/cookies";
-import { NONCE_HEADER, buildSecurityHeaders, generateNonce } from "@/app/lib/security-headers";
+import {
+  NONCE_HEADER,
+  buildSecurityHeaders,
+  generateNonce,
+  isPieceDataPath,
+} from "@/app/lib/security-headers";
 
 // public paths (accessible without being connected).
 const PUBLIC_PATHS = ["/", "/connexion"];
@@ -30,6 +35,7 @@ export function proxy(request: NextRequest) {
   const securityHeaders = buildSecurityHeaders({
     nonce,
     isDevelopment: process.env.NODE_ENV === "development",
+    allowSameOriginEmbed: isPieceDataPath(pathname),
   });
 
   const isPublic = pathname.startsWith("/api/auth") || PUBLIC_PATHS.includes(pathname);

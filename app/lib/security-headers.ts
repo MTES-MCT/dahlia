@@ -10,6 +10,14 @@ export const NONCE_HEADER = "x-nonce";
 
 const NONCE_BYTE_LENGTH = 16;
 
+// PieceViewer embeds GET …/pieces/<id>/data in an `<object>`. Matches both
+// `/case_files/…` and the `/dossiers/…` rewrite.
+const PIECE_DATA_PATH = /\/pieces\/[^/]+\/data\/?$/;
+
+export function isPieceDataPath(pathname: string): boolean {
+  return PIECE_DATA_PATH.test(pathname);
+}
+
 // Base64 of 128 random bits — the shape Next.js expects in `'nonce-…'`.
 export function generateNonce(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(NONCE_BYTE_LENGTH));
@@ -21,11 +29,15 @@ type SecurityHeadersOptions = {
   // The dev server needs looser rules (eval-based sourcemaps, HMR websocket)
   // and must not be pinned to HTTPS by HSTS.
   isDevelopment: boolean;
+  // PDF `/data` responses must allow same-origin embedding: `X-Frame-Options:
+  // DENY` also blocks `<object>`, and Chromium checks `frame-src` for PDFs.
+  allowSameOriginEmbed?: boolean;
 };
 
 export function buildContentSecurityPolicy({
   nonce,
   isDevelopment,
+  allowSameOriginEmbed = false,
 }: SecurityHeadersOptions): string {
   const directives: Record<string, string[]> = {
     "default-src": ["'self'"],
@@ -48,8 +60,10 @@ export function buildContentSecurityPolicy({
     "connect-src": ["'self'", ...(isDevelopment ? ["ws:"] : [])],
     // `<object>` previews of pièces are streamed by our own download route.
     "object-src": ["'self'"],
-    "frame-src": ["'none'"],
-    "frame-ancestors": ["'none'"],
+    // Chromium treats a PDF in `<object>` as a nested frame, so `frame-src`
+    // must allow same-origin documents (not `'none'`).
+    "frame-src": ["'self'"],
+    "frame-ancestors": [allowSameOriginEmbed ? "'self'" : "'none'"],
     "form-action": ["'self'"],
   };
 
@@ -67,7 +81,8 @@ export function buildSecurityHeaders(options: SecurityHeadersOptions): Record<st
     "Content-Security-Policy": buildContentSecurityPolicy(options),
     "X-Content-Type-Options": "nosniff",
     // Redundant with `frame-ancestors` but still honoured by older browsers.
-    "X-Frame-Options": "DENY",
+    // SAMEORIGIN (not DENY) on pièce `/data`: DENY also blocks `<object>`.
+    "X-Frame-Options": options.allowSameOriginEmbed ? "SAMEORIGIN" : "DENY",
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
   };
