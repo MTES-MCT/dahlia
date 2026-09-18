@@ -27,6 +27,7 @@ import {
 } from "@/app/lib/case-file-format";
 import { type CaseFileTagView } from "@/app/lib/case-file-tags";
 import { CaseFileIdentity } from "@/app/ui/case-file/case-file-identity";
+import { CaseFileTelerecoursSync } from "@/app/ui/case-file/case-file-telerecours-sync";
 import { TagPicker } from "@/app/ui/form/tag-picker";
 import { updateCaseFileDetailsFormAction } from "@/app/(protected)/case_files/[caseFileNumber]/actions";
 
@@ -139,11 +140,15 @@ export function CaseFileDetailsHeader({
   title,
   statusLabel,
   tags,
+  caseFileNumber,
+  telerecoursSyncAt,
 }: {
   displayName: string;
   title: string | null;
   statusLabel: string;
   tags: CaseFileTagView[];
+  caseFileNumber: string;
+  telerecoursSyncAt: Date | null;
 }) {
   return (
     <CaseFileIdentity
@@ -153,18 +158,24 @@ export function CaseFileDetailsHeader({
       tags={tags}
       name={{ kind: "heading" }}
       actions={
-        <Button
-          priority="secondary"
-          size="small"
-          iconId="fr-icon-edit-line"
-          className={clsx("whitespace-nowrap")}
-          nativeButtonProps={{
-            ...caseFileDetailsModal.buttonProps,
-            type: "button",
-          }}
-        >
-          Détails du dossier
-        </Button>
+        <div className="flex flex-col items-end gap-1">
+          <Button
+            priority="secondary"
+            size="small"
+            iconId="fr-icon-edit-line"
+            className={clsx("whitespace-nowrap")}
+            nativeButtonProps={{
+              ...caseFileDetailsModal.buttonProps,
+              type: "button",
+            }}
+          >
+            Détails du dossier
+          </Button>
+          <CaseFileTelerecoursSync
+            caseFileNumber={caseFileNumber}
+            telerecoursSyncAt={telerecoursSyncAt}
+          />
+        </div>
       }
     />
   );

@@ -72,6 +72,8 @@ export function CaseFileDetailsCard({ caseFile, availableTags }: Props) {
           title={editorProps.title}
           statusLabel={editorProps.statusLabel}
           tags={editorProps.tags}
+          caseFileNumber={caseFile.caseFileNumber}
+          telerecoursSyncAt={caseFile.telerecoursSyncAt}
         />
       </section>
 
