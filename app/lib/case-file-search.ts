@@ -22,6 +22,7 @@ export const DOSSIER_FACET_FIELDS = [
   { key: "titre", label: "Titre" },
   { key: "requerant", label: "Requérant" },
   { key: "defendeur", label: "Défendeur" },
+  { key: "tag", label: "Tag" },
 ] as const;
 
 export type DossierFacetKey = (typeof DOSSIER_FACET_FIELDS)[number]["key"];

@@ -11,6 +11,7 @@ import {
   getMainDefenderActor,
   getOtherCaseFileActors,
 } from "@/app/lib/case-file-actors";
+import { type CaseFileTagView, toCaseFileTagViews } from "@/app/lib/case-file-tags";
 import { type CaseFileDetail } from "@/app/lib/data/case-files";
 import {
   CaseFileDetailsHeader,
@@ -20,9 +21,11 @@ import {
 
 type Props = {
   caseFile: NonNullable<CaseFileDetail>;
+  // Full tag catalogue, loaded by the page (no data access from app/ui).
+  availableTags: CaseFileTagView[];
 };
 
-export function CaseFileDetailsCard({ caseFile }: Props) {
+export function CaseFileDetailsCard({ caseFile, availableTags }: Props) {
   const editorProps: CaseFileDetailsEditorProps = {
     caseFileNumber: caseFile.caseFileNumber,
     title: caseFile.title,
@@ -32,6 +35,8 @@ export function CaseFileDetailsCard({ caseFile }: Props) {
     summary: caseFile.summary,
     productionDeadlineType: caseFile.productionDeadlineType,
     productionDeadlineDate: caseFile.productionDeadlineDate,
+    tags: toCaseFileTagViews(caseFile.caseFileTags),
+    availableTags,
     mainClaimantName: getActorDisplayName(getMainClaimantActor(caseFile)),
     mainDefenderName: getActorDisplayName(getMainDefenderActor(caseFile)),
     otherActors: getOtherCaseFileActors(caseFile).map((link) => ({
@@ -66,6 +71,7 @@ export function CaseFileDetailsCard({ caseFile }: Props) {
           displayName={getCaseFileDisplayName(caseFile)}
           title={editorProps.title}
           statusLabel={editorProps.statusLabel}
+          tags={editorProps.tags}
         />
       </section>
 
@@ -78,6 +84,8 @@ export function CaseFileDetailsCard({ caseFile }: Props) {
         summary={editorProps.summary}
         productionDeadlineType={editorProps.productionDeadlineType}
         productionDeadlineDate={editorProps.productionDeadlineDate}
+        tags={editorProps.tags}
+        availableTags={editorProps.availableTags}
         mainClaimantName={editorProps.mainClaimantName}
         mainDefenderName={editorProps.mainDefenderName}
         otherActors={editorProps.otherActors}

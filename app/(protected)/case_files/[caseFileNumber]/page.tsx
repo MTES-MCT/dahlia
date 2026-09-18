@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { fetchCaseFileDetail } from "@/app/lib/data/case-files";
+import { fetchTagOptions } from "@/app/lib/data/tags";
 import { getCaseFileDisplayName } from "@/app/lib/case-file-format";
 import { CaseFileBreadcrumb } from "@/app/ui/breadcrumb/case-file-breadcrumb";
 import { CaseFileDetailsCard } from "@/app/ui/card/case-file-details-card";
@@ -29,7 +30,10 @@ export default async function Page({ params, searchParams }: Props) {
   const resolvedSearchParams = await searchParams;
   const tab = parseCaseFileTab(resolvedSearchParams.tab, resolvedSearchParams);
 
-  const caseFile = await fetchCaseFileDetail(decodedCaseFileNumber);
+  const [caseFile, availableTags] = await Promise.all([
+    fetchCaseFileDetail(decodedCaseFileNumber),
+    fetchTagOptions(),
+  ]);
 
   if (!caseFile) {
     notFound();
@@ -55,7 +59,7 @@ export default async function Page({ params, searchParams }: Props) {
           isPieces ? clsx("h-screen", "min-h-0") : clsx("min-h-0", "flex-1"),
         )}
       >
-        <CaseFileDetailsCard caseFile={caseFile} />
+        <CaseFileDetailsCard caseFile={caseFile} availableTags={availableTags} />
 
         <CaseFileTabs caseFile={caseFile} tab={tab} searchParams={resolvedSearchParams} />
       </div>

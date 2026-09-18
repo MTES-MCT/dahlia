@@ -20,6 +20,7 @@ describe("RefreshCaseFileButton", () => {
   const mockCaseFile = {
     caseFileNumber: "TA069-2026-001",
     updatedAt: new Date("2024-06-01"),
+    telerecoursSyncAt: new Date("2024-07-15T10:30:00Z"),
   } as NonNullable<CaseFileDetail>;
 
   beforeEach(() => {
@@ -34,6 +35,21 @@ describe("RefreshCaseFileButton", () => {
     render(<RefreshCaseFileButton caseFile={mockCaseFile} />);
 
     expect(screen.getByRole("button", { name: "Rafraîchir" })).toBeTruthy();
+  });
+
+  it("affiche la date de mise à jour et la date de dernière synchronisation Télérecours", () => {
+    render(<RefreshCaseFileButton caseFile={mockCaseFile} />);
+
+    expect(screen.getByText("Mise à jour le 01/06/2024")).toBeTruthy();
+    expect(
+      screen.getByText("Dernière synchronisation Télérecours le 15/07/2024 à 12h30"),
+    ).toBeTruthy();
+  });
+
+  it("indique l'absence de synchronisation Télérecours lorsque la date est inconnue", () => {
+    render(<RefreshCaseFileButton caseFile={{ ...mockCaseFile, telerecoursSyncAt: null }} />);
+
+    expect(screen.getByText("Aucune synchronisation Télérecours")).toBeTruthy();
   });
 
   it("appelle l'action avec le numéro de dossier et rafraîchit le router en cas de succès", async () => {

@@ -14,16 +14,18 @@ describe("AdminSideMenu", () => {
     mockUsePathname.mockReturnValue("/admin/users");
   });
 
-  it("affiche les liens Utilisateurs, Juridiction et Divisions", () => {
+  it("affiche les liens Utilisateurs, Juridiction, Divisions et Tags", () => {
     const { container } = render(<AdminSideMenu />);
 
     const usersLink = container.querySelector('a[href="/admin/users"]');
     const jurisdictionLink = container.querySelector('a[href="/admin/jurisdiction"]');
     const divisionsLink = container.querySelector('a[href="/admin/divisions"]');
+    const tagsLink = container.querySelector('a[href="/admin/tags"]');
 
     expect(usersLink?.textContent).toContain("Utilisateurs");
     expect(jurisdictionLink?.textContent).toContain("Juridiction");
     expect(divisionsLink?.textContent).toContain("Divisions");
+    expect(tagsLink?.textContent).toContain("Tags");
   });
 
   it("marque Utilisateurs comme actif sur /admin/users", () => {
@@ -38,6 +40,9 @@ describe("AdminSideMenu", () => {
     ).toBeNull();
     expect(
       container.querySelector('a[href="/admin/divisions"]')?.getAttribute("aria-current"),
+    ).toBeNull();
+    expect(
+      container.querySelector('a[href="/admin/tags"]')?.getAttribute("aria-current"),
     ).toBeNull();
   });
 
@@ -57,5 +62,14 @@ describe("AdminSideMenu", () => {
     expect(
       container.querySelector('a[href="/admin/divisions"]')?.getAttribute("aria-current"),
     ).toBe("page");
+  });
+
+  it("marque Tags comme actif sur /admin/tags", () => {
+    mockUsePathname.mockReturnValue("/admin/tags");
+    const { container } = render(<AdminSideMenu />);
+
+    expect(container.querySelector('a[href="/admin/tags"]')?.getAttribute("aria-current")).toBe(
+      "page",
+    );
   });
 });

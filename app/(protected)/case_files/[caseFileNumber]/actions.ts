@@ -6,6 +6,7 @@ import type { ProductionDeadlineType } from "@prisma/client";
 import { PRODUCTION_DEADLINE_TYPE_VALUES } from "@/app/lib/case-file-enums";
 import { prisma } from "@/app/lib/prisma";
 import { canAccessCaseFile } from "@/app/lib/case-file-scope";
+import { HAS_TAGS_FIELD_NAME, TAG_IDS_FIELD_NAME } from "@/app/lib/case-file-tags";
 import { describeError } from "@/data/telerecours/http";
 import { getTelerecoursClientForCaseFile } from "@/app/lib/telerecours";
 import { enrichCaseFile } from "@/data/persistence/enrich-case-file";
@@ -87,8 +88,24 @@ function parseProductionDeadlineDate(raw: string): Date | null | "invalid" {
   return date;
 }
 
+// Tag ids submitted by the picker as repeated hidden inputs. Duplicates are
+// collapsed so the join rows stay unique.
+function parseTagIds(formData: FormData): number[] | "invalid" {
+  const ids = new Set<number>();
+
+  for (const raw of formData.getAll(TAG_IDS_FIELD_NAME)) {
+    const value = Number.parseInt(String(raw).trim(), 10);
+    if (!Number.isInteger(value) || value <= 0) {
+      return "invalid";
+    }
+    ids.add(value);
+  }
+
+  return [...ids];
+}
+
 // Persist the user-managed classification fields of a case file (type de
-// contentieux, type de droit, raison/summary) edited from the details card.
+// contentieux, type de droit, raison/summary, tags) edited from the details card.
 export async function updateCaseFileDetailsFormAction(
   _prevState: UpdateCaseFileDetailsResult | null,
   formData: FormData,
@@ -116,6 +133,26 @@ export async function updateCaseFileDetailsFormAction(
     return { ok: false, error: "Type de droit invalide." };
   }
   const summary = String(formData.get("summary") ?? "").trim();
+
+  const hasTagsField = formData.get(HAS_TAGS_FIELD_NAME) === "true";
+  let tagIds: number[] = [];
+
+  if (hasTagsField) {
+    const parsedTagIds = parseTagIds(formData);
+    if (parsedTagIds === "invalid") {
+      return { ok: false, error: "Tag invalide." };
+    }
+    tagIds = parsedTagIds;
+
+    // The ids travel in hidden inputs, so they are forgeable: check they all
+    // exist rather than surfacing a raw foreign-key error.
+    if (tagIds.length > 0) {
+      const existingCount = await prisma.tag.count({ where: { id: { in: tagIds } } });
+      if (existingCount !== tagIds.length) {
+        return { ok: false, error: "Tag introuvable." };
+      }
+    }
+  }
 
   const hasProductionDeadlineFields = formData.get("hasProductionDeadlineFields") === "true";
   let productionDeadlineType: ProductionDeadlineType | null = null;
@@ -157,10 +194,16 @@ export async function updateCaseFileDetailsFormAction(
               productionDeadlineDate,
             }
           : {}),
+        // Full replacement of the tag set, in a single transaction.
+        ...(hasTagsField
+          ? { caseFileTags: { deleteMany: {}, create: tagIds.map((tagId) => ({ tagId })) } }
+          : {}),
       },
     });
 
     revalidatePath(`/case_files/${encodeURIComponent(caseFileNumber)}`);
+    // Tags are displayed in the dashboard rows too, so the list must refresh.
+    revalidatePath("/case_files");
     return { ok: true };
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : String(error) };

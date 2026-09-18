@@ -1,0 +1,34 @@
+// Étiquette posée manuellement sur un dossier. Donnée applicative : jamais
+// touchée par le scraper Télérecours, administrée depuis /admin/tags.
+model Tag {
+  id    Int    @id @default(autoincrement())
+  label String @unique
+  // DSFR accentuation name (e.g. "green-menthe"), rendered as `fr-badge--<color>`.
+  // Kept as text rather than a Postgres enum so the palette can evolve without a
+  // migration; validated in app code against TAG_COLORS (app/lib/tag-colors.ts).
+  color String
+
+  caseFileTags CaseFileTag[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("tags")
+}
+
+// Étiquettes d'un dossier (M2M explicite, comme CaseFileHearing).
+// Deleting a case file drops its links; deleting a tag still used by a case file
+// is refused by the database (Restrict), mirroring the admin UI rule.
+model CaseFileTag {
+  caseFileNumber String
+  caseFile       CaseFile @relation(fields: [caseFileNumber], references: [caseFileNumber], onDelete: Cascade)
+
+  tagId Int
+  tag   Tag @relation(fields: [tagId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+
+  @@id([caseFileNumber, tagId])
+  @@index([tagId])
+  @@map("case_file_tags")
+}

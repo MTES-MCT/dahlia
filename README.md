@@ -108,6 +108,35 @@ sont montées sur `/api/auth/*`.
   un `getUserInfo` personnalisé (vérification via JWKS avec `jose`). La
   déconnexion fait un logout complet (`end_session_endpoint`).
 
+## Tags des dossiers
+
+Les **tags** sont un vocabulaire contrôlé posé sur les dossiers, en complément
+des champs fermés (`litigationType`, `rightType`) et du texte libre (`summary`).
+
+- **Administration** : `/admin/tags`, réservée aux administrateurs. CRUD complet ;
+  un tag porte un **libellé** (unique, insensible à la casse) et une **couleur**
+  prise dans la palette d'accentuation DSFR (`app/lib/tag-colors.ts`). Un tag
+  est toujours rendu en **petit badge** (`fr-badge--<couleur>`) : le DSFR ne colore
+  les `fr-tag--<couleur>` que sur les éléments interactifs (`a`, `button`), un tag
+  en `<span>` resterait gris. Dans le sélecteur, chaque tag retenu est un badge
+  suivi d'une croix, enveloppé dans un bouton « Retirer le tag … ».
+- **Suppression** : un tag encore posé sur des dossiers **ne peut pas** être
+  supprimé. La modale liste alors les dossiers concernés (liens ouverts dans un
+  nouvel onglet). La règle est vérifiée dans la Server Action _et_ garantie en
+  base par la clé étrangère `case_file_tags.tagId ON DELETE RESTRICT`.
+- **Pose d'un tag** : depuis la modale « Détails du dossier ». Le champ est un
+  combobox : le focus ouvre la liste, la saisie la filtre (insensible à la casse
+  et aux accents). Les utilisateurs **ne peuvent pas créer** de tag depuis là.
+- **Affichage** : sous le statut, à la fois dans la liste des dossiers et dans
+  l'en-tête de la fiche — les deux passent par le même composant
+  [app/ui/case-file/case-file-identity.tsx](app/ui/case-file/case-file-identity.tsx),
+  qui rend le bloc nom + titre + statut + tags.
+- **Recherche et filtre** : la facette `tag:` du tableau de bord (ex.
+  `tag:urgent`, ou `tag:"à relancer"` pour un libellé multi-mots), disponible
+  aussi via le bouton de filtre de la colonne « Dossier ». Les libellés de tags
+  sont également couverts par la recherche en texte libre. L'export `.xlsx`
+  reprend les tags à la suite du libellé du dossier.
+
 ### Périmètre de droit (cloisonnement par juridiction)
 
 Être validé ne donne accès qu'aux dossiers de **son** périmètre. Ce périmètre est
@@ -527,6 +556,20 @@ erDiagram
         string hearingId PK_FK
     }
 
+    Tag {
+        int id PK
+        string label UK
+        string color "accentuation DSFR (fr-badge--<color>)"
+        DateTime createdAt
+        DateTime updatedAt
+    }
+
+    CaseFileTag {
+        string caseFileNumber PK_FK
+        int tagId PK_FK
+        DateTime createdAt
+    }
+
     Conclusion {
         int id PK
         string hearingId PK_FK
@@ -649,6 +692,8 @@ erDiagram
     CaseFile            |o--o| Hearing  : "lastHearing"
     CaseFile            ||--o{ CaseFileHearing : "caseFileHearings"
     Hearing             ||--o{ CaseFileHearing : "caseFiles"
+    CaseFile            ||--o{ CaseFileTag : "caseFileTags"
+    Tag                 ||--o{ CaseFileTag : "dossiers étiquetés"
     Actor               ||--o{ CaseFile : "mainClaimant"
     Actor               ||--o{ CaseFile : "mainDefender"
     Actor               |o--o{ CaseFile : "lastProducer"

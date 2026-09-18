@@ -100,7 +100,7 @@ applique aussitôt et échoue avant qu'on puisse corriger le SQL.
 
 ## Modèle métier
 
-`CaseFile` (dossier, PK = `caseFileNumber`) relie `Actor` (mainClaimant/mainDefender), `Urgency` (optionnelle), `Status` (lastStatus), `LegalEntityDivision`, `Hearing` → `Conclusion`. Schéma complet (diagramme mermaid) dans `README.md`, à mettre à jour manuellement lors d'un changement de schéma.
+`CaseFile` (dossier, PK = `caseFileNumber`) relie `Actor` (mainClaimant/mainDefender), `Urgency` (optionnelle), `Status` (lastStatus), `LegalEntityDivision`, `Hearing` → `Conclusion`. Il porte aussi des `Tag` (étiquettes applicatives, M2M via `case_file_tags`), administrés dans `/admin/tags` et jamais touchés par le scraper. Schéma complet (diagramme mermaid) dans `README.md`, à mettre à jour manuellement lors d'un changement de schéma.
 
 ## Debugging
 

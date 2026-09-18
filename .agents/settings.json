@@ -21,6 +21,7 @@
       "Bash(pnpm db:migrate *)",
       "Bash(pnpm db:generate *)",
       "Bash(pnpm db:format *)",
+      "Bash(pnpm exec vitest *)",
       "Bash(rg:*)",
       "Read(//tmp/**)",
       "Read(//private/tmp/**)"
