@@ -1,7 +1,8 @@
 import type { Args } from "./pipeline";
 
-// Statuses whose case files are never enriched (phase B/C) nor reconciled as
-// active (phase A.5): they are considered closed.
+// Statuses treated as closed: skipped by default during enrichment (phase B/C)
+// and reconciliation (phase A.5). --enrich all lifts the exclusion for phases
+// B/C only.
 export const EXCLUDED_ENRICHMENT_STATUS_LABELS = ["Terminé"] as const;
 
 // Build a Prisma where-fragment for the division filter. When no division is
@@ -16,13 +17,15 @@ export function divisionWhere(args: Args): {
     : {};
 }
 
-// The set of "active" case files within the scraped perimeter: not closed
-// ("Terminé"), within the configured divisions, and not soft-deleted. Used as
-// the target set for enrichment (phase B), linking (phase C) and reconciliation
-// (phase A.5).
+// The set of case files within the scraped perimeter used as the target for
+// enrichment (phase B) and linking (phase C): within the configured divisions,
+// not soft-deleted, and by default not closed ("Terminé"). Pass --enrich all
+// to drop the status exclusion.
 export function enrichmentTargetsWhere(args: Args) {
   return {
-    lastStatus: { label: { notIn: [...EXCLUDED_ENRICHMENT_STATUS_LABELS] } },
+    ...(args.enrich === "all"
+      ? {}
+      : { lastStatus: { label: { notIn: [...EXCLUDED_ENRICHMENT_STATUS_LABELS] } } }),
     ...divisionWhere(args),
     isDeleted: false,
   };

@@ -121,9 +121,16 @@ export async function reconcileDeleted(
 ): Promise<number> {
   console.log(`\n══ Phase A.5 — réconciliation (dossiers absents marqués supprimés) ══`);
 
+  // Reconciliation never widens to closed dossiers: without --all, phase A
+  // only lists INPROGRESS files, so "Terminé" ones would otherwise be marked
+  // deleted. --enrich all is B/C only.
+  const perimeter = args.all
+    ? { ...divisionWhere(args), isDeleted: false }
+    : enrichmentTargetsWhere({ ...args, enrich: "ongoing" });
+
   const result = await deps.prisma.caseFile.updateMany({
     where: {
-      ...(args.all ? { ...divisionWhere(args), isDeleted: false } : enrichmentTargetsWhere(args)),
+      ...perimeter,
       caseFileNumber: { notIn: seen },
     },
     data: { isDeleted: true, deletedAt: new Date() },
