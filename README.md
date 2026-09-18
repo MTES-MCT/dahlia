@@ -238,29 +238,29 @@ ciblé (`<JURIDICTION>_…`) :
 
 ### Options
 
-| Option                           | Défaut                    | Description                                                                                                                                                                         |
-| -------------------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--jurisdiction <code>`          | `TA069`                   | Code de la juridiction. Détermine aussi quelles variables d'env sont lues (`<code>_TELERECOURS_*`) et l'en-tête `X-Jurisdiction-Code` envoyé à l'API.                               |
-| `--page <n>`                     | `0`                       | Page de départ (0-based) pour la liste des dossiers (Phase A). Le script continue ensuite jusqu'à la dernière page.                                                                 |
-| `--size <n>`                     | `30`                      | Nombre de dossiers par page lors de l'appel à `/api/case-file`.                                                                                                                     |
-| `--sort <champ>`                 | _(aucun)_                 | Critère de tri transmis tel quel à l'API (paramètre `sort`).                                                                                                                        |
-| `--all`                          | `false`                   | Récupère **tous** les dossiers sans filtre de statut. Sans ce flag, seuls les dossiers « en cours » sont demandés (groupes INPROGRESS de l'API Télérecours, hors « Terminé »).      |
-| `--legalEntityDivisionIds <ids>` | env `…_DIVISIONS`         | Liste d'IDs de divisions à filtrer, séparés par des virgules (ex. `2488,1234`). Surcharge la variable d'env. Sert aussi à cibler les dossiers à enrichir (Phases B/C).              |
-| `--anonymize`                    | `true` sauf si `ENV=prod` | Anonymise les acteurs (requérants/défendeurs) avant insertion en base. Le défaut dépend de la variable d'env `ENV` : anonymisation activée en dev/preprod, désactivée en prod.      |
-| `--skipEnrichment`               | `false`                   | N'exécute que la Phase A (liste des dossiers) et saute les Phases B et C (détails, audiences, mesures, pièces jointes, dossiers liés).                                              |
-| `--classify`                     | `false`                   | Exécute la Phase D : déduit `litigationType`, `rightType` et `summary` de chaque dossier du périmètre à partir de son texte (titre, décision). Voir « Classification automatique ». |
-| `--classify-overwrite`           | `false`                   | Implique `--classify`. Réécrit aussi les caractéristiques **déjà renseignées** (par défaut, seuls les champs vides sont remplis, pour ne pas écraser la saisie des utilisateurs).   |
-| `--help`, `-h`                   | —                         | Affiche la liste des options et quitte sans rien scraper.                                                                                                                           |
+| Option                           | Défaut                    | Description                                                                                                                                                                                                      |
+| -------------------------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--jurisdiction <code>`          | `TA069`                   | Code de la juridiction. Détermine aussi quelles variables d'env sont lues (`<code>_TELERECOURS_*`) et l'en-tête `X-Jurisdiction-Code` envoyé à l'API.                                                            |
+| `--page <n>`                     | `0`                       | Page de départ (0-based) pour la liste des dossiers (Phase A). Le script continue ensuite jusqu'à la dernière page.                                                                                              |
+| `--size <n>`                     | `30`                      | Nombre de dossiers par page lors de l'appel à `/api/case-file`.                                                                                                                                                  |
+| `--sort <champ>`                 | _(aucun)_                 | Critère de tri transmis tel quel à l'API (paramètre `sort`).                                                                                                                                                     |
+| `--all`                          | `false`                   | Récupère **tous** les dossiers sans filtre de statut. Sans ce flag, seuls les dossiers « en cours » sont demandés (groupes INPROGRESS de l'API Télérecours, hors « Terminé »).                                   |
+| `--legalEntityDivisionIds <ids>` | env `…_DIVISIONS`         | Liste d'IDs de divisions à filtrer, séparés par des virgules (ex. `2488,1234`). Surcharge la variable d'env. Sert aussi à cibler les dossiers à enrichir (Phases B/C).                                           |
+| `--anonymize`                    | `true` sauf si `ENV=prod` | Anonymise les acteurs (requérants/défendeurs) avant insertion en base. Le défaut dépend de la variable d'env `ENV` : anonymisation activée en dev/preprod, désactivée en prod.                                   |
+| `--enrich <all\|ongoing\|none>`  | `ongoing`                 | Contrôle les Phases B et C : `ongoing` enrichit les dossiers actifs (hors « Terminé ») ; `all` inclut aussi les dossiers terminés ; `none` saute les Phases B et C. N'affecte pas la réconciliation (Phase A.5). |
+| `--classify`                     | `false`                   | Exécute la Phase D : déduit `litigationType`, `rightType` et `summary` de chaque dossier du périmètre à partir de son texte (titre, décision). Voir « Classification automatique ».                              |
+| `--classify-overwrite`           | `false`                   | Implique `--classify`. Réécrit aussi les caractéristiques **déjà renseignées** (par défaut, seuls les champs vides sont remplis, pour ne pas écraser la saisie des utilisateurs).                                |
+| `--help`, `-h`                   | —                         | Affiche la liste des options et quitte sans rien scraper.                                                                                                                                                        |
 
 ### Déroulé du script
 
 1. **Phase A** — scrape la liste `/api/case-file` (paginée) et upsert chaque dossier
    avec ses entités de base (acteurs, statut, urgence, division, dernière audience…).
-2. **Phase B** _(sautée si `--skipEnrichment`)_ — pour chaque dossier actif en base
-   (hors « Terminé ») et dans les divisions ciblées, récupère
+2. **Phase B** _(sautée si `--enrich none`)_ — pour chaque dossier en base
+   dans les divisions ciblées (hors « Terminé », sauf `--enrich all`), récupère
    le détail enrichi, **toutes** les audiences, les mesures (events) et les pièces
    jointes.
-3. **Phase C** _(sautée si `--skipEnrichment`)_ — crée les liens entre dossiers liés
+3. **Phase C** _(sautée si `--enrich none`)_ — crée les liens entre dossiers liés
    (`related-case-files`) pour les mêmes dossiers cibles.
 4. **Phase D** _(exécutée uniquement avec `--classify`)_ — applique le moteur de
    règles de classification aux dossiers du périmètre (voir « Classification
@@ -298,8 +298,11 @@ pnpm scrape:telerecours -- --jurisdiction TA069 --legalEntityDivisionIds 2488
 # Récupérer tous les dossiers quelques soit leur statut
 pnpm scrape:telerecours -- --all
 
+# Enrichir aussi les dossiers au statut « Terminé » (phases B et C)
+pnpm scrape:telerecours -- --enrich all
+
 # Tester rapidement la seule Phase A, anonymisée, sur une page
-pnpm scrape:telerecours -- --page 0 --size 30 --skipEnrichment --anonymize
+pnpm scrape:telerecours -- --page 0 --size 30 --enrich none --anonymize
 
 # Scrape complet + classification automatique des dossiers (champs vides uniquement)
 pnpm scrape:telerecours -- --classify
