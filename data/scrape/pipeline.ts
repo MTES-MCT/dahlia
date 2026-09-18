@@ -6,6 +6,9 @@ import { phaseB } from "./phase-b-enrich";
 import { phaseC } from "./phase-c-related";
 import { phaseD } from "./phase-d-classify";
 
+export const ENRICH_MODES = ["all", "ongoing", "none"] as const;
+export type EnrichMode = (typeof ENRICH_MODES)[number];
+
 // Resolved run configuration (CLI args + env defaults), see cli/parse-args.ts.
 export interface Args {
   jurisdiction: string;
@@ -15,7 +18,9 @@ export interface Args {
   all: boolean;
   legalEntityDivisionIds: number[];
   anonymize: boolean;
-  skipEnrichment: boolean;
+  // Phase B/C target set: ongoing (default, skip "Terminé"), all (include
+  // closed), or none (skip phases B and C).
+  enrich: EnrichMode;
   updatePieceNumbers: boolean;
   // Phase D — deduce litigationType / rightType / summary from the scraped text.
   classify: boolean;
@@ -47,11 +52,11 @@ export async function runScrape(args: Args, deps: ScrapeDeps): Promise<number> {
 
   await reconcileDeleted(args, a.seen, deps);
 
-  if (!args.skipEnrichment) {
+  if (args.enrich !== "none") {
     await phaseB(args, deps);
     await phaseC(args, deps);
   } else {
-    console.log("→ --skipEnrichment : phases B et C ignorées.");
+    console.log("→ --enrich none : phases B et C ignorées.");
   }
 
   if (args.classify) {

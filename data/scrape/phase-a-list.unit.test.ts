@@ -13,7 +13,7 @@ const baseArgs: Args = {
   all: false,
   legalEntityDivisionIds: [2488],
   anonymize: true,
-  skipEnrichment: false,
+  enrich: "ongoing",
   updatePieceNumbers: false,
   classify: false,
   classifyOverwrite: false,
@@ -132,6 +132,20 @@ describe("reconcileDeleted", () => {
     expect(where).toMatchObject({
       caseFileNumber: { notIn: ["A", "B"] },
       assignedToLegalEntityDivisionId: { in: [2488] },
+      isDeleted: false,
+    });
+  });
+
+  it("still excludes closed dossiers even when --enrich all is set", async () => {
+    const prisma = mockDeep<PrismaClient>();
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    prisma.caseFile.updateMany.mockResolvedValue({ count: 0 });
+
+    await reconcileDeleted({ ...baseArgs, enrich: "all" }, ["A"], makeDeps(prisma));
+
+    const where = prisma.caseFile.updateMany.mock.calls[0][0].where!;
+    expect(where).toMatchObject({
+      lastStatus: { label: { notIn: ["Terminé"] } },
       isDeleted: false,
     });
   });

@@ -1,4 +1,4 @@
-import type { Args } from "../scrape/pipeline";
+import { ENRICH_MODES, type Args, type EnrichMode } from "../scrape/pipeline";
 
 export function getEnv(key: string): string {
   const value = process.env[key];
@@ -28,7 +28,8 @@ export const SCRAPE_USAGE = `Usage: pnpm scrape:telerecours -- [options]
                                    Défaut : <JURIDICTION>_TELERECOURS_DIVISIONS.
   --anonymize                      Anonymise les acteurs avant insertion (défaut hors production).
   --no-anonymize                   Désactive l'anonymisation.
-  --skipEnrichment                 N'exécute que la phase A (saute les phases B et C).
+  --enrich <all|ongoing|none>      Phases B et C : ongoing (défaut, hors « Terminé »),
+                                   all (y compris terminés), none (saute B et C).
   --update-piece-numbers           Met à jour les numéros de pièces des fichiers déjà en base.
   --classify                       Exécute la phase D : classification automatique des dossiers.
   --classify-overwrite             Implique --classify ; réécrit aussi les champs déjà renseignés.
@@ -39,6 +40,13 @@ export const SCRAPE_USAGE = `Usage: pnpm scrape:telerecours -- [options]
 // the run in the entrypoint.
 export interface ScrapeCliArgs extends Args {
   help: boolean;
+}
+
+export function parseEnrichMode(value: string): EnrichMode {
+  for (const mode of ENRICH_MODES) {
+    if (mode === value) return mode;
+  }
+  throw new Error(`Invalid --enrich value: "${value}". Expected all | ongoing | none.`);
 }
 
 // Parse process.argv into the resolved run configuration. Defaults come from the
@@ -54,7 +62,7 @@ export function parseArgs(argv: string[] = process.argv): ScrapeCliArgs {
     legalEntityDivisionIds: [],
     // Default: anonymize unless running against the prod environment.
     anonymize: process.env.ENVIRONMENT !== "production",
-    skipEnrichment: false,
+    enrich: "ongoing",
     updatePieceNumbers: false,
     classify: false,
     classifyOverwrite: false,
@@ -84,8 +92,8 @@ export function parseArgs(argv: string[] = process.argv): ScrapeCliArgs {
       args.anonymize = true;
     } else if (arg === "--no-anonymize") {
       args.anonymize = false;
-    } else if (arg === "--skipEnrichment") {
-      args.skipEnrichment = true;
+    } else if (arg === "--enrich" && i + 1 < argv.length) {
+      args.enrich = parseEnrichMode(argv[++i]);
     } else if (arg === "--update-piece-numbers") {
       args.updatePieceNumbers = true;
     } else if (arg === "--classify") {
@@ -124,7 +132,7 @@ export function parseArgs(argv: string[] = process.argv): ScrapeCliArgs {
   console.log("  - all set to", args.all);
   console.log("  - legalEntityDivisionIds set to", args.legalEntityDivisionIds);
   console.log("  - anonymize set to", args.anonymize);
-  console.log("  - skipEnrichment set to", args.skipEnrichment);
+  console.log("  - enrich set to", args.enrich);
   console.log("  - updatePieceNumbers set to", args.updatePieceNumbers);
   console.log("  - classify set to", args.classify);
   console.log("  - classifyOverwrite set to", args.classifyOverwrite);

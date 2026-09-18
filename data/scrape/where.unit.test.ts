@@ -9,7 +9,7 @@ const args = (over: Partial<Args> = {}): Args => ({
   all: false,
   legalEntityDivisionIds: [],
   anonymize: true,
-  skipEnrichment: false,
+  enrich: "ongoing",
   updatePieceNumbers: false,
   classify: false,
   classifyOverwrite: false,
@@ -34,5 +34,14 @@ describe("enrichmentTargetsWhere", () => {
       assignedToLegalEntityDivisionId: { in: [2488] },
       isDeleted: false,
     });
+  });
+
+  it("drops the status exclusion when --enrich all is set", () => {
+    expect(enrichmentTargetsWhere(args({ legalEntityDivisionIds: [2488], enrich: "all" }))).toEqual(
+      {
+        assignedToLegalEntityDivisionId: { in: [2488] },
+        isDeleted: false,
+      },
+    );
   });
 });

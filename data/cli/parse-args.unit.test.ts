@@ -25,7 +25,7 @@ describe("parseArgs", () => {
       page: 0,
       size: 30,
       all: false,
-      skipEnrichment: false,
+      enrich: "ongoing",
       updatePieceNumbers: false,
       classify: false,
       classifyOverwrite: false,
@@ -42,7 +42,8 @@ describe("parseArgs", () => {
         "--size",
         "50",
         "--all",
-        "--skipEnrichment",
+        "--enrich",
+        "all",
         "--update-piece-numbers",
         "--classify",
       ),
@@ -52,7 +53,7 @@ describe("parseArgs", () => {
       page: 2,
       size: 50,
       all: true,
-      skipEnrichment: true,
+      enrich: "all",
       updatePieceNumbers: true,
       classify: true,
       classifyOverwrite: false,
@@ -62,6 +63,16 @@ describe("parseArgs", () => {
   it("--classify-overwrite implies --classify", () => {
     const args = parseArgs(argv("--classify-overwrite"));
     expect(args).toMatchObject({ classify: true, classifyOverwrite: true });
+  });
+
+  it("parses --enrich values", () => {
+    expect(parseArgs(argv("--enrich", "none")).enrich).toBe("none");
+    expect(parseArgs(argv("--enrich", "ongoing")).enrich).toBe("ongoing");
+    expect(parseArgs(argv("--enrich", "all")).enrich).toBe("all");
+  });
+
+  it("rejects an invalid --enrich value", () => {
+    expect(() => parseArgs(argv("--enrich", "yes"))).toThrow(/all \| ongoing \| none/);
   });
 
   it("an explicit --legalEntityDivisionIds wins over the env default", () => {

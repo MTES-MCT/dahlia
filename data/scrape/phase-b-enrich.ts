@@ -13,8 +13,11 @@ export async function phaseB(
 ): Promise<{ enriched: number; failed: number; targetCount: number }> {
   const { prisma, client } = deps;
   const rateLimitMs = deps.rateLimitMs ?? DEFAULT_RATE_LIMIT_MS;
+  const excluded = EXCLUDED_ENRICHMENT_STATUS_LABELS.map((l) => `"${l}"`).join(" et ");
   console.log(
-    `\n══ Phase B — enrichissement des dossiers actifs (hors ${EXCLUDED_ENRICHMENT_STATUS_LABELS.map((l) => `"${l}"`).join(" et ")}) ══`,
+    args.enrich === "all"
+      ? `\n══ Phase B — enrichissement des dossiers (y compris ${excluded}) ══`
+      : `\n══ Phase B — enrichissement des dossiers actifs (hors ${excluded}) ══`,
   );
 
   const targets = await prisma.caseFile.findMany({
