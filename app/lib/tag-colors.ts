@@ -7,33 +7,7 @@
 // Tags are therefore always rendered as small badges, whose accent classes apply
 // to any element.
 
-export const TAG_COLORS = [
-  "blue-ecume",
-  "blue-cumulus",
-  "green-tilleul-verveine",
-  "green-bourgeon",
-  "green-emeraude",
-  "green-menthe",
-  "green-archipel",
-  "purple-glycine",
-  "pink-macaron",
-  "pink-tuile",
-  "yellow-tournesol",
-  "yellow-moutarde",
-  "orange-terre-battue",
-  "brown-cafe-creme",
-  "brown-caramel",
-  "brown-opera",
-  "beige-gris-galet",
-] as const;
-
-export type TagColor = (typeof TAG_COLORS)[number];
-
-export type TagBadgeClassName = `fr-badge--${TagColor}`;
-
-export const DEFAULT_TAG_COLOR: TagColor = "blue-ecume";
-
-export const TAG_COLOR_LABELS: Record<TagColor, string> = {
+export const TAG_COLOR_LABELS = {
   "blue-ecume": "Bleu écume",
   "blue-cumulus": "Bleu cumulus",
   "green-tilleul-verveine": "Vert tilleul verveine",
@@ -51,7 +25,15 @@ export const TAG_COLOR_LABELS: Record<TagColor, string> = {
   "brown-caramel": "Brun caramel",
   "brown-opera": "Brun opéra",
   "beige-gris-galet": "Beige gris galet",
-};
+} as const;
+
+export type TagColor = keyof typeof TAG_COLOR_LABELS;
+
+export const TAG_COLORS = Object.keys(TAG_COLOR_LABELS) as readonly TagColor[];
+
+export type TagBadgeClassName = `fr-badge--${TagColor}`;
+
+export const DEFAULT_TAG_COLOR: TagColor = "blue-ecume";
 
 export const TAG_COLOR_OPTIONS: { value: TagColor; label: string }[] = TAG_COLORS.map((color) => ({
   value: color,

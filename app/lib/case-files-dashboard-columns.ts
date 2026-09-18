@@ -74,12 +74,7 @@ export const CASE_FILES_DASHBOARD_COLUMNS: CaseFileDashboardColumnDef[] = [
     sortable: true,
     facetFields: DOSSIER_FACET_FIELDS,
     width: "50%",
-    // Tags are appended so the spreadsheet carries what the cell displays.
-    exportValue: (caseFile) => {
-      const displayName = getCaseFileDisplayName(caseFile);
-      const tagLabels = caseFile.caseFileTags.map(({ tag }) => tag.label);
-      return tagLabels.length > 0 ? `${displayName} [${tagLabels.join(", ")}]` : displayName;
-    },
+    exportValue: (caseFile) => getCaseFileDisplayName(caseFile),
   },
   {
     key: "depositDate",
@@ -103,5 +98,37 @@ export const CASE_FILES_DASHBOARD_COLUMNS: CaseFileDashboardColumnDef[] = [
     defaultOrder: "ascending",
     width: "18%",
     exportValue: (caseFile) => formatDateFr(caseFile.memoryDeadlineDate),
+  },
+];
+
+function exportMemoryDeadlineSource(caseFile: CaseFileDashboardRow): string {
+  const source = getMemoryDeadlineSource(caseFile);
+  return source ? MEMORY_DEADLINE_SOURCE_LABELS[source] : "";
+}
+
+// Extra spreadsheet columns so the export carries identity fields shown inside
+// the Dossier cell, plus the memory-deadline source shown as a badge in the
+// date cell. The table itself stays unchanged.
+export const CASE_FILES_EXPORT_COLUMNS: CaseFileDashboardColumnDef[] = [
+  ...CASE_FILES_DASHBOARD_COLUMNS,
+  {
+    key: "memoryDeadlineSource",
+    label: "Type d'échéance",
+    exportValue: exportMemoryDeadlineSource,
+  },
+  {
+    key: "lastStatus",
+    label: "Statut",
+    exportValue: (caseFile) => caseFile.lastStatus.label,
+  },
+  {
+    key: "title",
+    label: "Titre Télérecours",
+    exportValue: (caseFile) => caseFile.title?.trim() ?? "",
+  },
+  {
+    key: "tags",
+    label: "Tags",
+    exportValue: (caseFile) => caseFile.caseFileTags.map(({ tag }) => tag.label).join(", "),
   },
 ];
