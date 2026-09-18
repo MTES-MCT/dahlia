@@ -29,7 +29,7 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "@codegouvfr/react-dsfr": "^1.33.0",
+    "@codegouvfr/react-dsfr": "^1.34.0",
     "@faker-js/faker": "^10.5.0",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
