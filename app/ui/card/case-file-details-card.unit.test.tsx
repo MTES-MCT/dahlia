@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, screen, cleanup, within } from "@testing-library/react";
 import type { CaseFileDetail } from "@/app/lib/data/case-files";
 import {
@@ -6,6 +6,19 @@ import {
   caseFileActorFixture,
 } from "@/app/lib/test-support/case-file-actors.fixture";
 import { CaseFileDetailsCard } from "./case-file-details-card";
+
+vi.mock("@/app/(protected)/case_files/[caseFileNumber]/actions", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@/app/(protected)/case_files/[caseFileNumber]/actions")>();
+  return {
+    ...actual,
+    refreshCaseFile: vi.fn().mockResolvedValue({ ok: true }),
+  };
+});
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: vi.fn() }),
+}));
 
 function caseFileFixture(
   overrides: Partial<NonNullable<CaseFileDetail>> = {},
@@ -41,6 +54,7 @@ function caseFileFixture(
     ],
     chamber: { name: "3ème chambre" },
     caseFileTags: [],
+    telerecoursSyncAt: new Date("2024-07-15T10:30:00Z"),
     ...overrides,
   } as NonNullable<CaseFileDetail>;
 }
@@ -119,6 +133,12 @@ describe("CaseFileDetailsCard", () => {
 
     expect(screen.getByText("En instruction")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Détails du dossier" })).toBeTruthy();
+  });
+
+  it("affiche la date de dernière synchronisation Télérecours sous le bouton d'édition", () => {
+    render(<CaseFileDetailsCard availableTags={TAG_OPTIONS} caseFile={caseFileFixture()} />);
+
+    expect(screen.getByText("Dernière synchronisation le 15/07/2024 à 12h30")).toBeTruthy();
   });
 
   it("affiche les tags du dossier dans l'en-tête", () => {
