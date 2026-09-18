@@ -237,8 +237,13 @@ export function CaseFileDetailsModal({
         <div className={fr.cx("fr-grid-row", "fr-grid-row--gutters")}>
           <Select
             label="Type de contentieux"
-            nativeSelectProps={{ name: "litigationType", defaultValue: litigationType ?? "" }}
             className={fr.cx("fr-col-12", "fr-col-md-6", "fr-mb-1w")}
+            nativeSelectProps={{
+              name: "litigationType",
+              defaultValue: litigationType ?? "",
+              // DSFR `.fr-select` forces `width: 100%`; size to the longest option instead.
+              className: "w-max!",
+            }}
           >
             <option value="">—</option>
             {LITIGATION_TYPE_OPTIONS.map((option) => (
@@ -267,10 +272,14 @@ export function CaseFileDetailsModal({
         <Input
           label="Quelques mots caractérisant le dossier"
           nativeInputProps={{ name: "summary", defaultValue: summary ?? "" }}
-          className={fr.cx("fr-mb-1w")}
+          className={clsx(fr.cx("fr-mb-1w"), "max-w-160")}
         />
 
-        <TagPicker availableTags={availableTags} defaultSelectedIds={tags.map((tag) => tag.id)} />
+        <TagPicker
+          availableTags={availableTags}
+          defaultSelectedIds={tags.map((tag) => tag.id)}
+          className={clsx("max-w-120")}
+        />
 
         {showProductionDeadlineFields && (
           <ProductionDeadlineFields

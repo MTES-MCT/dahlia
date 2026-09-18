@@ -5,6 +5,11 @@ import {
   getMemoryDeadlineSource,
   type CaseFileDashboardRow,
 } from "@/app/lib/case-files-dashboard-columns";
+import {
+  actorFixture,
+  caseFileActorFixture,
+  caseFileActorsFixture,
+} from "@/app/lib/test-support/case-file-actors.fixture";
 
 function buildCaseFile(overrides: Partial<CaseFileDashboardRow> = {}): CaseFileDashboardRow {
   return {
@@ -111,13 +116,18 @@ describe("getMemoryDeadlineSource", () => {
 });
 
 describe("CASE_FILES_EXPORT_COLUMNS", () => {
-  it("reprend les colonnes du tableau puis ajoute type d'échéance, statut, titre et tags", () => {
+  it("reprend les colonnes du tableau puis ajoute les champs d'identité, de classification et d'acteurs", () => {
     expect(CASE_FILES_EXPORT_COLUMNS.map((column) => column.key)).toEqual([
       ...CASE_FILES_DASHBOARD_COLUMNS.map((column) => column.key),
       "memoryDeadlineSource",
       "lastStatus",
       "title",
       "tags",
+      "rightType",
+      "litigationType",
+      "mainClaimant",
+      "mainDefender",
+      "otherActors",
     ]);
   });
 
@@ -173,5 +183,47 @@ describe("CASE_FILES_EXPORT_COLUMNS", () => {
 
   it("laisse le type d'échéance vide quand aucune date n'est définie", () => {
     expect(exportValueFor("memoryDeadlineSource", buildCaseFile())).toBe("");
+  });
+
+  it("exporte le droit opposable et le type de recours", () => {
+    const caseFile = buildCaseFile({ rightType: "DALO", litigationType: "INJONCTION" });
+    expect(exportValueFor("rightType", caseFile)).toBe("DALO");
+    expect(exportValueFor("litigationType", caseFile)).toBe("Recours injonction");
+  });
+
+  it("laisse le droit opposable et le type de recours vides quand ils sont absents", () => {
+    const caseFile = buildCaseFile();
+    expect(exportValueFor("rightType", caseFile)).toBe("");
+    expect(exportValueFor("litigationType", caseFile)).toBe("");
+  });
+
+  it("exporte le requérant, le défendeur et les autres acteurs", () => {
+    const caseFile = buildCaseFile({
+      caseFileActors: [
+        ...caseFileActorsFixture({
+          claimant: { firstName: "Jean", lastName: "Dupont" },
+          defender: { legalPersonName: "Préfet du Rhône", actorType: "LEGAL_PERSON" },
+        }),
+        caseFileActorFixture({
+          actorId: 3,
+          qualityCode: "A",
+          isMainClaimant: false,
+          isMainDefender: false,
+          actor: actorFixture({ id: 3, firstName: "Marie", lastName: "Martin" }),
+          quality: { code: "A", name: "Avocat" },
+        }),
+      ],
+    });
+
+    expect(exportValueFor("mainClaimant", caseFile)).toBe("Dupont Jean");
+    expect(exportValueFor("mainDefender", caseFile)).toBe("Préfet du Rhône");
+    expect(exportValueFor("otherActors", caseFile)).toBe("Avocat : Martin Marie");
+  });
+
+  it("exporte '-' pour le requérant et le défendeur absents, et une cellule vide pour les autres acteurs", () => {
+    const caseFile = buildCaseFile({ caseFileActors: [] });
+    expect(exportValueFor("mainClaimant", caseFile)).toBe("-");
+    expect(exportValueFor("mainDefender", caseFile)).toBe("-");
+    expect(exportValueFor("otherActors", caseFile)).toBe("");
   });
 });

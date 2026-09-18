@@ -17,9 +17,10 @@ export type TagPickerProps = {
   // creating a tag is reserved to administrators.
   availableTags: CaseFileTagView[];
   defaultSelectedIds: number[];
+  className?: string;
 };
 
-export function TagPicker({ availableTags, defaultSelectedIds }: TagPickerProps) {
+export function TagPicker({ availableTags, defaultSelectedIds, className }: TagPickerProps) {
   const [selectedIds, setSelectedIds] = useState<number[]>(defaultSelectedIds);
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -129,7 +130,7 @@ export function TagPicker({ availableTags, defaultSelectedIds }: TagPickerProps)
   }
 
   return (
-    <div className={fr.cx("fr-mb-1w")} ref={containerRef}>
+    <div className={clsx(fr.cx("fr-mb-1w"), className)} ref={containerRef}>
       <input type="hidden" name={HAS_TAGS_FIELD_NAME} value="true" />
       {selectedIds.map((id) => (
         <input key={id} type="hidden" name={TAG_IDS_FIELD_NAME} value={id} />
