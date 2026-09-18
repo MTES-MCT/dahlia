@@ -1,5 +1,7 @@
 import { zipSync } from "fflate";
+import { getCaseFileDisplayName } from "@/app/lib/case-file-format";
 import { fetchAttachedFile } from "@/app/lib/data/attached-files";
+import { fetchCaseFileDetail } from "@/app/lib/data/case-files";
 import { fetchPieceContent } from "@/app/lib/data/piece-content";
 import { describeError } from "@/data/telerecours/http";
 
@@ -46,6 +48,11 @@ export async function GET(request: Request, { params }: RouteContext) {
     return new Response("Aucune pièce sélectionnée", { status: 400 });
   }
 
+  const caseFile = await fetchCaseFileDetail(decodedCaseFileNumber);
+  if (!caseFile) {
+    return new Response("Dossier introuvable", { status: 404 });
+  }
+
   try {
     const usedNames = new Set<string>();
     const entries: Record<string, Uint8Array> = {};
@@ -62,7 +69,10 @@ export async function GET(request: Request, { params }: RouteContext) {
     // PDFs are already compressed; skip deflate to keep the response fast.
     const zipped = zipSync(entries, { level: 0 });
 
-    const zipName = `pieces-${decodedCaseFileNumber}-${new Date().toISOString().slice(0, 10)}.zip`;
+    // Same label as the case-file page; strip characters that browsers treat as
+    // path separators or that are illegal in file names (`c/` in "A c/ B", …).
+    const zipBaseName = getCaseFileDisplayName(caseFile).replace(/[/\\:*?"<>|]/g, "_");
+    const zipName = `${zipBaseName}-${new Date().toISOString().slice(0, 10)}.zip`;
     const asciiZipName = zipName.replace(/[^\x20-\x7e]/g, "_").replace(/"/g, "'");
 
     return new Response(new Uint8Array(zipped), {
