@@ -77,6 +77,13 @@ function buildTitreWordFilter(rawWord: string): Prisma.CaseFileWhereInput {
   return { OR: orConditions };
 }
 
+// Case files carrying a tag whose label contains `value`. Matched as a whole
+// rather than word by word: splitting would let each word match a *different*
+// tag of the same case file, which is never what the user means.
+function buildTagFilter(value: string): Prisma.CaseFileWhereInput {
+  return { caseFileTags: { some: { tag: { label: { contains: value, mode: "insensitive" } } } } };
+}
+
 function buildFreeTextFilter(freeText: string): Prisma.CaseFileWhereInput {
   const normalized = normalizeForSearch(freeText);
   const titreFilter = buildTitreWordFilter(freeText);
@@ -85,6 +92,9 @@ function buildFreeTextFilter(freeText: string): Prisma.CaseFileWhereInput {
     OR: [
       ...(titreFilter.OR ?? []),
       { lastProducer: { displayNameNormalized: { contains: normalized } } },
+      // Only in the free-text branch: adding it to `buildTitreWordFilter` would
+      // make the `titre:` facet silently match tags too.
+      buildTagFilter(freeText),
     ],
   };
 }
@@ -111,6 +121,7 @@ const FACET_BUILDERS: Record<
     buildWordAndFilter(facetSearchWords(normalized), (word) => ({
       lastProducer: { displayNameNormalized: { contains: word } },
     })),
+  tag: (_normalized, raw) => buildTagFilter(raw.trim()),
 };
 
 function buildWhere(query: string | null, statusLabel: string | null): Prisma.CaseFileWhereInput {
@@ -182,6 +193,7 @@ async function fetchCaseFilesCount(
 
 const CASE_FILE_DETAIL_INCLUDE = {
   caseFileActors: { include: CASE_FILE_ACTOR_INCLUDE },
+  caseFileTags: { include: { tag: true }, orderBy: { tag: { label: "asc" as const } } },
   actorRepresentations: {
     include: {
       representedActor: true,

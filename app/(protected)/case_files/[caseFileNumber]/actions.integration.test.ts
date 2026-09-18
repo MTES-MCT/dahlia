@@ -312,6 +312,143 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
     expect(revalidatePath).not.toHaveBeenCalled();
   });
 
+  describe("tags", () => {
+    async function seedTags(): Promise<{ urgent: number; relancer: number }> {
+      const urgent = await testPrisma.tag.create({
+        data: { label: "Urgent", color: "pink-tuile" },
+      });
+      const relancer = await testPrisma.tag.create({
+        data: { label: "À relancer", color: "green-menthe" },
+      });
+      return { urgent: urgent.id, relancer: relancer.id };
+    }
+
+    // `buildFormData` uses `set`; tag ids are repeated fields, so they append.
+    function buildTagsFormData(tagIds: number[], extra: Record<string, string> = {}): FormData {
+      const formData = buildFormData({
+        caseFileNumber: CASE_FILE_NUMBER,
+        hasTagsField: "true",
+        ...extra,
+      });
+      for (const tagId of tagIds) {
+        formData.append("tagIds", String(tagId));
+      }
+      return formData;
+    }
+
+    async function currentTagIds(): Promise<number[]> {
+      const rows = await testPrisma.caseFileTag.findMany({
+        where: { caseFileNumber: CASE_FILE_NUMBER },
+        select: { tagId: true },
+        orderBy: { tagId: "asc" },
+      });
+      return rows.map((row) => row.tagId);
+    }
+
+    it("attache les tags sélectionnés au dossier", async () => {
+      const { urgent, relancer } = await seedTags();
+
+      const result = await updateCaseFileDetailsFormAction(
+        null,
+        buildTagsFormData([urgent, relancer]),
+      );
+
+      expect(result).toEqual({ ok: true });
+      expect(await currentTagIds()).toEqual([urgent, relancer].sort((a, b) => a - b));
+      // The dashboard rows display tags too, so the list is revalidated.
+      expect(revalidatePath).toHaveBeenCalledWith("/case_files");
+    });
+
+    it("remplace intégralement le jeu de tags", async () => {
+      const { urgent, relancer } = await seedTags();
+      await updateCaseFileDetailsFormAction(null, buildTagsFormData([urgent, relancer]));
+
+      await updateCaseFileDetailsFormAction(null, buildTagsFormData([relancer]));
+
+      expect(await currentTagIds()).toEqual([relancer]);
+    });
+
+    it("retire tous les tags quand la sélection est vide", async () => {
+      const { urgent } = await seedTags();
+      await updateCaseFileDetailsFormAction(null, buildTagsFormData([urgent]));
+
+      await updateCaseFileDetailsFormAction(null, buildTagsFormData([]));
+
+      expect(await currentTagIds()).toEqual([]);
+    });
+
+    it("dédoublonne les identifiants envoyés deux fois", async () => {
+      const { urgent } = await seedTags();
+
+      const result = await updateCaseFileDetailsFormAction(
+        null,
+        buildTagsFormData([urgent, urgent]),
+      );
+
+      expect(result).toEqual({ ok: true });
+      expect(await currentTagIds()).toEqual([urgent]);
+    });
+
+    // The ids travel in hidden inputs, so they are forgeable.
+    it("refuse un identifiant de tag inexistant", async () => {
+      const { urgent } = await seedTags();
+      await updateCaseFileDetailsFormAction(null, buildTagsFormData([urgent]));
+      vi.mocked(revalidatePath).mockClear();
+
+      const result = await updateCaseFileDetailsFormAction(null, buildTagsFormData([999999]));
+
+      expect(result).toEqual({ ok: false, error: "Tag introuvable." });
+      expect(await currentTagIds()).toEqual([urgent]);
+      expect(revalidatePath).not.toHaveBeenCalled();
+    });
+
+    it("refuse un identifiant de tag non numérique", async () => {
+      const formData = buildFormData({
+        caseFileNumber: CASE_FILE_NUMBER,
+        hasTagsField: "true",
+      });
+      formData.append("tagIds", "abc");
+
+      expect(await updateCaseFileDetailsFormAction(null, formData)).toEqual({
+        ok: false,
+        error: "Tag invalide.",
+      });
+    });
+
+    // Mirrors `hasProductionDeadlineFields`: a form rendered without the picker
+    // must never clear the tags it did not show.
+    it("ne touche pas aux tags quand le champ n'a pas été rendu", async () => {
+      const { urgent } = await seedTags();
+      await updateCaseFileDetailsFormAction(null, buildTagsFormData([urgent]));
+
+      await updateCaseFileDetailsFormAction(
+        null,
+        buildFormData({ caseFileNumber: CASE_FILE_NUMBER, summary: "Sans tags" }),
+      );
+
+      expect(await currentTagIds()).toEqual([urgent]);
+    });
+
+    it("interdit la suppression d'un tag encore utilisé", async () => {
+      const { urgent } = await seedTags();
+      await updateCaseFileDetailsFormAction(null, buildTagsFormData([urgent]));
+
+      // The `Restrict` foreign key is the last-resort guard behind the count
+      // check performed by the admin delete action.
+      await expect(testPrisma.tag.delete({ where: { id: urgent } })).rejects.toThrow();
+    });
+
+    it("détache les tags quand le dossier est supprimé", async () => {
+      const { urgent } = await seedTags();
+      await updateCaseFileDetailsFormAction(null, buildTagsFormData([urgent]));
+
+      await testPrisma.caseFile.delete({ where: { caseFileNumber: CASE_FILE_NUMBER } });
+
+      expect(await testPrisma.caseFileTag.count()).toBe(0);
+      expect(await testPrisma.tag.count()).toBe(2);
+    });
+  });
+
   describe("périmètre de droit", () => {
     // Attach the seeded case file to a jurisdiction, and connect as a
     // non-administrator whose scope holds `scopedTo`.

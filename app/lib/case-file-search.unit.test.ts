@@ -214,4 +214,33 @@ describe("case-file-search", () => {
       expect(getFacetValue('dossier:"le prefet"', "dossier")).toBe("le prefet");
     });
   });
+
+  describe("facette tag", () => {
+    it("reconnaît tag: comme facette", () => {
+      expect(parseSearchQuery("tag:urgent")).toEqual({
+        freeText: null,
+        facets: [{ key: "tag", value: "urgent" }],
+      });
+    });
+
+    it("accepte un libellé multi-mots entre guillemets", () => {
+      expect(parseSearchQuery('tag:"à relancer"')).toEqual({
+        freeText: null,
+        facets: [{ key: "tag", value: "à relancer" }],
+      });
+    });
+
+    it("combine la facette tag avec du texte libre", () => {
+      expect(parseSearchQuery("dupont tag:urgent")).toEqual({
+        freeText: "dupont",
+        facets: [{ key: "tag", value: "urgent" }],
+      });
+    });
+
+    // A multi-word value must be re-quoted so the next parse keeps it whole.
+    it("sérialise sans perte un libellé multi-mots", () => {
+      expect(setFacet("", "tag", "à relancer")).toBe('tag:"à relancer"');
+      expect(getFacetValue(setFacet("", "tag", "à relancer"), "tag")).toBe("à relancer");
+    });
+  });
 });

@@ -11,7 +11,7 @@ import {
   type RefreshCaseFileResult,
 } from "@/app/(protected)/case_files/[caseFileNumber]/actions";
 import type { CaseFileDetail } from "@/app/lib/data/case-files";
-import { formatDateFr } from "@/app/lib/case-file-format";
+import { formatDateFr, formatDateTimeFr } from "@/app/lib/case-file-format";
 
 type Props = {
   caseFile: NonNullable<CaseFileDetail>;
@@ -46,9 +46,14 @@ export function RefreshCaseFileButton({ caseFile }: Props) {
       >
         {isPending ? "Rafraîchissement…" : "Rafraîchir"}
       </Button>
-      <span className={clsx(fr.cx("fr-text--sm", "fr-mb-0"), "text-grey", "italic")}>
-        Mise à jour le {formatDateFr(caseFile.updatedAt)}
-      </span>
+      <div className={clsx(fr.cx("fr-text--sm", "fr-mb-0"), "text-grey", "italic", "text-right")}>
+        <p className={fr.cx("fr-mb-0")}>Mise à jour le {formatDateFr(caseFile.updatedAt)}</p>
+        <p className={fr.cx("fr-mb-0")}>
+          {caseFile.telerecoursSyncAt
+            ? `Dernière synchronisation Télérecours le ${formatDateTimeFr(caseFile.telerecoursSyncAt)}`
+            : "Aucune synchronisation Télérecours"}
+        </p>
+      </div>
 
       {result && (
         <div className={fr.cx("fr-mt-2w")}>

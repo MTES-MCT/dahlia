@@ -52,3 +52,7 @@ webapp_dbdata/
 .albert-code/
 .pnpm-store
 opencode.json
+
+# investigation
+tmp/
+audits/

@@ -15,6 +15,7 @@ function buildCaseFile(overrides: Partial<CaseFileDashboardRow> = {}): CaseFileD
     productionDeadlineDate: null,
     productionDeadlineType: null,
     caseFileActors: [],
+    caseFileTags: [],
     lastProducer: null,
     lastStatus: { id: 1, label: "En cours d'instruction", category: "INPROGRESS", groupId: 1 },
     lastHearing: null,
@@ -46,5 +47,34 @@ describe("CaseFileDossierCell", () => {
 
     expect(screen.queryByText("Titre du dossier")).toBeNull();
     expect(screen.getByText("En cours d'instruction")).toBeTruthy();
+  });
+
+  it("affiche les tags du dossier sous le statut", () => {
+    render(
+      <CaseFileDossierCell
+        caseFile={buildCaseFile({
+          caseFileTags: [
+            { tag: { id: 1, label: "Urgent", color: "pink-tuile" } },
+            { tag: { id: 2, label: "À relancer", color: "green-menthe" } },
+          ],
+        } as Partial<CaseFileDashboardRow>)}
+        href="/case_files/TA069%2F12345"
+      />,
+    );
+
+    expect(screen.getByText("Urgent").className).toContain("fr-badge--pink-tuile");
+    expect(screen.getByText("À relancer").className).toContain("fr-badge--green-menthe");
+  });
+
+  it("ne rend aucune liste de tags quand le dossier n'en porte pas", () => {
+    render(<CaseFileDossierCell caseFile={buildCaseFile()} href="/case_files/TA069%2F12345" />);
+
+    expect(screen.queryByRole("list", { name: "Tags du dossier" })).toBeNull();
+  });
+
+  it("ne rend pas de titre de niveau 1 dans une cellule de tableau", () => {
+    render(<CaseFileDossierCell caseFile={buildCaseFile()} href="/case_files/TA069%2F12345" />);
+
+    expect(screen.queryByRole("heading")).toBeNull();
   });
 });

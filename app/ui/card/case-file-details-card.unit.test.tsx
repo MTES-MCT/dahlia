@@ -40,8 +40,18 @@ function caseFileFixture(
       }),
     ],
     chamber: { name: "3ème chambre" },
+    caseFileTags: [],
     ...overrides,
   } as NonNullable<CaseFileDetail>;
+}
+
+const TAG_OPTIONS = [
+  { id: 1, label: "Urgent", color: "pink-tuile" },
+  { id: 2, label: "À relancer", color: "green-menthe" },
+];
+
+function caseFileTagsFixture(tags: { id: number; label: string; color: string }[]) {
+  return tags.map((tag) => ({ tag })) as NonNullable<CaseFileDetail>["caseFileTags"];
 }
 
 function getModalSection(name: string) {
@@ -62,6 +72,7 @@ describe("CaseFileDetailsCard", () => {
   it("affiche le nom d'affichage du dossier dans l'en-tête", () => {
     render(
       <CaseFileDetailsCard
+        availableTags={TAG_OPTIONS}
         caseFile={caseFileFixture({
           litigationType: "INJONCTION",
           rightType: "DALO",
@@ -81,6 +92,7 @@ describe("CaseFileDetailsCard", () => {
   it("omet les segments non renseignés dans l'en-tête", () => {
     render(
       <CaseFileDetailsCard
+        availableTags={TAG_OPTIONS}
         caseFile={caseFileFixture({
           title: null,
           litigationType: null,
@@ -95,7 +107,7 @@ describe("CaseFileDetailsCard", () => {
   });
 
   it("affiche le titre en sous-titre dans l'en-tête", () => {
-    render(<CaseFileDetailsCard caseFile={caseFileFixture()} />);
+    render(<CaseFileDetailsCard availableTags={TAG_OPTIONS} caseFile={caseFileFixture()} />);
 
     const subtitle = screen.getByText("Requête DALO");
     expect(subtitle.tagName).toBe("P");
@@ -103,14 +115,45 @@ describe("CaseFileDetailsCard", () => {
   });
 
   it("affiche le bouton d'édition et le statut dans l'en-tête", () => {
-    render(<CaseFileDetailsCard caseFile={caseFileFixture()} />);
+    render(<CaseFileDetailsCard availableTags={TAG_OPTIONS} caseFile={caseFileFixture()} />);
 
     expect(screen.getByText("En instruction")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Détails du dossier" })).toBeTruthy();
   });
 
+  it("affiche les tags du dossier dans l'en-tête", () => {
+    render(
+      <CaseFileDetailsCard
+        availableTags={TAG_OPTIONS}
+        caseFile={caseFileFixture({ caseFileTags: caseFileTagsFixture([TAG_OPTIONS[0]]) })}
+      />,
+    );
+
+    const header = screen.getByRole("heading", { level: 1 }).closest("div") as HTMLElement;
+    const tag = within(header.parentElement as HTMLElement).getByText("Urgent");
+
+    expect(tag.className).toContain("fr-badge--pink-tuile");
+  });
+
+  it("n'affiche aucun tag quand le dossier n'en porte pas", () => {
+    render(<CaseFileDetailsCard availableTags={TAG_OPTIONS} caseFile={caseFileFixture()} />);
+
+    // "Urgent" only exists as a pickable option inside the modal, never as a
+    // tag of the case file itself.
+    const header = screen.getByRole("heading", { level: 1 }).parentElement as HTMLElement;
+    expect(within(header).queryByText("Urgent")).toBeNull();
+  });
+
+  it("propose le sélecteur de tags dans la modale", () => {
+    render(<CaseFileDetailsCard availableTags={TAG_OPTIONS} caseFile={caseFileFixture()} />);
+
+    const modal = screen.getByRole("dialog", { hidden: true });
+
+    expect(within(modal).getByRole("combobox", { name: /Tags/, hidden: true })).toBeTruthy();
+  });
+
   it("affiche les métadonnées Télérecours dans la modale", () => {
-    render(<CaseFileDetailsCard caseFile={caseFileFixture()} />);
+    render(<CaseFileDetailsCard availableTags={TAG_OPTIONS} caseFile={caseFileFixture()} />);
 
     const metadata = within(getModalMetadata());
 
@@ -126,7 +169,10 @@ describe("CaseFileDetailsCard", () => {
 
   it("affiche des tirets pour la chambre et la date de réception absentes dans la modale", () => {
     render(
-      <CaseFileDetailsCard caseFile={caseFileFixture({ chamber: null, depositDate: null })} />,
+      <CaseFileDetailsCard
+        availableTags={TAG_OPTIONS}
+        caseFile={caseFileFixture({ chamber: null, depositDate: null })}
+      />,
     );
 
     const metadata = within(getModalMetadata());
@@ -137,6 +183,7 @@ describe("CaseFileDetailsCard", () => {
   it("affiche la décision dans la modale quand elle est renseignée", () => {
     render(
       <CaseFileDetailsCard
+        availableTags={TAG_OPTIONS}
         caseFile={caseFileFixture({
           lastDecisionReading: {
             caseFileNumber: "TA069-2026-001",
@@ -162,7 +209,12 @@ describe("CaseFileDetailsCard", () => {
   });
 
   it("masque la section décision quand aucune décision n'est renseignée", () => {
-    render(<CaseFileDetailsCard caseFile={caseFileFixture({ lastDecisionReading: null })} />);
+    render(
+      <CaseFileDetailsCard
+        availableTags={TAG_OPTIONS}
+        caseFile={caseFileFixture({ lastDecisionReading: null })}
+      />,
+    );
 
     const modal = screen.getByRole("dialog", { hidden: true });
 
@@ -170,7 +222,12 @@ describe("CaseFileDetailsCard", () => {
   });
 
   it("affiche '-' pour les acteurs absents dans la modale", () => {
-    render(<CaseFileDetailsCard caseFile={caseFileFixture({ caseFileActors: [] })} />);
+    render(
+      <CaseFileDetailsCard
+        availableTags={TAG_OPTIONS}
+        caseFile={caseFileFixture({ caseFileActors: [] })}
+      />,
+    );
 
     const metadata = within(getModalMetadata());
 
@@ -180,6 +237,7 @@ describe("CaseFileDetailsCard", () => {
   it("affiche les autres acteurs dans la modale quand ils existent", () => {
     render(
       <CaseFileDetailsCard
+        availableTags={TAG_OPTIONS}
         caseFile={caseFileFixture({
           caseFileActors: [
             ...(caseFileFixture().caseFileActors ?? []),
@@ -203,7 +261,7 @@ describe("CaseFileDetailsCard", () => {
   });
 
   it("masque la section autres acteurs quand seuls le requérant et le défendeur existent", () => {
-    render(<CaseFileDetailsCard caseFile={caseFileFixture()} />);
+    render(<CaseFileDetailsCard availableTags={TAG_OPTIONS} caseFile={caseFileFixture()} />);
 
     const modal = screen.getByRole("dialog", { hidden: true });
 

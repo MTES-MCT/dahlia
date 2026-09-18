@@ -3,7 +3,7 @@ import { type NextRequest } from "next/server";
 import { fetchAllCaseFilesForExport } from "@/app/lib/data/case-files";
 import { fetchDashboardStatusFilterOptions } from "@/app/lib/data/statuses";
 import {
-  CASE_FILES_DASHBOARD_COLUMNS,
+  CASE_FILES_EXPORT_COLUMNS,
   HEARING_CONVOCATION_SORT_KEY,
 } from "@/app/lib/case-files-dashboard-columns";
 import { DASHBOARD_TABLE_PARAMS } from "@/app/lib/case-file-search";
@@ -15,7 +15,7 @@ import { resolveCurrentStatut, resolveDefaultStatut } from "@/app/lib/dashboard-
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const EXPORT_COLUMNS = CASE_FILES_DASHBOARD_COLUMNS.map((column) => ({
+const EXPORT_COLUMNS = CASE_FILES_EXPORT_COLUMNS.map((column) => ({
   header: column.label,
   value: column.exportValue,
 }));

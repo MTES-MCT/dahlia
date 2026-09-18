@@ -3,7 +3,6 @@
 import { useActionState, useState } from "react";
 import clsx from "clsx";
 import { fr } from "@codegouvfr/react-dsfr";
-import { Badge } from "@codegouvfr/react-dsfr/Badge";
 import { RadioButtons } from "@codegouvfr/react-dsfr/RadioButtons";
 import { Select } from "@codegouvfr/react-dsfr/Select";
 import { Input } from "@codegouvfr/react-dsfr/Input";
@@ -26,7 +25,9 @@ import {
   isDateInputBeforeToday,
   PRODUCTION_DEADLINE_DATE_IN_PAST_WARNING,
 } from "@/app/lib/case-file-format";
-import { statusBadgeAccentuationClassName } from "@/app/lib/status-badge-accentuation";
+import { type CaseFileTagView } from "@/app/lib/case-file-tags";
+import { CaseFileIdentity } from "@/app/ui/case-file/case-file-identity";
+import { TagPicker } from "@/app/ui/form/tag-picker";
 import { updateCaseFileDetailsFormAction } from "@/app/(protected)/case_files/[caseFileNumber]/actions";
 
 const caseFileDetailsModal = createModal({
@@ -43,6 +44,10 @@ export type CaseFileDetailsEditorProps = {
   summary: string | null;
   productionDeadlineType: ProductionDeadlineType | null;
   productionDeadlineDate: Date | null;
+  // Tags currently attached to the case file, and the full catalogue to pick
+  // from (tags are created by administrators only).
+  tags: CaseFileTagView[];
+  availableTags: CaseFileTagView[];
   mainClaimantName: string;
   mainDefenderName: string;
   otherActors: { actorId: number; qualityLabel: string; name: string }[];
@@ -133,51 +138,35 @@ export function CaseFileDetailsHeader({
   displayName,
   title,
   statusLabel,
+  tags,
 }: {
   displayName: string;
   title: string | null;
   statusLabel: string;
+  tags: CaseFileTagView[];
 }) {
-  const trimmedTitle = title?.trim();
-
   return (
-    <div
-      className={clsx(
-        "flex flex-col items-start gap-4 lg:flex-row lg:items-start lg:justify-between",
-      )}
-    >
-      <div className="flex items-start gap-3">
-        <span
-          className={fr.cx("fr-icon-folder-2-line")}
-          aria-hidden="true"
-          style={{ color: "var(--text-action-high-blue-france)", marginTop: "0.25rem" }}
-        />
-        <div>
-          <h1 className={fr.cx("fr-h4", "fr-mb-1v")}>{displayName}</h1>
-          {trimmedTitle ? (
-            <p className={clsx(fr.cx("fr-mb-1v"), "text-(--text-mention-grey) italic")}>
-              {trimmedTitle}
-            </p>
-          ) : null}
-          <Badge as="span" noIcon className={fr.cx(statusBadgeAccentuationClassName(statusLabel))}>
-            {statusLabel}
-          </Badge>
-        </div>
-      </div>
-
-      <Button
-        priority="secondary"
-        size="small"
-        iconId="fr-icon-edit-line"
-        className={clsx("whitespace-nowrap")}
-        nativeButtonProps={{
-          ...caseFileDetailsModal.buttonProps,
-          type: "button",
-        }}
-      >
-        Détails du dossier
-      </Button>
-    </div>
+    <CaseFileIdentity
+      displayName={displayName}
+      title={title}
+      statusLabel={statusLabel}
+      tags={tags}
+      name={{ kind: "heading" }}
+      actions={
+        <Button
+          priority="secondary"
+          size="small"
+          iconId="fr-icon-edit-line"
+          className={clsx("whitespace-nowrap")}
+          nativeButtonProps={{
+            ...caseFileDetailsModal.buttonProps,
+            type: "button",
+          }}
+        >
+          Détails du dossier
+        </Button>
+      }
+    />
   );
 }
 
@@ -191,6 +180,8 @@ export function CaseFileDetailsModal({
   summary,
   productionDeadlineType,
   productionDeadlineDate,
+  tags,
+  availableTags,
   mainClaimantName,
   mainDefenderName,
   otherActors,
@@ -221,6 +212,7 @@ export function CaseFileDetailsModal({
     summary ?? "",
     productionDeadlineType ?? "",
     formatDateInputValue(productionDeadlineDate),
+    tags.map((tag) => tag.id).join(","),
   ].join("\0");
 
   // Close the modal once a save succeeds. Handling the new result during render
@@ -245,8 +237,13 @@ export function CaseFileDetailsModal({
         <div className={fr.cx("fr-grid-row", "fr-grid-row--gutters")}>
           <Select
             label="Type de contentieux"
-            nativeSelectProps={{ name: "litigationType", defaultValue: litigationType ?? "" }}
             className={fr.cx("fr-col-12", "fr-col-md-6", "fr-mb-1w")}
+            nativeSelectProps={{
+              name: "litigationType",
+              defaultValue: litigationType ?? "",
+              // DSFR `.fr-select` forces `width: 100%`; size to the longest option instead.
+              className: "w-max!",
+            }}
           >
             <option value="">—</option>
             {LITIGATION_TYPE_OPTIONS.map((option) => (
@@ -275,6 +272,13 @@ export function CaseFileDetailsModal({
         <Input
           label="Quelques mots caractérisant le dossier"
           nativeInputProps={{ name: "summary", defaultValue: summary ?? "" }}
+          className={clsx(fr.cx("fr-mb-1w"), "max-w-160")}
+        />
+
+        <TagPicker
+          availableTags={availableTags}
+          defaultSelectedIds={tags.map((tag) => tag.id)}
+          className={clsx("max-w-120")}
         />
 
         {showProductionDeadlineFields && (
