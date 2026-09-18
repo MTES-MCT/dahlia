@@ -9,15 +9,23 @@ vi.mock("@/app/lib/data/piece-content", () => ({
   fetchPieceContent: vi.fn(),
 }));
 
+vi.mock("@/app/lib/data/case-files", () => ({
+  fetchCaseFileDetail: vi.fn(),
+}));
+
 import { fetchAttachedFile } from "@/app/lib/data/attached-files";
+import { fetchCaseFileDetail } from "@/app/lib/data/case-files";
 import { fetchPieceContent } from "@/app/lib/data/piece-content";
+import { caseFileWithActor } from "@/app/lib/test-support/case-file-actors.fixture";
 import { GET, uniqueName } from "./route";
 
 const mockedFetchAttachedFile = vi.mocked(fetchAttachedFile);
+const mockedFetchCaseFileDetail = vi.mocked(fetchCaseFileDetail);
 const mockedFetchPieceContent = vi.mocked(fetchPieceContent);
 
 const CASE_FILE_NUMBER = "TA069/2024/001";
 const ENCODED_CASE_FILE_NUMBER = encodeURIComponent(CASE_FILE_NUMBER);
+const CASE_FILE = caseFileWithActor({ caseFileNumber: CASE_FILE_NUMBER });
 
 function downloadRequest(encodedFileIds: string[]) {
   const params = new URLSearchParams();
@@ -110,10 +118,22 @@ describe("GET /case_files/[caseFileNumber]/pieces/download", () => {
 
     expect(response.status).toBe(400);
     expect(await response.text()).toBe("Aucune pièce sélectionnée");
+    expect(mockedFetchCaseFileDetail).not.toHaveBeenCalled();
+    expect(mockedFetchAttachedFile).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 when the case file is unknown", async () => {
+    mockedFetchCaseFileDetail.mockResolvedValue(null);
+
+    const response = await GET(downloadRequest(["file-1"]), routeContext());
+
+    expect(response.status).toBe(404);
+    expect(await response.text()).toBe("Dossier introuvable");
     expect(mockedFetchAttachedFile).not.toHaveBeenCalled();
   });
 
   it("returns 404 when the attached file is unknown", async () => {
+    mockedFetchCaseFileDetail.mockResolvedValue(CASE_FILE as never);
     mockedFetchAttachedFile.mockResolvedValue(null);
 
     const response = await GET(downloadRequest(["missing-id"]), routeContext());
@@ -124,6 +144,7 @@ describe("GET /case_files/[caseFileNumber]/pieces/download", () => {
   });
 
   it("returns 404 when the attached file belongs to another case file", async () => {
+    mockedFetchCaseFileDetail.mockResolvedValue(CASE_FILE as never);
     mockedFetchAttachedFile.mockResolvedValue(attachedFile("file-1", "TA069/2024/999") as never);
 
     const response = await GET(downloadRequest(["file-1"]), routeContext());
@@ -135,6 +156,7 @@ describe("GET /case_files/[caseFileNumber]/pieces/download", () => {
 
   it("returns a zip archive with the expected headers and entry names", async () => {
     const file = attachedFile("file-1") as never;
+    mockedFetchCaseFileDetail.mockResolvedValue(CASE_FILE as never);
     mockedFetchAttachedFile.mockResolvedValue(file);
     mockedFetchPieceContent.mockResolvedValue(pieceContent("requete.pdf", 0x51));
 
@@ -144,9 +166,10 @@ describe("GET /case_files/[caseFileNumber]/pieces/download", () => {
     expect(response.headers.get("Content-Type")).toBe("application/zip");
     expect(response.headers.get("Cache-Control")).toBe("no-store");
     expect(response.headers.get("Content-Disposition")).toBe(
-      "attachment; filename=\"pieces-TA069/2024/001-2026-07-13.zip\"; filename*=UTF-8''pieces-TA069%2F2024%2F001-2026-07-13.zip",
+      'attachment; filename="TA069_2024_001 - Dupont Jean - Injonction - DALO (Urgence familiale)-2026-07-13.zip"; filename*=UTF-8\'\'TA069_2024_001%20-%20Dupont%20Jean%20-%20Injonction%20-%20DALO%20(Urgence%20familiale)-2026-07-13.zip',
     );
 
+    expect(mockedFetchCaseFileDetail).toHaveBeenCalledWith(CASE_FILE_NUMBER);
     expect(mockedFetchAttachedFile).toHaveBeenCalledWith("file-1");
     expect(mockedFetchPieceContent).toHaveBeenCalledWith(file);
 
@@ -155,7 +178,30 @@ describe("GET /case_files/[caseFileNumber]/pieces/download", () => {
     expect(Array.from(entries["requete.pdf"]!)).toEqual([0x51]);
   });
 
+  it("replaces path separators from the display name in the zip filename", async () => {
+    const caseFile = caseFileWithActor(
+      { caseFileNumber: CASE_FILE_NUMBER },
+      {
+        defender: {
+          actorType: "LEGAL_PERSON",
+          legalPersonName: "Préfecture du Rhône",
+        },
+      },
+    );
+    mockedFetchCaseFileDetail.mockResolvedValue(caseFile as never);
+    mockedFetchAttachedFile.mockResolvedValue(attachedFile("file-1") as never);
+    mockedFetchPieceContent.mockResolvedValue(pieceContent("requete.pdf"));
+
+    const response = await GET(downloadRequest(["file-1"]), routeContext());
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Disposition")).toBe(
+      'attachment; filename="TA069_2024_001 - Dupont Jean c_ Pr_fecture du Rh_ne - Injonction - DALO (Urgence familiale)-2026-07-13.zip"; filename*=UTF-8\'\'TA069_2024_001%20-%20Dupont%20Jean%20c_%20Pr%C3%A9fecture%20du%20Rh%C3%B4ne%20-%20Injonction%20-%20DALO%20(Urgence%20familiale)-2026-07-13.zip',
+    );
+  });
+
   it("deduplicates entry names inside the zip when download names collide", async () => {
+    mockedFetchCaseFileDetail.mockResolvedValue(CASE_FILE as never);
     mockedFetchAttachedFile
       .mockResolvedValueOnce(attachedFile("file-1") as never)
       .mockResolvedValueOnce(attachedFile("file-2") as never);
@@ -174,6 +220,7 @@ describe("GET /case_files/[caseFileNumber]/pieces/download", () => {
   });
 
   it("returns 502 when fetching piece content fails", async () => {
+    mockedFetchCaseFileDetail.mockResolvedValue(CASE_FILE as never);
     mockedFetchAttachedFile.mockResolvedValue(attachedFile("file-1") as never);
     mockedFetchPieceContent.mockRejectedValue(new Error("Télérecours indisponible"));
 
