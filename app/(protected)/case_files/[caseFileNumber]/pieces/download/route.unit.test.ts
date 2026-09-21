@@ -166,7 +166,7 @@ describe("GET /case_files/[caseFileNumber]/pieces/download", () => {
     expect(response.headers.get("Content-Type")).toBe("application/zip");
     expect(response.headers.get("Cache-Control")).toBe("no-store");
     expect(response.headers.get("Content-Disposition")).toBe(
-      'attachment; filename="TA069_2024_001 - Dupont Jean - Injonction - DALO (Urgence familiale)-2026-07-13.zip"; filename*=UTF-8\'\'TA069_2024_001%20-%20Dupont%20Jean%20-%20Injonction%20-%20DALO%20(Urgence%20familiale)-2026-07-13.zip',
+      'attachment; filename="TA069_2024_001 - Dupont Jean - Injonction - DALO-2026-07-13.zip"; filename*=UTF-8\'\'TA069_2024_001%20-%20Dupont%20Jean%20-%20Injonction%20-%20DALO-2026-07-13.zip',
     );
 
     expect(mockedFetchCaseFileDetail).toHaveBeenCalledWith(CASE_FILE_NUMBER);
@@ -196,7 +196,7 @@ describe("GET /case_files/[caseFileNumber]/pieces/download", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("Content-Disposition")).toBe(
-      'attachment; filename="TA069_2024_001 - Dupont Jean c_ Pr_fecture du Rh_ne - Injonction - DALO (Urgence familiale)-2026-07-13.zip"; filename*=UTF-8\'\'TA069_2024_001%20-%20Dupont%20Jean%20c_%20Pr%C3%A9fecture%20du%20Rh%C3%B4ne%20-%20Injonction%20-%20DALO%20(Urgence%20familiale)-2026-07-13.zip',
+      'attachment; filename="TA069_2024_001 - Dupont Jean c_ Pr_fecture du Rh_ne - Injonction - DALO-2026-07-13.zip"; filename*=UTF-8\'\'TA069_2024_001%20-%20Dupont%20Jean%20c_%20Pr%C3%A9fecture%20du%20Rh%C3%B4ne%20-%20Injonction%20-%20DALO-2026-07-13.zip',
     );
   });
 

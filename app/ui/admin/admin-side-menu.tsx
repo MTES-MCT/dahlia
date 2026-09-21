@@ -7,7 +7,7 @@ const ADMIN_ITEMS = [
   { text: "Utilisateurs", href: "/admin/users" },
   { text: "Juridiction", href: "/admin/jurisdiction" },
   { text: "Divisions", href: "/admin/divisions" },
-  { text: "Tags", href: "/admin/tags" },
+  { text: "Mots-clés", href: "/admin/tags" },
 ] as const;
 
 // Left navigation for the admin area (users, jurisdictions, divisions, tags, …).

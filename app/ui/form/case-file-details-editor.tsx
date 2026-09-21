@@ -42,7 +42,6 @@ export type CaseFileDetailsEditorProps = {
   statusLabel: string;
   litigationType: LitigationType | null;
   rightType: RightType | null;
-  summary: string | null;
   productionDeadlineType: ProductionDeadlineType | null;
   productionDeadlineDate: Date | null;
   // Tags currently attached to the case file, and the full catalogue to pick
@@ -188,7 +187,6 @@ export function CaseFileDetailsModal({
   statusLabel,
   litigationType,
   rightType,
-  summary,
   productionDeadlineType,
   productionDeadlineDate,
   tags,
@@ -220,7 +218,6 @@ export function CaseFileDetailsModal({
     formOpenGeneration,
     litigationType ?? "",
     rightType ?? RIGHT_TYPE_UNDEFINED_VALUE,
-    summary ?? "",
     productionDeadlineType ?? "",
     formatDateInputValue(productionDeadlineDate),
     tags.map((tag) => tag.id).join(","),
@@ -279,12 +276,6 @@ export function CaseFileDetailsModal({
             />
           </div>
         </div>
-
-        <Input
-          label="Quelques mots caractérisant le dossier"
-          nativeInputProps={{ name: "summary", defaultValue: summary ?? "" }}
-          className={clsx(fr.cx("fr-mb-1w"), "max-w-160")}
-        />
 
         <TagPicker
           availableTags={availableTags}

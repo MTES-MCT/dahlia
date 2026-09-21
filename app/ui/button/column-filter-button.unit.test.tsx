@@ -122,6 +122,7 @@ describe("ColumnFilterButton", () => {
       expect(screen.getByPlaceholderText("Titre")).toBeTruthy();
       expect(screen.getByPlaceholderText("Requérant")).toBeTruthy();
       expect(screen.getByPlaceholderText("Défendeur")).toBeTruthy();
+      expect(screen.getByPlaceholderText("Mots-clés")).toBeTruthy();
     });
 
     it("injecte plusieurs facettes dossier au submit", () => {

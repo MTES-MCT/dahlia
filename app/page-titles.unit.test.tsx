@@ -107,7 +107,7 @@ describe("Titres des pages", () => {
   });
 
   it("titre la page d'administration des tags", () => {
-    expect(resolveTitle(adminTagsMetadata.title)).toBe("Tags - Administration - DAHLIA");
+    expect(resolveTitle(adminTagsMetadata.title)).toBe("Mots-clés - Administration - DAHLIA");
   });
 
   it("intitule une fiche dossier avec le libellé du dossier", async () => {

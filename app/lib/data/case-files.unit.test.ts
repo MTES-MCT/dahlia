@@ -578,11 +578,11 @@ describe("case-files", () => {
       );
     });
 
-    it("filtre sur les tags avec la facette tag:", async () => {
+    it("filtre sur les mots-clés avec la facette mc:", async () => {
       vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
       vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
 
-      await fetchCaseFilesTableData(1, 10, null, "descending", "tag:urgent");
+      await fetchCaseFilesTableData(1, 10, null, "descending", "mc:urgent");
 
       expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -606,7 +606,7 @@ describe("case-files", () => {
       vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
       vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
 
-      await fetchCaseFilesTableData(1, 10, null, "descending", 'tag:"à relancer"');
+      await fetchCaseFilesTableData(1, 10, null, "descending", 'mc:"à relancer"');
 
       expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
         expect.objectContaining({
