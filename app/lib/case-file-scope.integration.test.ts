@@ -120,7 +120,18 @@ async function connectScopedUser(jurisdictionIds: number[]): Promise<void> {
   });
 }
 
-function connectAdmin(): void {
+async function connectAdmin(jurisdictionIds: number[] = []): Promise<void> {
+  await testPrisma.user.create({
+    data: {
+      id: "admin-integration",
+      email: "admin@example.gouv.fr",
+      emailVerified: true,
+      name: "Admin",
+      isValidated: true,
+      isAdmin: true,
+      jurisdictionScopes: { create: jurisdictionIds.map((jurisdictionId) => ({ jurisdictionId })) },
+    },
+  });
   mockGetSession.mockResolvedValue({
     user: { id: "admin-integration", isValidated: true, isAdmin: true },
   });
@@ -173,10 +184,18 @@ describe("périmètre de droit sur les dossiers (integration)", () => {
     expect(await dashboardCaseFileNumbers()).toEqual([]);
   });
 
-  it("montre tous les dossiers à un administrateur, y compris ceux sans juridiction", async () => {
-    connectAdmin();
+  it("montre tous les dossiers à un administrateur sans juridiction, y compris ceux sans juridiction", async () => {
+    await connectAdmin();
 
     expect(await dashboardCaseFileNumbers()).toEqual([LYON, PARIS, ORPHAN].sort());
+  });
+
+  it("limite un administrateur aux juridictions qui lui sont assignées", async () => {
+    await connectAdmin([lyonJurisdictionId]);
+
+    expect(await dashboardCaseFileNumbers()).toEqual([LYON]);
+    expect(await fetchCaseFileDetail(PARIS)).toBeNull();
+    expect(await fetchCaseFileDetail(ORPHAN)).toBeNull();
   });
 
   it("renvoie null sur le détail d'un dossier hors périmètre", async () => {

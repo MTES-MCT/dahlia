@@ -2,17 +2,18 @@
 // of its satellites: pièces, events) must go through this module, so the rule
 // lives in exactly one place.
 //
-// The rule: administrators see everything; anybody else only sees the case files
-// whose jurisdiction belongs to their scope (`user_jurisdiction_scopes`). A case
-// file with no jurisdiction is visible to administrators only.
+// The rule: a validated user only sees the case files whose jurisdiction belongs
+// to their scope (`user_jurisdiction_scopes`). An administrator with an empty
+// scope is the exception and sees everything — including case files with no
+// jurisdiction. Anybody else with an empty scope sees nothing.
 import { cache } from "react";
 import { headers } from "next/headers";
 import type { Prisma } from "@prisma/client";
 import { auth } from "@/app/lib/auth";
 import { prisma } from "@/app/lib/prisma";
 
-// `unrestricted` is reserved to administrators; everybody else is limited to
-// `jurisdictionIds`, which may legitimately be empty (no access at all).
+// `unrestricted` is reserved to administrators with no assigned jurisdiction;
+// everybody else is limited to `jurisdictionIds`, which may be empty (no access).
 export type CaseFileScope = { unrestricted: boolean; jurisdictionIds: number[] };
 
 const NO_ACCESS: CaseFileScope = { unrestricted: false, jurisdictionIds: [] };
@@ -25,16 +26,18 @@ export const getCurrentCaseFileScope = cache(async (): Promise<CaseFileScope> =>
   if (!session?.user?.isValidated) {
     return NO_ACCESS;
   }
-  if (session.user.isAdmin) {
-    return { unrestricted: true, jurisdictionIds: [] };
-  }
 
   const scopes = await prisma.userJurisdictionScope.findMany({
     where: { userId: session.user.id },
     select: { jurisdictionId: true },
   });
+  const jurisdictionIds = scopes.map((scope) => scope.jurisdictionId);
 
-  return { unrestricted: false, jurisdictionIds: scopes.map((scope) => scope.jurisdictionId) };
+  if (session.user.isAdmin && jurisdictionIds.length === 0) {
+    return { unrestricted: true, jurisdictionIds: [] };
+  }
+
+  return { unrestricted: false, jurisdictionIds };
 });
 
 function scopeWhere(scope: CaseFileScope): Prisma.CaseFileWhereInput {
@@ -43,7 +46,8 @@ function scopeWhere(scope: CaseFileScope): Prisma.CaseFileWhereInput {
 
 // WHERE fragment to merge into every CaseFile query. An empty scope yields
 // `IN ()`, which matches nothing — including case files with no jurisdiction at
-// all. An administrator gets an empty fragment, leaving the query untouched.
+// all. An administrator with no assigned jurisdiction gets an empty fragment,
+// leaving the query untouched.
 export async function caseFileScopeWhere(): Promise<Prisma.CaseFileWhereInput> {
   return scopeWhere(await getCurrentCaseFileScope());
 }

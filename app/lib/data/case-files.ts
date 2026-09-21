@@ -121,7 +121,7 @@ const FACET_BUILDERS: Record<
     buildWordAndFilter(facetSearchWords(normalized), (word) => ({
       lastProducer: { displayNameNormalized: { contains: word } },
     })),
-  tag: (_normalized, raw) => buildTagFilter(raw.trim()),
+  mc: (_normalized, raw) => buildTagFilter(raw.trim()),
 };
 
 function buildWhere(query: string | null, statusLabel: string | null): Prisma.CaseFileWhereInput {

@@ -7,14 +7,13 @@ classification.
 
 ## Ce que les règles produisent
 
-Trois attributs, les mêmes que ceux saisis à la main dans la fiche dossier
-(« Raison », type de contentieux, type de droit) :
+Trois attributs, les mêmes que ceux produits par la classification automatique :
 
 | Attribut         | Valeurs                                                                             | Sens                                 |
 | ---------------- | ----------------------------------------------------------------------------------- | ------------------------------------ |
 | `rightType`      | `DALO` / `DAHO`                                                                     | Droit au logement ou à l’hébergement |
 | `litigationType` | `LIQUIDATION_ASTREINTE`, `REFERE`, `INDEMNITAIRE`, `INJONCTION`, `EXCES_DE_POUVOIR` | Nature du recours                    |
-| `summary`        | Chaîne libre courte                                                                 | Libellé affiché comme « Raison »     |
+| `summary`        | Chaîne libre courte                                                                 | **Déprécié** : plus affiché ni saisi dans l’application, conservé en base |
 
 Une règle n’est pas obligée de tout remplir. Certaines ne posent que le type de
 droit, d’autres seulement un `summary`. C’est voulu : plusieurs règles

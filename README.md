@@ -14,6 +14,11 @@ Ce répertoire contient le code de la webapp DAHLIA
 
 Lancement des services tiers (postgresql)
 
+Le fichier `docker-compose.yml` est **réservé au développement local**.
+Il démarre un Postgres avec des identifiants en clair (`dahlia` / `dahlia`)
+et expose le port `5432` sur l'hôte. Ne jamais réutiliser ce fichier ni
+ces identifiants en préproduction ou en production.
+
 ```sh
 docker compose up -d
 ```
@@ -110,8 +115,8 @@ sont montées sur `/api/auth/*`.
 
 ## Tags des dossiers
 
-Les **tags** sont un vocabulaire contrôlé posé sur les dossiers, en complément
-des champs fermés (`litigationType`, `rightType`) et du texte libre (`summary`).
+Les **mots-clés** (tags) sont un vocabulaire contrôlé posé sur les dossiers, en
+complément des champs fermés (`litigationType`, `rightType`).
 
 - **Administration** : `/admin/tags`, réservée aux administrateurs. CRUD complet ;
   un tag porte un **libellé** (unique, insensible à la casse) et une **couleur**
@@ -131,8 +136,8 @@ des champs fermés (`litigationType`, `rightType`) et du texte libre (`summary`)
   l'en-tête de la fiche — les deux passent par le même composant
   [app/ui/case-file/case-file-identity.tsx](app/ui/case-file/case-file-identity.tsx),
   qui rend le bloc nom + titre + statut + tags.
-- **Recherche et filtre** : la facette `tag:` du tableau de bord (ex.
-  `tag:urgent`, ou `tag:"à relancer"` pour un libellé multi-mots), disponible
+- **Recherche et filtre** : la facette `mc:` du tableau de bord (ex.
+  `mc:urgent`, ou `mc:"à relancer"` pour un libellé multi-mots), disponible
   aussi via le bouton de filtre de la colonne « Dossier ». Les libellés de tags
   sont également couverts par la recherche en texte libre. L'export `.xlsx`
   reprend les tags à la suite du libellé du dossier.
@@ -143,13 +148,14 @@ des champs fermés (`litigationType`, `rightType`) et du texte libre (`summary`)
 la liste de juridictions associée à l'utilisateur depuis `/admin/users`
 (table `user_jurisdiction_scopes`).
 
-| Utilisateur                              | Dossiers visibles                                          |
-| ---------------------------------------- | ---------------------------------------------------------- |
-| Administrateur (`isAdmin`)               | tous, y compris ceux sans juridiction                      |
-| Utilisateur validé                       | ceux dont `CaseFile.jurisdictionId` est dans son périmètre |
-| Périmètre vide, non validé, non connecté | aucun                                                      |
+| Utilisateur                                          | Dossiers visibles                                          |
+| ---------------------------------------------------- | ---------------------------------------------------------- |
+| Administrateur sans juridiction                      | tous, y compris ceux sans juridiction                      |
+| Administrateur avec juridictions                     | ceux dont `CaseFile.jurisdictionId` est dans son périmètre |
+| Utilisateur validé                                   | ceux dont `CaseFile.jurisdictionId` est dans son périmètre |
+| Périmètre vide (non admin), non validé, non connecté | aucun                                                      |
 
-Un dossier dont `jurisdictionId` est `NULL` n'est donc visible que des administrateurs.
+Un dossier dont `jurisdictionId` est `NULL` n'est donc visible que des administrateurs sans juridiction assignée.
 
 La règle est appliquée **dans la couche d'accès aux données**, jamais dans un
 layout ni dans un middleware (un layout ne se re-rend pas à chaque navigation et
@@ -157,7 +163,7 @@ les Route Handlers ne le traversent pas). Elle vit dans un module unique,
 [app/lib/case-file-scope.ts](app/lib/case-file-scope.ts) :
 
 - `caseFileScopeWhere()` → fragment `WHERE` à fusionner dans toute requête sur
-  `CaseFile` (`{}` pour un administrateur, `{ jurisdictionId: { in: […] } }` sinon) ;
+  `CaseFile` (`{}` pour un administrateur sans juridiction, `{ jurisdictionId: { in: […] } }` sinon) ;
 - `caseFileRelationScopeWhere()` → le même filtre porté par la relation
   `caseFile`, pour les tables satellites (`AttachedFile`, `CaseFileEvent`) ;
 - `canAccessCaseFile(caseFileNumber)` → garde des Server Actions qui écrivent sur
@@ -166,7 +172,8 @@ les Route Handlers ne le traversent pas). Elle vit dans un module unique,
 Conséquences côté UI : un dossier hors périmètre est un **404** (`notFound()`),
 indistinguable d'un dossier inexistant ; les routes de pièces répondent 404 ;
 l'export `.xlsx` ne contient que les dossiers du périmètre ; et un utilisateur
-sans aucune juridiction voit un message d'explication à la place du tableau.
+non administrateur sans aucune juridiction voit un message d'explication à la
+place du tableau.
 
 ## En-têtes de sécurité HTTP
 
@@ -399,11 +406,15 @@ ne pas attendre réellement.
 
 ## Classification automatique des dossiers
 
-Les caractéristiques métier d'un dossier — `litigationType` (type de contentieux),
-`rightType` (DALO / DAHO) et `summary` (la « Raison », quelques mots) — sont
-saisies à la main dans l'application. Un moteur de règles (`data/classification/`)
-permet de les **déduire du texte scrapé** : aujourd'hui le titre Télérecours,
-demain la décision (les deux champs sont déjà exposés au moteur).
+Les caractéristiques métier d'un dossier — `litigationType` (type de contentieux)
+et `rightType` (DALO / DAHO) — sont saisies à la main dans l'application. Un
+moteur de règles (`data/classification/`) permet de les **déduire du texte
+scrapé** : aujourd'hui le titre Télérecours, demain la décision (les deux champs
+sont déjà exposés au moteur).
+
+Le champ `summary` (anciennement la « Raison ») est **déprécié** : il n'apparaît
+plus dans les formulaires ni dans le nom d'affichage des dossiers. La colonne
+reste en base et le moteur de classification continue de la remplir.
 
 ```sh
 # Simuler la classification d'une juridiction (aucune écriture)
@@ -480,6 +491,9 @@ non reconnus, utile pour repérer les règles manquantes.
 Source de vérité : `prisma/schema/*.prisma`. Le diagramme ci-dessous est généré
 manuellement à partir de ces fichiers ; pensez à le mettre à jour lors d'un
 changement de schéma.
+
+Le champ `CaseFile.summary` est **déprécié** (plus affiché ni saisi dans
+l'application) mais conservé en base.
 
 ```mermaid
 erDiagram
