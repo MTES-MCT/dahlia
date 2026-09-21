@@ -32,7 +32,6 @@ export function CaseFileDetailsCard({ caseFile, availableTags }: Props) {
     statusLabel: caseFile.lastStatus.label,
     litigationType: caseFile.litigationType,
     rightType: caseFile.rightType,
-    summary: caseFile.summary,
     productionDeadlineType: caseFile.productionDeadlineType,
     productionDeadlineDate: caseFile.productionDeadlineDate,
     tags: toCaseFileTagViews(caseFile.caseFileTags),
@@ -83,7 +82,6 @@ export function CaseFileDetailsCard({ caseFile, availableTags }: Props) {
         statusLabel={editorProps.statusLabel}
         litigationType={editorProps.litigationType}
         rightType={editorProps.rightType}
-        summary={editorProps.summary}
         productionDeadlineType={editorProps.productionDeadlineType}
         productionDeadlineDate={editorProps.productionDeadlineDate}
         tags={editorProps.tags}

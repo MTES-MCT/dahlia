@@ -14,7 +14,7 @@ describe("AdminSideMenu", () => {
     mockUsePathname.mockReturnValue("/admin/users");
   });
 
-  it("affiche les liens Utilisateurs, Juridiction, Divisions et Tags", () => {
+  it("affiche les liens Utilisateurs, Juridiction, Divisions et Mots-clés", () => {
     const { container } = render(<AdminSideMenu />);
 
     const usersLink = container.querySelector('a[href="/admin/users"]');
@@ -25,7 +25,7 @@ describe("AdminSideMenu", () => {
     expect(usersLink?.textContent).toContain("Utilisateurs");
     expect(jurisdictionLink?.textContent).toContain("Juridiction");
     expect(divisionsLink?.textContent).toContain("Divisions");
-    expect(tagsLink?.textContent).toContain("Tags");
+    expect(tagsLink?.textContent).toContain("Mots-clés");
   });
 
   it("marque Utilisateurs comme actif sur /admin/users", () => {
@@ -64,7 +64,7 @@ describe("AdminSideMenu", () => {
     ).toBe("page");
   });
 
-  it("marque Tags comme actif sur /admin/tags", () => {
+  it("marque Mots-clés comme actif sur /admin/tags", () => {
     mockUsePathname.mockReturnValue("/admin/tags");
     const { container } = render(<AdminSideMenu />);
 

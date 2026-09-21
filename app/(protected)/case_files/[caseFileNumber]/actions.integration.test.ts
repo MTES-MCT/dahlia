@@ -118,7 +118,6 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
         caseFileNumber: CASE_FILE_NUMBER,
         litigationType: "REFERE",
         rightType: "DALO",
-        summary: "Urgence familiale",
       }),
     );
 
@@ -129,7 +128,6 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
     });
     expect(updated.litigationType).toBe("REFERE");
     expect(updated.rightType).toBe("DALO");
-    expect(updated.summary).toBe("Urgence familiale");
     expect(revalidatePath).toHaveBeenCalledWith(`/case_files/${CASE_FILE_NUMBER}`);
   });
 
@@ -149,7 +147,6 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
         caseFileNumber: CASE_FILE_NUMBER,
         litigationType: "",
         rightType: "",
-        summary: "",
       }),
     );
 
@@ -160,7 +157,32 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
     });
     expect(updated.litigationType).toBeNull();
     expect(updated.rightType).toBeNull();
-    expect(updated.summary).toBeNull();
+    // `summary` is deprecated and no longer edited from the form.
+    expect(updated.summary).toBe("Ancienne raison");
+  });
+
+  it("ne touche pas au summary existant, même si le formulaire en envoie un", async () => {
+    await testPrisma.caseFile.update({
+      where: { caseFileNumber: CASE_FILE_NUMBER },
+      data: { summary: "Ancienne raison" },
+    });
+
+    const result = await updateCaseFileDetailsFormAction(
+      null,
+      buildFormData({
+        caseFileNumber: CASE_FILE_NUMBER,
+        litigationType: "REFERE",
+        rightType: "DALO",
+        summary: "Nouvelle raison",
+      }),
+    );
+
+    expect(result).toEqual({ ok: true });
+
+    const updated = await testPrisma.caseFile.findUniqueOrThrow({
+      where: { caseFileNumber: CASE_FILE_NUMBER },
+    });
+    expect(updated.summary).toBe("Ancienne raison");
   });
 
   it("persiste l'échéance à produire lorsque les champs dédiés sont envoyés", async () => {
@@ -170,7 +192,6 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
         caseFileNumber: CASE_FILE_NUMBER,
         litigationType: "INDEMNITAIRE",
         rightType: "DALO",
-        summary: "",
         hasProductionDeadlineFields: "true",
         productionDeadlineType: "MISE_EN_DEMEURE_DE_PRODUIRE",
         productionDeadlineDate: "2026-03-15",
@@ -201,7 +222,6 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
         caseFileNumber: CASE_FILE_NUMBER,
         litigationType: "",
         rightType: "",
-        summary: "",
         hasProductionDeadlineFields: "true",
         productionDeadlineType: "",
         productionDeadlineDate: "",
@@ -232,7 +252,6 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
         caseFileNumber: CASE_FILE_NUMBER,
         litigationType: "REFERE",
         rightType: "DALO",
-        summary: "Nouvelle raison",
       }),
     );
 
@@ -242,7 +261,6 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
       where: { caseFileNumber: CASE_FILE_NUMBER },
     });
     expect(updated.litigationType).toBe("REFERE");
-    expect(updated.summary).toBe("Nouvelle raison");
     expect(updated.productionDeadlineType).toBe("CLOTURE_INSTRUCTION");
     expect(updated.productionDeadlineDate).toEqual(new Date("2026-02-01T00:00:00Z"));
   });
@@ -253,7 +271,6 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
       buildFormData({
         litigationType: "REFERE",
         rightType: "DALO",
-        summary: "",
       }),
     );
 
@@ -268,7 +285,6 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
         caseFileNumber: CASE_FILE_NUMBER,
         litigationType: "INVALID",
         rightType: "DALO",
-        summary: "",
       }),
     );
 
@@ -287,7 +303,6 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
         caseFileNumber: CASE_FILE_NUMBER,
         litigationType: "",
         rightType: "",
-        summary: "",
         hasProductionDeadlineFields: "true",
         productionDeadlineType: "CLOTURE_INSTRUCTION",
         productionDeadlineDate: "",
@@ -304,7 +319,6 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
         caseFileNumber: "INEXISTANT",
         litigationType: "REFERE",
         rightType: "DALO",
-        summary: "",
       }),
     );
 
@@ -423,7 +437,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
 
       await updateCaseFileDetailsFormAction(
         null,
-        buildFormData({ caseFileNumber: CASE_FILE_NUMBER, summary: "Sans tags" }),
+        buildFormData({ caseFileNumber: CASE_FILE_NUMBER, litigationType: "REFERE" }),
       );
 
       expect(await currentTagIds()).toEqual([urgent]);
@@ -488,14 +502,13 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
       });
     }
 
-    async function editSummary(summary: string) {
+    async function editDetails() {
       return updateCaseFileDetailsFormAction(
         null,
         buildFormData({
           caseFileNumber: CASE_FILE_NUMBER,
           litigationType: "REFERE",
           rightType: "DALO",
-          summary,
         }),
       );
     }
@@ -503,23 +516,23 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
     it("autorise la modification d'un dossier du périmètre", async () => {
       await seedScopedUser({ caseFileJurisdiction: "TA069", scopedTo: "TA069" });
 
-      expect(await editSummary("Dans mon périmètre")).toEqual({ ok: true });
+      expect(await editDetails()).toEqual({ ok: true });
 
       const updated = await testPrisma.caseFile.findUniqueOrThrow({
         where: { caseFileNumber: CASE_FILE_NUMBER },
       });
-      expect(updated.summary).toBe("Dans mon périmètre");
+      expect(updated.litigationType).toBe("REFERE");
     });
 
     it("refuse la modification d'un dossier d'une autre juridiction", async () => {
       await seedScopedUser({ caseFileJurisdiction: "TA075", scopedTo: "TA069" });
 
-      expect(await editSummary("Interdit")).toEqual({ ok: false, error: "Dossier introuvable." });
+      expect(await editDetails()).toEqual({ ok: false, error: "Dossier introuvable." });
 
       const unchanged = await testPrisma.caseFile.findUniqueOrThrow({
         where: { caseFileNumber: CASE_FILE_NUMBER },
       });
-      expect(unchanged.summary).toBeNull();
+      expect(unchanged.litigationType).toBeNull();
       expect(revalidatePath).not.toHaveBeenCalled();
     });
 
@@ -528,12 +541,12 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
       // they are reachable by administrators only.
       await seedScopedUser({ caseFileJurisdiction: null, scopedTo: "TA069" });
 
-      expect(await editSummary("Interdit")).toEqual({ ok: false, error: "Dossier introuvable." });
+      expect(await editDetails()).toEqual({ ok: false, error: "Dossier introuvable." });
 
       const unchanged = await testPrisma.caseFile.findUniqueOrThrow({
         where: { caseFileNumber: CASE_FILE_NUMBER },
       });
-      expect(unchanged.summary).toBeNull();
+      expect(unchanged.litigationType).toBeNull();
     });
   });
 });

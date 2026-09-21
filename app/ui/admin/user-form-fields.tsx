@@ -27,7 +27,7 @@ const PROCONNECT_EMAIL_WARNING =
   "L'email doit être celui que l'utilisateur utilise avec ProConnect. Sinon, il ne pourra pas se connecter à ce compte.";
 
 const JURISDICTIONS_HINT =
-  "Périmètre de droit de l'utilisateur. Maintenez Ctrl (Cmd sur Mac) pour en sélectionner plusieurs. Si aucune juridiction n'est sélectionnée, l'utilisateur n'aura accès à aucun dossier.";
+  "Périmètre de droit de l'utilisateur. Maintenez Ctrl (Cmd sur Mac) pour en sélectionner plusieurs. Si aucune juridiction n'est sélectionnée, l'utilisateur n'aura accès à aucun dossier — sauf s'il est administrateur, auquel cas il verra tous les dossiers.";
 
 // Number of visible rows in the jurisdictions list box.
 const JURISDICTIONS_MIN_ROWS = 3;

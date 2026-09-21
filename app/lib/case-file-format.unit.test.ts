@@ -69,9 +69,9 @@ describe("isDateInputBeforeToday", () => {
 });
 
 describe("getCaseFileDisplayName", () => {
-  it("formate le nom complet avec résumé", () => {
+  it("formate le nom complet", () => {
     expect(getCaseFileDisplayName(caseFileWithActor())).toBe(
-      "TA069-2026-001 - Dupont Jean - Injonction - DALO (Urgence familiale)",
+      "TA069-2026-001 - Dupont Jean - Injonction - DALO",
     );
   });
 
@@ -88,13 +88,11 @@ describe("getCaseFileDisplayName", () => {
           },
         ),
       ),
-    ).toBe(
-      "TA069-2026-001 - Dupont Jean c/ Préfecture du Rhône - Injonction - DALO (Urgence familiale)",
-    );
+    ).toBe("TA069-2026-001 - Dupont Jean c/ Préfecture du Rhône - Injonction - DALO");
   });
 
-  it("omet le résumé entre parenthèses quand il est absent", () => {
-    expect(getCaseFileDisplayName(caseFileWithActor({ summary: null }))).toBe(
+  it("n'inclut pas le résumé déprécié dans le nom d'affichage", () => {
+    expect(getCaseFileDisplayName(caseFileWithActor({ summary: "Urgence familiale" }))).toBe(
       "TA069-2026-001 - Dupont Jean - Injonction - DALO",
     );
   });

@@ -215,32 +215,32 @@ describe("case-file-search", () => {
     });
   });
 
-  describe("facette tag", () => {
-    it("reconnaît tag: comme facette", () => {
-      expect(parseSearchQuery("tag:urgent")).toEqual({
+  describe("facette mc", () => {
+    it("reconnaît mc: comme facette", () => {
+      expect(parseSearchQuery("mc:urgent")).toEqual({
         freeText: null,
-        facets: [{ key: "tag", value: "urgent" }],
+        facets: [{ key: "mc", value: "urgent" }],
       });
     });
 
     it("accepte un libellé multi-mots entre guillemets", () => {
-      expect(parseSearchQuery('tag:"à relancer"')).toEqual({
+      expect(parseSearchQuery('mc:"à relancer"')).toEqual({
         freeText: null,
-        facets: [{ key: "tag", value: "à relancer" }],
+        facets: [{ key: "mc", value: "à relancer" }],
       });
     });
 
-    it("combine la facette tag avec du texte libre", () => {
-      expect(parseSearchQuery("dupont tag:urgent")).toEqual({
+    it("combine la facette mc avec du texte libre", () => {
+      expect(parseSearchQuery("dupont mc:urgent")).toEqual({
         freeText: "dupont",
-        facets: [{ key: "tag", value: "urgent" }],
+        facets: [{ key: "mc", value: "urgent" }],
       });
     });
 
     // A multi-word value must be re-quoted so the next parse keeps it whole.
     it("sérialise sans perte un libellé multi-mots", () => {
-      expect(setFacet("", "tag", "à relancer")).toBe('tag:"à relancer"');
-      expect(getFacetValue(setFacet("", "tag", "à relancer"), "tag")).toBe("à relancer");
+      expect(setFacet("", "mc", "à relancer")).toBe('mc:"à relancer"');
+      expect(getFacetValue(setFacet("", "mc", "à relancer"), "mc")).toBe("à relancer");
     });
   });
 });

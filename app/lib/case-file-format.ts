@@ -94,10 +94,9 @@ export type CaseFileDisplayNameSource = {
   title: string | null;
   litigationType: LitigationType | null;
   rightType: RightType | null;
-  summary: string | null;
 };
 
-// Compact label: `<number> - <title> - <claimant> - <litigation> - <right> (summary)`.
+// Compact label: `<number> - <claimant> - <litigation> - <right>`.
 // Undefined segments are omitted rather than shown as placeholders.
 export function getCaseFileDisplayName(
   caseFile: CaseFileDisplayNameSource & CaseFileWithActors,
@@ -108,7 +107,6 @@ export function getCaseFileDisplayName(
   const litigation = litigationTypeShortLabel(caseFile.litigationType);
   const right = rightTypeLabel(caseFile.rightType);
 
-  // we display the title only if it is not a litigation or right type
   if (mainClaimantName !== "-" && mainDefenderName !== "-") {
     parts.push(`${mainClaimantName} c/ ${mainDefenderName}`);
   } else if (mainClaimantName !== "-") {
@@ -119,6 +117,5 @@ export function getCaseFileDisplayName(
   if (litigation) parts.push(litigation);
   if (right) parts.push(right);
 
-  const base = parts.join(" - ");
-  return caseFile.summary ? `${base} (${caseFile.summary})` : base;
+  return parts.join(" - ");
 }

@@ -105,7 +105,7 @@ function parseTagIds(formData: FormData): number[] | "invalid" {
 }
 
 // Persist the user-managed classification fields of a case file (type de
-// contentieux, type de droit, raison/summary, tags) edited from the details card.
+// contentieux, type de droit, tags) edited from the details card.
 export async function updateCaseFileDetailsFormAction(
   _prevState: UpdateCaseFileDetailsResult | null,
   formData: FormData,
@@ -132,7 +132,6 @@ export async function updateCaseFileDetailsFormAction(
   if (right.invalid) {
     return { ok: false, error: "Type de droit invalide." };
   }
-  const summary = String(formData.get("summary") ?? "").trim();
 
   const hasTagsField = formData.get(HAS_TAGS_FIELD_NAME) === "true";
   let tagIds: number[] = [];
@@ -187,7 +186,6 @@ export async function updateCaseFileDetailsFormAction(
       data: {
         litigationType: litigation.value,
         rightType: right.value,
-        summary: summary || null,
         ...(hasProductionDeadlineFields
           ? {
               productionDeadlineType,

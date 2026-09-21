@@ -141,8 +141,8 @@ export function TagPicker({ availableTags, defaultSelectedIds, className }: TagP
             list inserts a sibling, which would otherwise gap the popover and
             shove the selected tags down. */}
         <Input
-          label="Tags"
-          hintText="Saisissez au moins une lettre pour rechercher parmi les tags existants."
+          label="Mots-clés"
+          hintText="Saisissez au moins une lettre pour rechercher parmi les mots-clés existants."
           className={fr.cx("fr-mb-0")}
           nativeInputProps={{
             type: "text",
@@ -174,13 +174,13 @@ export function TagPicker({ availableTags, defaultSelectedIds, className }: TagP
           >
             {suggestions.length === 0 ? (
               <p className={clsx(fr.cx("fr-text--sm", "fr-p-1w"), "fr-mb-0")}>
-                Aucun tag correspondant.
+                Aucun mot-clé correspondant.
               </p>
             ) : (
               <ul
                 id={listboxId}
                 role="listbox"
-                aria-label="Tags disponibles"
+                aria-label="Mots-clés disponibles"
                 // `list-none` and the reset padding drop the browser's default
                 // bullets: options are rendered as badges, not as a bullet list.
                 className={clsx("fr-my-0", "list-none", "fr-pl-0", "fr-pr-0")}
@@ -217,7 +217,7 @@ export function TagPicker({ availableTags, defaultSelectedIds, className }: TagP
           performs the removal. */}
       {selectedTags.length > 0 && (
         <ul
-          aria-label="Tags sélectionnés"
+          aria-label="Mots-clés sélectionnés"
           className={clsx(
             // `fr-raw-list` zeros DSFR list spacing (`--li-bottom`, indent).
             fr.cx("fr-raw-list", "fr-mt-1w", "fr-mb-0"),

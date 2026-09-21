@@ -67,7 +67,8 @@ model CaseFile {
   // User-managed classification fields (edited from the case-file details card).
   litigationType LitigationType?
   rightType      RightType?
-  // Short free-text label (a few words) characterizing the case; shown as "Raison".
+  // Deprecated: no longer shown in the UI or in case-file display names.
+  // Kept in the database; still filled by the classification engine.
   summary        String?
 
   // Production deadline tracked for case files under instruction (null = none).

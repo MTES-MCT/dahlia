@@ -141,7 +141,7 @@ export const CASE_FILES_EXPORT_COLUMNS: CaseFileDashboardColumnDef[] = [
   },
   {
     key: "tags",
-    label: "Tags",
+    label: "Mots-clés",
     exportValue: (caseFile) => caseFile.caseFileTags.map(({ tag }) => tag.label).join(", "),
   },
   {

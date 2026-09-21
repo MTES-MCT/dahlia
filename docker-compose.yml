@@ -1,3 +1,6 @@
+# Local development only. Do not use this compose file (or its credentials)
+# in preproduction or production: Postgres user/password are plaintext
+# (dahlia/dahlia) and port 5432 is bound to the host.
 services:
   dahlia-webapp-db:
     image: postgres:17-alpine3.23

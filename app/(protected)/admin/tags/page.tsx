@@ -11,7 +11,7 @@ import { TagBadge } from "@/app/ui/case-file/tag-badge";
 import { DataTable, type DataTableColumn } from "@/app/ui/table/data-table";
 
 export const metadata: Metadata = {
-  title: "Tags - Administration",
+  title: "Mots-clés - Administration",
 };
 
 function tagsColumns(): DataTableColumn<TagListRow>[] {
@@ -63,7 +63,7 @@ export default async function AdminTagsPage({ searchParams }: Props) {
           "flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between",
         )}
       >
-        <h1 className={fr.cx("fr-h2", "fr-mb-0")}>Tags</h1>
+        <h1 className={fr.cx("fr-h2", "fr-mb-0")}>Mots-clés</h1>
         <CreateTagButton />
       </div>
 

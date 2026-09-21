@@ -50,15 +50,28 @@ describe("case-file-scope", () => {
   });
 
   describe("getCurrentCaseFileScope", () => {
-    it("donne un accès sans restriction aux administrateurs", async () => {
+    it("donne un accès sans restriction à un administrateur sans juridiction", async () => {
       mockSession({ id: "admin-1", isValidated: true, isAdmin: true });
+      mockScope([]);
 
       expect(await getCurrentCaseFileScope()).toEqual({
         unrestricted: true,
         jurisdictionIds: [],
       });
-      // No need to read the join table for an administrator.
-      expect(mockScopeFindMany).not.toHaveBeenCalled();
+      expect(mockScopeFindMany).toHaveBeenCalledWith({
+        where: { userId: "admin-1" },
+        select: { jurisdictionId: true },
+      });
+    });
+
+    it("restreint un administrateur aux juridictions qui lui sont assignées", async () => {
+      mockSession({ id: "admin-1", isValidated: true, isAdmin: true });
+      mockScope([3, 8]);
+
+      expect(await getCurrentCaseFileScope()).toEqual({
+        unrestricted: false,
+        jurisdictionIds: [3, 8],
+      });
     });
 
     it("lit les juridictions du périmètre pour un utilisateur validé", async () => {
@@ -95,10 +108,18 @@ describe("case-file-scope", () => {
   });
 
   describe("caseFileScopeWhere", () => {
-    it("ne filtre rien pour un administrateur", async () => {
+    it("ne filtre rien pour un administrateur sans juridiction", async () => {
       mockSession({ id: "admin-1", isValidated: true, isAdmin: true });
+      mockScope([]);
 
       expect(await caseFileScopeWhere()).toEqual({});
+    });
+
+    it("restreint un administrateur aux juridictions de son périmètre", async () => {
+      mockSession({ id: "admin-1", isValidated: true, isAdmin: true });
+      mockScope([3, 8]);
+
+      expect(await caseFileScopeWhere()).toEqual({ jurisdictionId: { in: [3, 8] } });
     });
 
     it("restreint aux juridictions du périmètre", async () => {
@@ -118,10 +139,20 @@ describe("case-file-scope", () => {
   });
 
   describe("caseFileRelationScopeWhere", () => {
-    it("n'ajoute aucune jointure pour un administrateur", async () => {
+    it("n'ajoute aucune jointure pour un administrateur sans juridiction", async () => {
       mockSession({ id: "admin-1", isValidated: true, isAdmin: true });
+      mockScope([]);
 
       expect(await caseFileRelationScopeWhere()).toEqual({});
+    });
+
+    it("porte le filtre sur la relation caseFile pour un administrateur restreint", async () => {
+      mockSession({ id: "admin-1", isValidated: true, isAdmin: true });
+      mockScope([3]);
+
+      expect(await caseFileRelationScopeWhere()).toEqual({
+        caseFile: { jurisdictionId: { in: [3] } },
+      });
     });
 
     it("porte le filtre sur la relation caseFile", async () => {

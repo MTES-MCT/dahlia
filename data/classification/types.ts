@@ -11,6 +11,8 @@ export type ClassificationInput = Partial<Record<ClassificationField, string | n
 
 // Attributes a rule can assign. Kept as a const array so the engine and the
 // persistence layer iterate over exactly the same set.
+// `summary` is deprecated in the UI (not shown, not edited) but still written
+// by the classification engine and stored on `CaseFile`.
 export const CLASSIFICATION_ATTRIBUTES = ["litigationType", "rightType", "summary"] as const;
 export type ClassificationAttribute = (typeof CLASSIFICATION_ATTRIBUTES)[number];
 

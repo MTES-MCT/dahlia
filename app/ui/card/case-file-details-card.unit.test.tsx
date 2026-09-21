@@ -98,7 +98,7 @@ describe("CaseFileDetailsCard", () => {
     expect(
       screen.getByRole("heading", {
         level: 1,
-        name: "TA069-2026-001 - Dupont Jean c/ Préfecture du Rhône - Injonction - DALO (Urgence familiale)",
+        name: "TA069-2026-001 - Dupont Jean c/ Préfecture du Rhône - Injonction - DALO",
       }),
     ).toBeTruthy();
   });
@@ -169,7 +169,21 @@ describe("CaseFileDetailsCard", () => {
 
     const modal = screen.getByRole("dialog", { hidden: true });
 
-    expect(within(modal).getByRole("combobox", { name: /Tags/, hidden: true })).toBeTruthy();
+    expect(within(modal).getByRole("combobox", { name: /Mots-clés/, hidden: true })).toBeTruthy();
+  });
+
+  it("n'affiche plus le champ résumé déprécié dans la modale", () => {
+    render(
+      <CaseFileDetailsCard
+        availableTags={TAG_OPTIONS}
+        caseFile={caseFileFixture({ summary: "Urgence familiale" })}
+      />,
+    );
+
+    const modal = screen.getByRole("dialog", { hidden: true });
+
+    expect(within(modal).queryByLabelText(/Quelques mots caractérisant le dossier/)).toBeNull();
+    expect(within(modal).queryByText("Urgence familiale")).toBeNull();
   });
 
   it("affiche les métadonnées Télérecours dans la modale", () => {

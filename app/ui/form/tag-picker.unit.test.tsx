@@ -15,7 +15,7 @@ function renderPicker(defaultSelectedIds: number[] = []) {
 }
 
 function getCombobox() {
-  return screen.getByRole("combobox", { name: /Tags/ });
+  return screen.getByRole("combobox", { name: /Mots-clés/ });
 }
 
 function focusInput() {
@@ -57,7 +57,7 @@ describe("TagPicker", () => {
     focusInput();
 
     expect(screen.queryByRole("listbox")).toBeNull();
-    expect(screen.queryByText("Aucun tag correspondant.")).toBeNull();
+    expect(screen.queryByText("Aucun mot-clé correspondant.")).toBeNull();
     expect(getCombobox().getAttribute("aria-expanded")).toBe("false");
   });
 
@@ -103,7 +103,7 @@ describe("TagPicker", () => {
 
     openListWith("zzz");
 
-    expect(screen.getByText("Aucun tag correspondant.")).toBeTruthy();
+    expect(screen.getByText("Aucun mot-clé correspondant.")).toBeTruthy();
     expect(screen.queryByRole("listbox")).toBeNull();
   });
 
@@ -146,7 +146,7 @@ describe("TagPicker", () => {
     openListWith("urgent");
 
     expect(screen.queryByRole("listbox")).toBeNull();
-    expect(screen.getByText("Aucun tag correspondant.")).toBeTruthy();
+    expect(screen.getByText("Aucun mot-clé correspondant.")).toBeTruthy();
   });
 
   it("sélectionne au clavier avec les flèches et Entrée", () => {
@@ -197,7 +197,7 @@ describe("TagPicker", () => {
     const { container } = renderPicker([1]);
 
     const field = container.querySelector(".fr-input-group") as HTMLElement;
-    const chips = screen.getByRole("list", { name: "Tags sélectionnés" });
+    const chips = screen.getByRole("list", { name: "Mots-clés sélectionnés" });
 
     expect(field).toBeTruthy();
     expect(chips).toBeTruthy();
