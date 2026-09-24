@@ -1,26 +1,32 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, waitFor } from "@testing-library/react";
-import { CaseFileTelerecoursSync } from "./case-file-telerecours-sync";
+import { CaseFileTelerecoursSync, telerecoursSyncPath } from "./case-file-telerecours-sync";
 
-const mockRefreshCaseFile = vi.fn();
 const mockRouterRefresh = vi.fn();
-
-vi.mock("@/app/(protected)/case_files/[caseFileNumber]/actions", () => ({
-  refreshCaseFile: (...args: unknown[]) => mockRefreshCaseFile(...args),
-}));
+const mockFetch = vi.fn();
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: mockRouterRefresh }),
 }));
 
+function jsonResponse(body: unknown, ok = true, status = 200): Response {
+  return {
+    ok,
+    status,
+    json: async () => body,
+  } as Response;
+}
+
 describe("CaseFileTelerecoursSync", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockRefreshCaseFile.mockResolvedValue({ ok: true });
+    vi.stubGlobal("fetch", mockFetch);
+    mockFetch.mockResolvedValue(jsonResponse({ ok: true }));
   });
 
   afterEach(() => {
     cleanup();
+    vi.unstubAllGlobals();
   });
 
   it("affiche la date de dernière synchronisation Télérecours", () => {
@@ -49,13 +55,15 @@ describe("CaseFileTelerecoursSync", () => {
     );
 
     await waitFor(() => {
-      expect(mockRefreshCaseFile).toHaveBeenCalledWith("TA069-SYNC-SUCCESS");
+      expect(mockFetch).toHaveBeenCalledWith(telerecoursSyncPath("TA069-SYNC-SUCCESS"), {
+        method: "POST",
+      });
     });
     expect(mockRouterRefresh).toHaveBeenCalled();
   });
 
   it("affiche une erreur sans rafraîchir le router en cas d'échec", async () => {
-    mockRefreshCaseFile.mockResolvedValue({ ok: false, error: "Timeout Télérecours" });
+    mockFetch.mockResolvedValue(jsonResponse({ ok: false, error: "Timeout Télérecours" }));
 
     render(
       <CaseFileTelerecoursSync
@@ -71,7 +79,7 @@ describe("CaseFileTelerecoursSync", () => {
   });
 
   it("affiche l'état de synchronisation tant que l'action n'a pas répondu", async () => {
-    mockRefreshCaseFile.mockReturnValue(new Promise(() => {}));
+    mockFetch.mockReturnValue(new Promise(() => {}));
 
     render(
       <CaseFileTelerecoursSync
