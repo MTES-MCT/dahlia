@@ -35,15 +35,18 @@ describe("proxy (contrôle d’accès)", () => {
     expect(mockedGetSessionCookie).not.toHaveBeenCalled();
   });
 
-  it.each(["/", "/connexion"])(
-    "laisse passer le chemin public %s sans vérifier le cookie",
-    (path) => {
-      const response = proxy(makeRequest(path));
+  it.each([
+    "/",
+    "/connexion",
+    "/mentions-legales",
+    "/declaration-accessibilite",
+    "/donnees-personnelles",
+  ])("laisse passer le chemin public %s sans vérifier le cookie", (path) => {
+    const response = proxy(makeRequest(path));
 
-      expect(isNext(response)).toBe(true);
-      expect(mockedGetSessionCookie).not.toHaveBeenCalled();
-    },
-  );
+    expect(isNext(response)).toBe(true);
+    expect(mockedGetSessionCookie).not.toHaveBeenCalled();
+  });
 
   it("redirige vers /connexion quand aucun cookie de session n’est présent", () => {
     mockedGetSessionCookie.mockReturnValue(null);

@@ -3,6 +3,9 @@ import type { Metadata } from "next";
 import { metadata as rootMetadata } from "./layout";
 import { metadata as homeMetadata } from "./page";
 import { metadata as connexionMetadata } from "./connexion/page";
+import { metadata as mentionsLegalesMetadata } from "./mentions-legales/page";
+import { metadata as declarationAccessibiliteMetadata } from "./declaration-accessibilite/page";
+import { metadata as donneesPersonnellesMetadata } from "./donnees-personnelles/page";
 import { metadata as dashboardMetadata } from "./(protected)/case_files/page";
 import { metadata as adminUsersMetadata } from "./(protected)/admin/users/page";
 import { metadata as adminJurisdictionMetadata } from "./(protected)/admin/jurisdiction/page";
@@ -88,6 +91,20 @@ describe("Titres des pages", () => {
     expect(resolveTitle(connexionMetadata.title)).toBe("Connexion - DAHLIA");
   });
 
+  it("intitule la page des mentions légales", () => {
+    expect(resolveTitle(mentionsLegalesMetadata.title)).toBe("Mentions légales - DAHLIA");
+  });
+
+  it("intitule la page de déclaration d'accessibilité", () => {
+    expect(resolveTitle(declarationAccessibiliteMetadata.title)).toBe(
+      "Déclaration d'accessibilité - DAHLIA",
+    );
+  });
+
+  it("intitule la page des données personnelles", () => {
+    expect(resolveTitle(donneesPersonnellesMetadata.title)).toBe("Données personnelles - DAHLIA");
+  });
+
   it("intitule le tableau de bord", () => {
     expect(resolveTitle(dashboardMetadata.title)).toBe("Tableau de bord - DAHLIA");
   });
@@ -140,6 +157,9 @@ describe("Titres des pages", () => {
     const titles = [
       homeMetadata.title,
       connexionMetadata.title,
+      mentionsLegalesMetadata.title,
+      declarationAccessibiliteMetadata.title,
+      donneesPersonnellesMetadata.title,
       dashboardMetadata.title,
       adminUsersMetadata.title,
       adminJurisdictionMetadata.title,
