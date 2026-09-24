@@ -8,7 +8,13 @@ import {
 } from "@/app/lib/security-headers";
 
 // public paths (accessible without being connected).
-const PUBLIC_PATHS = ["/", "/connexion"];
+const PUBLIC_PATHS = [
+  "/",
+  "/connexion",
+  "/mentions-legales",
+  "/declaration-accessibilite",
+  "/donnees-personnelles",
+];
 
 const CSP_HEADER = "Content-Security-Policy";
 
