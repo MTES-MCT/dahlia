@@ -7,14 +7,13 @@ import {
 } from "@/app/lib/test-support/case-file-actors.fixture";
 import { CaseFileDetailsCard } from "./case-file-details-card";
 
-vi.mock("@/app/(protected)/case_files/[caseFileNumber]/actions", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("@/app/(protected)/case_files/[caseFileNumber]/actions")>();
-  return {
-    ...actual,
-    refreshCaseFile: vi.fn().mockResolvedValue({ ok: true }),
-  };
-});
+vi.stubGlobal(
+  "fetch",
+  vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({ ok: true }),
+  }),
+);
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn() }),
