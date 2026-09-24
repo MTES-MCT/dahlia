@@ -17,6 +17,7 @@ const caseFile = (
   litigationType: null,
   rightType: null,
   summary: null,
+  lastStatus: { label: "Terminé" },
   lastDecisionReading: null,
   ...overrides,
 });
@@ -151,7 +152,8 @@ describe("classifyCaseFiles", () => {
       matched: 1,
       updated: 1,
       fields: { litigationType: 1, rightType: 1, summary: 1 },
-      unmatched: [{ caseFileNumber: "TA069-002" }],
+      unmatched: [{ caseFileNumber: "TA069-002", status: "Terminé" }],
+      changes: [{ caseFileNumber: "TA069-001", status: "Terminé" }],
     });
   });
 

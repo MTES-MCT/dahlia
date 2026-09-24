@@ -440,7 +440,7 @@ pnpm classify:case-files -- --jurisdiction TA069 --dry-run --export-csv audits/c
 | `--overwrite`                    | `false`    | Réécrit les champs déjà renseignés. Par défaut, seuls les champs vides sont remplis : la saisie utilisateur est intacte.                                                                                                    |
 | `--dry-run`                      | `false`    | Affiche ce qui serait écrit, sans rien modifier.                                                                                                                                                                            |
 | `--verbose`                      | `false`    | Une ligne par dossier modifié (déjà implicite en `--dry-run`).                                                                                                                                                              |
-| `--export-csv <fichier>`         | _(aucun)_  | Écrit le résultat dans un CSV : `caseFileNumber, title, litigationType, rightType, summary, rules`. Les dossiers classés d'abord, puis **tous** les non reconnus (numéro et titre seuls, colonnes de classification vides). |
+| `--export-csv <fichier>`         | _(aucun)_  | Écrit le résultat dans un CSV : `caseFileNumber, title, status, litigationType, rightType, summary, rules`. Les dossiers classés d'abord, puis **tous** les non reconnus (numéro, titre et statut, colonnes de classification vides). |
 
 Les dossiers sans titre (`NULL` ou vide) sont ignorés : ils n'ont aucun texte à
 analyser, ils ne sont donc ni comptés ni listés dans les non-reconnus.

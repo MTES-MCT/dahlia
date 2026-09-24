@@ -4,12 +4,22 @@ import type { CaseFileClassificationUpdate, UnmatchedCaseFile } from "./classify
 export interface ClassificationChange {
   caseFileNumber: string;
   title: string | null;
+  // Telerecours status label (Status.label), independent of classification.
+  status: string | null;
   update: CaseFileClassificationUpdate;
   // Ids of the rules that produced the classification, in match order.
   ruleIds: string[];
 }
 
-const CSV_HEADER = ["caseFileNumber", "title", "litigationType", "rightType", "summary", "rules"];
+const CSV_HEADER = [
+  "caseFileNumber",
+  "title",
+  "status",
+  "litigationType",
+  "rightType",
+  "summary",
+  "rules",
+];
 
 // RFC 4180 quoting: wrap in double quotes and double the inner ones as soon as
 // the value carries a separator, a quote or a newline.
@@ -25,7 +35,7 @@ function csvLine(cells: (string | null | undefined)[]): string {
 // Render the whole classification run as a CSV document: first the classified
 // case files — same content as the `[dry-run] <number>: <title>, <changes>
 // (<rules>)` log lines, one column per field — then every case file the rules
-// said nothing about, with only its number and title filled in. A leading BOM
+// said nothing about, with number, title and status filled in. A leading BOM
 // keeps the accents readable when opened in Excel.
 export function toClassificationCsv(
   changes: readonly ClassificationChange[],
@@ -37,6 +47,7 @@ export function toClassificationCsv(
       csvLine([
         change.caseFileNumber,
         change.title,
+        change.status,
         change.update.litigationType,
         change.update.rightType,
         change.update.summary,
@@ -45,7 +56,7 @@ export function toClassificationCsv(
     );
   }
   for (const caseFile of unmatched) {
-    lines.push(csvLine([caseFile.caseFileNumber, caseFile.title, "", "", "", ""]));
+    lines.push(csvLine([caseFile.caseFileNumber, caseFile.title, caseFile.status, "", "", "", ""]));
   }
   return `﻿${lines.join("\n")}\n`;
 }
