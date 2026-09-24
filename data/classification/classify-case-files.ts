@@ -11,6 +11,7 @@ export interface CaseFileClassificationState {
   litigationType: LitigationType | null;
   rightType: RightType | null;
   summary: string | null;
+  lastStatus?: { label: string } | null;
   lastDecisionReading?: { nature: string | null; operativePart: string | null } | null;
 }
 
@@ -39,6 +40,7 @@ export interface ClassifyCaseFilesOptions {
 export interface UnmatchedCaseFile {
   caseFileNumber: string;
   title: string | null;
+  status: string | null;
 }
 
 export interface ClassifyCaseFilesStats {
@@ -128,6 +130,7 @@ export async function classifyCaseFiles(
       litigationType: true,
       rightType: true,
       summary: true,
+      lastStatus: { select: { label: true } },
       lastDecisionReading: { select: { nature: true, operativePart: true } },
     },
     orderBy: { caseFileNumber: "asc" },
@@ -146,7 +149,11 @@ export async function classifyCaseFiles(
     const result = classify(classificationInputOf(caseFile), rules);
 
     if (!hasClassification(result)) {
-      stats.unmatched.push({ caseFileNumber: caseFile.caseFileNumber, title: caseFile.title });
+      stats.unmatched.push({
+        caseFileNumber: caseFile.caseFileNumber,
+        title: caseFile.title,
+        status: caseFile.lastStatus?.label ?? null,
+      });
       continue;
     }
     stats.matched++;
@@ -161,6 +168,7 @@ export async function classifyCaseFiles(
     stats.changes.push({
       caseFileNumber: caseFile.caseFileNumber,
       title: caseFile.title,
+      status: caseFile.lastStatus?.label ?? null,
       update,
       ruleIds,
     });
