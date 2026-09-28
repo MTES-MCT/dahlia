@@ -1,10 +1,11 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterAll, vi } from "vitest";
 import { Prisma } from "@prisma/client";
 import { updateJurisdictionFormAction } from "./actions";
 
 const mockGetSession = vi.fn();
 const mockRevalidatePath = vi.fn();
 const mockJurisdictionUpdate = vi.fn();
+const infoSpy = vi.spyOn(console, "info").mockImplementation(() => {});
 
 vi.mock("@/app/lib/auth", () => ({
   auth: {
@@ -44,7 +45,22 @@ function mockAdminSession(userId = "admin-1") {
   });
 }
 
+function auditEvents(): Array<{
+  action: string;
+  actorId: string;
+  target: Record<string, unknown>;
+}> {
+  return infoSpy.mock.calls
+    .map((call) => call[0])
+    .filter((line): line is string => typeof line === "string")
+    .map((line) => JSON.parse(line));
+}
+
 describe("admin jurisdiction actions", () => {
+  afterAll(() => {
+    infoSpy.mockRestore();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -104,6 +120,13 @@ describe("admin jurisdiction actions", () => {
         data: { name: "Tribunal administratif de Lyon" },
       });
       expect(mockRevalidatePath).toHaveBeenCalledWith("/admin/jurisdiction");
+      expect(auditEvents()).toEqual([
+        expect.objectContaining({
+          actorId: "admin-1",
+          action: "jurisdiction.update",
+          target: { id: 1, name: "Tribunal administratif de Lyon" },
+        }),
+      ]);
     });
 
     it("signale une juridiction introuvable", async () => {
@@ -121,6 +144,7 @@ describe("admin jurisdiction actions", () => {
       );
 
       expect(result).toEqual({ ok: false, error: "Juridiction introuvable." });
+      expect(auditEvents()).toEqual([]);
     });
   });
 });

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { type AdminMutationResult, withAdminAction } from "@/app/lib/admin-actions";
+import { logAdminAudit } from "@/app/lib/audit-log";
 import {
   describePrismaError,
   parsePositiveIntField,
@@ -16,7 +17,7 @@ const ADMIN_DIVISIONS_PATH = "/admin/divisions";
 // Admins may only rename a division (display name). shortName comes from
 // Télérecours and must never be changed from the UI.
 export const updateDivisionFormAction = withAdminAction(
-  async (_admin, _prevState: DivisionMutationResult | null, formData: FormData) => {
+  async (admin, _prevState: DivisionMutationResult | null, formData: FormData) => {
     const parsedId = parsePositiveIntField(formData, "id", "Identifiant de division manquant.");
     if (!parsedId.ok) return parsedId;
 
@@ -27,6 +28,11 @@ export const updateDivisionFormAction = withAdminAction(
       await prisma.legalEntityDivision.update({
         where: { id: parsedId.value },
         data: { name: parsedName.value },
+      });
+      logAdminAudit({
+        actorId: admin.userId,
+        action: "division.update",
+        target: { id: parsedId.value, name: parsedName.value },
       });
       revalidatePath(ADMIN_DIVISIONS_PATH);
       return { ok: true };
