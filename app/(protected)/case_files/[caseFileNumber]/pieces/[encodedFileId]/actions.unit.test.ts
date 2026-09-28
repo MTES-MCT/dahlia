@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 const mockFetchAttachedFile = vi.fn();
 const mockAttachedFileUpdate = vi.fn();
@@ -27,6 +27,10 @@ const INPUT = { dahliaName: "Requête", number: "002", comment: "" };
 describe("savePieceMetadataAction", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it("enregistre les métadonnées d'une pièce accessible", async () => {
@@ -71,5 +75,17 @@ describe("savePieceMetadataAction", () => {
       error: "Le numéro ne doit contenir que des chiffres.",
     });
     expect(mockAttachedFileUpdate).not.toHaveBeenCalled();
+  });
+
+  it("masque le message Prisma brut en cas d'échec d'enregistrement", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    mockFetchAttachedFile.mockResolvedValue({ encodedFileId: "piece-1" });
+    mockAttachedFileUpdate.mockRejectedValue(
+      new Error("Unique constraint failed on the fields: (`encodedFileId`)"),
+    );
+
+    const result = await savePieceMetadataAction("piece-1", INPUT);
+
+    expect(result).toEqual({ ok: false, error: "Une erreur est survenue." });
   });
 });

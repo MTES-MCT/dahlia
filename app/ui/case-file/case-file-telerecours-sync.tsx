@@ -30,7 +30,10 @@ async function requestTelerecoursSync(caseFileNumber: string): Promise<RefreshCa
     }
     return (await response.json()) as RefreshCaseFileResult;
   } catch (error) {
-    return { ok: false, error: error instanceof Error ? error.message : String(error) };
+    // Network and JSON failures stay in the browser console. The message shown
+    // in the page must not carry the exception text.
+    console.error(error);
+    return { ok: false, error: "Connexion impossible." };
   }
 }
 
