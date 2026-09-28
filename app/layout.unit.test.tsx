@@ -65,27 +65,7 @@ describe("RootLayout", () => {
     });
   });
 
-  it("n'affiche pas les liens juridiques du pied de page sans administrateur", async () => {
-    const props = await footerProps();
-
-    expect(props.accessibilityLinkProps).toBeUndefined();
-    expect(props.termsLinkProps).toBeUndefined();
-    expect(props.bottomItems).toBeUndefined();
-  });
-
-  it("n'affiche pas les liens juridiques du pied de page pour un utilisateur non admin", async () => {
-    mockedGetSession.mockResolvedValue({ user: { isAdmin: false } } as never);
-
-    const props = await footerProps();
-
-    expect(props.accessibilityLinkProps).toBeUndefined();
-    expect(props.termsLinkProps).toBeUndefined();
-    expect(props.bottomItems).toBeUndefined();
-  });
-
-  it("affiche les liens juridiques du pied de page pour un administrateur", async () => {
-    mockedGetSession.mockResolvedValue({ user: { isAdmin: true } } as never);
-
+  it("affiche les liens juridiques du pied de page", async () => {
     const props = await footerProps();
 
     expect(props.accessibilityLinkProps).toEqual({ href: "/declaration-accessibilite" });

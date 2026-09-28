@@ -22,9 +22,8 @@ export default function MentionsLegalesPage() {
           <h2>Gestionnaire</h2>
           <p>
             Le traitement DAHLIA est mis en œuvre sous la responsabilité du Directeur général de
-            l&apos;aménagement, du logement et de la nature (DGALN) du ministère de la Transition
-            écologique, de la biodiversité, de la forêt, de la mer et de la pêche, du ministère
-            chargé du logement.
+            l&apos;aménagement, du logement et de la nature (DGALN) du Ministère de la transition
+            écologique, aménagement du territoire, transports, ville et logement.
           </p>
           <p>
             Ministère en charge du logement
@@ -60,7 +59,8 @@ export default function MentionsLegalesPage() {
             <a href="https://beta.gouv.fr/incubateurs/mtes.html" className={fr.cx("fr-link")}>
               La Fabrique numérique
             </a>{" "}
-            (incubateur du ministère de la Transition écologique) et propulsé par{" "}
+            (incubateur du ministère de la transition écologique, aménagement du territoire,
+            transports, ville et logement) et propulsé par{" "}
             <a href="https://beta.gouv.fr" className={fr.cx("fr-link")}>
               beta.gouv.fr.
             </a>
@@ -69,7 +69,7 @@ export default function MentionsLegalesPage() {
           <h2>Hébergement du site</h2>
           <p>
             Le site est hébergé par Scalingo SAS, sur un compte appartenant au ministère de la
-            Transition écologique (MTE)&nbsp;:
+            transition écologique, aménagement du territoire, transports, ville et logement&nbsp;:
           </p>
           <p>
             Scalingo SAS
