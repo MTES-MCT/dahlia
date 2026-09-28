@@ -26,6 +26,7 @@ describe("CaseFileTelerecoursSync", () => {
 
   afterEach(() => {
     cleanup();
+    vi.restoreAllMocks();
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
   });
@@ -77,6 +78,24 @@ describe("CaseFileTelerecoursSync", () => {
       expect(screen.getByText("Échec de la synchronisation")).toBeTruthy();
     });
     expect(screen.queryByText(/Timeout Télérecours/)).toBeNull();
+    expect(mockRouterRefresh).not.toHaveBeenCalled();
+  });
+
+  it("masque le texte d'une exception réseau", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    mockFetch.mockRejectedValue(new Error('column "telerecoursSyncAt" does not exist'));
+
+    render(
+      <CaseFileTelerecoursSync
+        caseFileNumber="TA069-SYNC-NETWORK"
+        telerecoursSyncAt={new Date("2024-07-15T10:30:00Z")}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Échec de la synchronisation")).toBeTruthy();
+    });
+    expect(screen.queryByText(/telerecoursSyncAt/)).toBeNull();
     expect(mockRouterRefresh).not.toHaveBeenCalled();
   });
 
