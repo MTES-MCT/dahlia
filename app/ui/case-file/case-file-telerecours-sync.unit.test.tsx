@@ -26,6 +26,7 @@ describe("CaseFileTelerecoursSync", () => {
 
   afterEach(() => {
     cleanup();
+    vi.unstubAllEnvs();
     vi.unstubAllGlobals();
   });
 
@@ -73,9 +74,26 @@ describe("CaseFileTelerecoursSync", () => {
     );
 
     await waitFor(() => {
+      expect(screen.getByText("Échec de la synchronisation")).toBeTruthy();
+    });
+    expect(screen.queryByText(/Timeout Télérecours/)).toBeNull();
+    expect(mockRouterRefresh).not.toHaveBeenCalled();
+  });
+
+  it("affiche le détail de l'erreur en environnement de développement", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    mockFetch.mockResolvedValue(jsonResponse({ ok: false, error: "Timeout Télérecours" }));
+
+    render(
+      <CaseFileTelerecoursSync
+        caseFileNumber="TA069-SYNC-ERROR-DEV"
+        telerecoursSyncAt={new Date("2024-07-15T10:30:00Z")}
+      />,
+    );
+
+    await waitFor(() => {
       expect(screen.getByText("Échec de la synchronisation : Timeout Télérecours")).toBeTruthy();
     });
-    expect(mockRouterRefresh).not.toHaveBeenCalled();
   });
 
   it("affiche l'état de synchronisation tant que l'action n'a pas répondu", async () => {
