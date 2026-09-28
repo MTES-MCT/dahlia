@@ -233,23 +233,24 @@ pnpm scrape:telerecours -- [options]
 
 ### Pré-requis (`.env`)
 
-Le script lit les variables d'environnement préfixées par le profil
-d'identifiants (`--jurisdiction`, ex. `TA069_…`). Ce profil est aussi le code
-Télérecours, sauf si `<PROFIL>_TELERECOURS_JURISDICTION` le surcharge :
+Le script lit les variables d'environnement préfixées par le code de
+juridiction Dahlia (`--jurisdiction`, ex. `TA069_…` ou `TA069bis_…`). Ce code
+est stocké en base. L'en-tête `X-Jurisdiction-Code` reprend la même valeur,
+sauf si `<JURIDICTION>_TELERECOURS_JURISDICTION` la surcharge :
 
-| Variable                            | Rôle                                                                                                                                                                                                               |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `DATABASE_URL`                      | Connexion Postgres où les données sont upsertées                                                                                                                                                                   |
-| `<PROFIL>_TELERECOURS_USERNAME`     | Identifiant Télérecours (ex. `TA069_TELERECOURS_USERNAME`)                                                                                                                                                         |
-| `<PROFIL>_TELERECOURS_PASSWORD`     | Mot de passe Télérecours                                                                                                                                                                                           |
-| `<PROFIL>_TELERECOURS_DIVISIONS`    | Optionnel. IDs des divisions par défaut, séparés par des virgules (ex. `2488,1234`) — utilisé si `--legalEntityDivisionIds` n'est pas passé en CLI. Absent : aucun filtre de division.                             |
-| `<PROFIL>_TELERECOURS_JURISDICTION` | Optionnel. Code Télérecours réel (en-tête `X-Jurisdiction-Code` et `Jurisdiction.shortName`) quand le profil n'est pas ce code. Ex. `TA069bis_TELERECOURS_JURISDICTION=TA069` pour un second compte du TA de Lyon. |
+| Variable                                 | Rôle                                                                                                                                                                                                                                                    |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                           | Connexion Postgres où les données sont upsertées                                                                                                                                                                                                        |
+| `<JURIDICTION>_TELERECOURS_USERNAME`     | Identifiant Télérecours (ex. `TA069_TELERECOURS_USERNAME`)                                                                                                                                                                                              |
+| `<JURIDICTION>_TELERECOURS_PASSWORD`     | Mot de passe Télérecours                                                                                                                                                                                                                                |
+| `<JURIDICTION>_TELERECOURS_DIVISIONS`    | Optionnel. IDs des divisions par défaut, séparés par des virgules (ex. `2488,1234`) — utilisé si `--legalEntityDivisionIds` n'est pas passé en CLI. Absent : aucun filtre de division.                                                                  |
+| `<JURIDICTION>_TELERECOURS_JURISDICTION` | Optionnel. Surcharge uniquement l'en-tête `X-Jurisdiction-Code`. La juridiction en base reste `--jurisdiction`, ce qui conserve le compte utilisé pour les synchros. Ex. `TA069bis_TELERECOURS_JURISDICTION=TA069` pour un second compte du TA de Lyon. |
 
 ### Options
 
 | Option                           | Défaut                    | Description                                                                                                                                                                                                      |
 | -------------------------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--jurisdiction <code>`          | `TA069`                   | Profil d'identifiants : préfixe des variables `<code>_TELERECOURS_*`. Le code envoyé à l'API et stocké en base est ce profil, sauf si `<code>_TELERECOURS_JURISDICTION` le surcharge.                            |
+| `--jurisdiction <code>`          | `TA069`                   | Juridiction Dahlia : préfixe des variables `<code>_TELERECOURS_*` et valeur stockée en base. L'en-tête API reprend ce code, sauf si `<code>_TELERECOURS_JURISDICTION` le surcharge.                              |
 | `--page <n>`                     | `0`                       | Page de départ (0-based) pour la liste des dossiers (Phase A). Le script continue ensuite jusqu'à la dernière page.                                                                                              |
 | `--size <n>`                     | `30`                      | Nombre de dossiers par page lors de l'appel à `/api/case-file`.                                                                                                                                                  |
 | `--sort <champ>`                 | _(aucun)_                 | Critère de tri transmis tel quel à l'API (paramètre `sort`).                                                                                                                                                     |
