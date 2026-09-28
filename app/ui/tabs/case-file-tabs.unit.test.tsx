@@ -126,6 +126,31 @@ describe("CaseFileTabs", () => {
     cleanup();
   });
 
+  it("affiche le type de pièce dans le badge", async () => {
+    vi.mocked(fetchCaseFilePiecesFiltered).mockResolvedValue([
+      { ...pieces[0], fileFamilyTypeLabel: "Mémoire", fileTypeLabel: "Document annexe" },
+    ]);
+
+    await renderCaseFileTabs({ ...baseProps, tab: "pieces" });
+
+    expect(screen.getByText("Document annexe")).toBeTruthy();
+    expect(screen.queryByText("Mémoire")).toBeNull();
+  });
+
+  it("n'affiche pas de badge quand le type de pièce est vide", async () => {
+    vi.mocked(fetchCaseFilePiecesFiltered).mockResolvedValue([
+      {
+        ...pieces[0],
+        fileFamilyTypeLabel: "Mémoire",
+        fileTypeLabel: "",
+      },
+    ]);
+
+    await renderCaseFileTabs({ ...baseProps, tab: "pieces" });
+
+    expect(screen.queryByText("Mémoire")).toBeNull();
+  });
+
   it("affiche l'onglet Pièces par défaut", async () => {
     await renderCaseFileTabs({ ...baseProps, tab: "pieces" });
 

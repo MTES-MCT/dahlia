@@ -85,7 +85,7 @@ export async function CaseFileTabs({ caseFile, tab, searchParams }: Props) {
       fileName: piece.fileName,
       dahliaName: piece.dahliaName,
       comment: piece.comment,
-      typeLabel: piece.fileFamilyTypeLabel ?? piece.fileTypeLabel,
+      typeLabel: piece.fileTypeLabel,
       dataUrl: `${caseFilePath}/pieces/${encodeURIComponent(piece.encodedFileId)}/data`,
       // Outside production the data route serves a mocked PDF regardless of the
       // real pièce type, so the viewer must render it as a PDF.
