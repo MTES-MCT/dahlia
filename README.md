@@ -8,23 +8,6 @@ Ce répertoire contient le code de la webapp DAHLIA
 - Application NextJS
 - Utilisation du DSFR via `@codegouvfr/react-dsfr`
 
-## Documentation publique
-
-Le site de documentation du service vit dans [docs-site/](docs-site/) : un projet
-**Docusaurus autonome**, habillé aux couleurs du DSFR, destiné à être servi sur
-un **sous-domaine dédié** (`docs.…`). Il a ses propres dépendances et son propre
-lockfile, et n'est pas monté dans l'application Next.js.
-
-```sh
-cd docs-site
-pnpm install   # dépendances isolées de celles de la webapp
-pnpm start     # http://localhost:3000
-pnpm build     # site statique dans docs-site/build/
-```
-
-Détails (variables `DOCS_URL` / `APP_URL`, conventions de rédaction, thème DSFR)
-dans [docs-site/README.md](docs-site/README.md).
-
 ## Getting Started
 
 ### Installation
@@ -449,14 +432,14 @@ pnpm classify:case-files -- --jurisdiction TA069 --dry-run --export-csv audits/c
 
 ### Options du script
 
-| Option                           | Défaut     | Description                                                                                                                                                                                                                 |
-| -------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--jurisdiction <code>`          | _(requis)_ | Code juridiction (`Jurisdiction.shortName`, ex. `TA069`). Sans lui ni `--all-jurisdictions`, le script affiche l'aide.                                                                                                      |
-| `--all-jurisdictions`            | `false`    | Traite tous les dossiers, toutes juridictions confondues.                                                                                                                                                                   |
-| `--legalEntityDivisionIds <ids>` | _(aucun)_  | Restreint le traitement à des divisions (ids séparés par des virgules).                                                                                                                                                     |
-| `--overwrite`                    | `false`    | Réécrit les champs déjà renseignés. Par défaut, seuls les champs vides sont remplis : la saisie utilisateur est intacte.                                                                                                    |
-| `--dry-run`                      | `false`    | Affiche ce qui serait écrit, sans rien modifier.                                                                                                                                                                            |
-| `--verbose`                      | `false`    | Une ligne par dossier modifié (déjà implicite en `--dry-run`).                                                                                                                                                              |
+| Option                           | Défaut     | Description                                                                                                                                                                                                                           |
+| -------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--jurisdiction <code>`          | _(requis)_ | Code juridiction (`Jurisdiction.shortName`, ex. `TA069`). Sans lui ni `--all-jurisdictions`, le script affiche l'aide.                                                                                                                |
+| `--all-jurisdictions`            | `false`    | Traite tous les dossiers, toutes juridictions confondues.                                                                                                                                                                             |
+| `--legalEntityDivisionIds <ids>` | _(aucun)_  | Restreint le traitement à des divisions (ids séparés par des virgules).                                                                                                                                                               |
+| `--overwrite`                    | `false`    | Réécrit les champs déjà renseignés. Par défaut, seuls les champs vides sont remplis : la saisie utilisateur est intacte.                                                                                                              |
+| `--dry-run`                      | `false`    | Affiche ce qui serait écrit, sans rien modifier.                                                                                                                                                                                      |
+| `--verbose`                      | `false`    | Une ligne par dossier modifié (déjà implicite en `--dry-run`).                                                                                                                                                                        |
 | `--export-csv <fichier>`         | _(aucun)_  | Écrit le résultat dans un CSV : `caseFileNumber, title, status, litigationType, rightType, summary, rules`. Les dossiers classés d'abord, puis **tous** les non reconnus (numéro, titre et statut, colonnes de classification vides). |
 
 Les dossiers sans titre (`NULL` ou vide) sont ignorés : ils n'ont aucun texte à

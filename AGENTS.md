@@ -76,7 +76,6 @@ applique aussitôt et échoue avant qu'on puisse corriger le SQL.
 - **`app/lib/data/*.ts`** : couche d'accès lecture (requêtes Prisma) appelée depuis les Server Components. Pas d'appels Prisma directs dans `page.tsx` ni dans `app/ui/`.
 - **`app/ui/`** : composants React réutilisables (Server Components par défaut), organisés par domaine (`table/`, `form/`, `admin/`, …). Pas de requêtes Prisma ici ; recevoir les données en props depuis la page.
 - **`data/`** (racine) : pipeline d'import / scraping Télérecours (CLI, client API, persistence). **Hors** App Router ; scripts standalone qui peuvent instancier leur propre `PrismaClient`. La webapp peut en réimporter des briques (`enrichCaseFile`, client Télérecours, `describeError`) depuis une Server Action ou un `route.ts`.
-- **`docs-site/`** (racine) : site de documentation publique (Docusaurus + thème DSFR), **projet autonome** servi sur un sous-domaine `docs.…`. Dépendances, lockfile et `pnpm-workspace.yaml` qui lui sont propres — lancer `pnpm install` depuis `docs-site/`, jamais depuis la racine pour lui. Exclu de `tsconfig.json`, d'ESLint et du build Next.
 - **`proxy.ts`** (racine, Next 16) : équivalent du middleware — redirection auth globale. Ne pas y mettre de logique métier de dossier.
 
 ### Données, UI et styles
@@ -111,13 +110,3 @@ applique aussitôt et échoue avant qu'on puisse corriger le SQL.
 ## Commentaires
 
 Tous les commentaires dans les fichiers de la base de code doivent être rédigés en anglais
-
-<!-- BEGIN:nextjs-agent-rules -->
-
-# This is NOT the Next.js you know
-
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
-
-This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
-
-<!-- END:nextjs-agent-rules -->
