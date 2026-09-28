@@ -20,6 +20,7 @@
     "db:studio": "prisma studio",
     "db:format": "prisma format",
     "scrape:telerecours": "ts-node -P data/tsconfig.json data/cli/scrape-telerecours.ts",
+    "find-comed-decisions": "ts-node -P data/tsconfig.json data/cli/find-comed-decisions.ts",
     "download:dev": "ts-node -P data/tsconfig.json data/telecharge-fichier.ts",
     "reschedule-deliberation:dev": "ts-node -P data/tsconfig.json data/cli/reschedule-deliberation-case-files.ts",
     "classify:case-files": "ts-node -P data/tsconfig.json data/cli/classify-case-files.ts",
