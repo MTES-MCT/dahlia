@@ -1,7 +1,8 @@
 // Juridiction Télérecours (tribunal administratif) ayant servi au scraping.
-// `shortName` porte le code Télérecours (ex. "TA069") : c'est la clé
-// fonctionnelle, celle passée en `--jurisdiction` au scraper et utilisée pour
-// résoudre les identifiants `<CODE>_TELERECOURS_USERNAME/PASSWORD`.
+// `shortName` porte le code Télérecours (ex. "TA069") : en-tête
+// `X-Jurisdiction-Code` et clé fonctionnelle en base. Les identifiants se
+// résolvent via le profil CLI (`--jurisdiction`), qui peut différer quand
+// `<PROFIL>_TELERECOURS_JURISDICTION` surcharge ce code.
 // `name` (libellé complet) est laissé vide par le scraper et édité à la main.
 // Contrairement à LegalEntityDivision, l'id n'est pas fourni par Télérecours :
 // il est généré côté Postgres.

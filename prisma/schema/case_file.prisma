@@ -36,8 +36,10 @@ model CaseFile {
   keywords                       String[]  @default([])
   recipientContactCount          Int?
 
-  assignedToLegalEntityDivisionId Int
-  assignedToLegalEntityDivision   LegalEntityDivision @relation(fields: [assignedToLegalEntityDivisionId], references: [id])
+  // Nullable: some Telerecours list payloads omit the assigned division.
+  // Left empty (null) until a later payload provides one.
+  assignedToLegalEntityDivisionId Int?
+  assignedToLegalEntityDivision   LegalEntityDivision? @relation(fields: [assignedToLegalEntityDivisionId], references: [id])
 
   // Juridiction Télérecours d'où provient le dossier (celle passée en
   // --jurisdiction au scraper). Nullable : les dossiers importés avant

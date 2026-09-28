@@ -15,8 +15,8 @@ async function main(): Promise<number> {
     return 0;
   }
 
-  const username = getEnv(`${args.jurisdiction}_TELERECOURS_USERNAME`);
-  const password = getEnv(`${args.jurisdiction}_TELERECOURS_PASSWORD`);
+  const username = getEnv(`${args.credentialProfile}_TELERECOURS_USERNAME`);
+  const password = getEnv(`${args.credentialProfile}_TELERECOURS_PASSWORD`);
   const client = getTelerecoursCaseFileClient({ username, password });
 
   const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });

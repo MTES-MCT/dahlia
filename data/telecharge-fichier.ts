@@ -1,3 +1,4 @@
+import { resolveTelerecoursJurisdiction } from "./cli/parse-args";
 import { getTelerecoursCaseFileClient } from "./telerecours/client";
 import { describeError } from "./telerecours/http";
 import "dotenv/config";
@@ -52,18 +53,18 @@ function sanitizeFileName(name: string): string {
 
 async function main(): Promise<number> {
   const args = parseArgs();
-  const username = getEnv(`${args.jurisdiction}_TELERECOURS_USERNAME`);
-  const password = getEnv(`${args.jurisdiction}_TELERECOURS_PASSWORD`);
+  const credentialProfile = args.jurisdiction;
+  const jurisdiction = resolveTelerecoursJurisdiction(credentialProfile);
+  const username = getEnv(`${credentialProfile}_TELERECOURS_USERNAME`);
+  const password = getEnv(`${credentialProfile}_TELERECOURS_PASSWORD`);
   const client = getTelerecoursCaseFileClient({ username, password });
 
   console.log(
-    `→ Téléchargement de la pièce ${args.encodedFileId} (jurisdiction=${args.jurisdiction})…`,
+    `→ Téléchargement de la pièce ${args.encodedFileId} ` +
+      `(profile=${credentialProfile}, jurisdiction=${jurisdiction})…`,
   );
 
-  const { data, fileName, mimeType } = await client.downloadFile(
-    args.encodedFileId,
-    args.jurisdiction,
-  );
+  const { data, fileName, mimeType } = await client.downloadFile(args.encodedFileId, jurisdiction);
 
   // Destination: --output if provided (file or directory), otherwise the name
   // from Content-Disposition, defaulting to the encodedFileId, in the current
