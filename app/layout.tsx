@@ -35,7 +35,6 @@ export default async function RootLayout({
   const requestHeaders = await headers();
   const session = await auth.api.getSession({ headers: requestHeaders });
   const user = session?.user;
-  const isAdmin = Boolean(user?.isAdmin);
 
   // CSP nonce minted by proxy.ts, so react-dsfr can stamp its inline scripts.
   const nonce = requestHeaders.get(NONCE_HEADER) ?? undefined;
@@ -71,22 +70,18 @@ export default async function RootLayout({
         <Footer
           accessibility="non compliant"
           contentDescription="DAHLIA est un service numérique de l'État qui aide au traitement des contentieux du droit au logement et à l'hébergement opposable (DALO/DAHO)."
-          {...(isAdmin
-            ? {
-                accessibilityLinkProps: {
-                  href: "/declaration-accessibilite",
-                },
-                termsLinkProps: {
-                  href: "/mentions-legales",
-                },
-                bottomItems: [
-                  {
-                    text: "Données personnelles",
-                    linkProps: { href: "/donnees-personnelles" },
-                  },
-                ],
-              }
-            : {})}
+          accessibilityLinkProps={{
+            href: "/declaration-accessibilite",
+          }}
+          termsLinkProps={{
+            href: "/mentions-legales",
+          }}
+          bottomItems={[
+            {
+              text: "Données personnelles",
+              linkProps: { href: "/donnees-personnelles" },
+            },
+          ]}
         />
       </body>
     </html>
