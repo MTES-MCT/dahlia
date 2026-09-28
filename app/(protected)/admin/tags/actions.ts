@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin, type AdminMutationResult, withAdminAction } from "@/app/lib/admin-actions";
+import { logAdminAudit } from "@/app/lib/audit-log";
 import {
   describePrismaError,
   parsePositiveIntField,
@@ -61,7 +62,7 @@ async function hasLabelConflict(label: string, excludedId?: number): Promise<boo
 }
 
 export const createTagFormAction = withAdminAction(
-  async (_admin, _prevState: TagMutationResult | null, formData: FormData) => {
+  async (admin, _prevState: TagMutationResult | null, formData: FormData) => {
     const parsed = parseTagFields(formData);
     if (!parsed.ok) return parsed;
 
@@ -70,7 +71,12 @@ export const createTagFormAction = withAdminAction(
     }
 
     try {
-      await prisma.tag.create({ data: { label: parsed.label, color: parsed.color } });
+      const tag = await prisma.tag.create({ data: { label: parsed.label, color: parsed.color } });
+      logAdminAudit({
+        actorId: admin.userId,
+        action: "tag.create",
+        target: { id: tag.id, label: parsed.label, color: parsed.color },
+      });
       revalidatePath(ADMIN_TAGS_PATH);
       return { ok: true };
     } catch (error) {
@@ -80,7 +86,7 @@ export const createTagFormAction = withAdminAction(
 );
 
 export const updateTagFormAction = withAdminAction(
-  async (_admin, _prevState: TagMutationResult | null, formData: FormData) => {
+  async (admin, _prevState: TagMutationResult | null, formData: FormData) => {
     const parsedId = parsePositiveIntField(formData, "id", "Identifiant de tag manquant.");
     if (!parsedId.ok) return parsedId;
 
@@ -96,6 +102,11 @@ export const updateTagFormAction = withAdminAction(
         where: { id: parsedId.value },
         data: { label: parsed.label, color: parsed.color },
       });
+      logAdminAudit({
+        actorId: admin.userId,
+        action: "tag.update",
+        target: { id: parsedId.value, label: parsed.label, color: parsed.color },
+      });
       revalidatePath(ADMIN_TAGS_PATH);
       // The label and colour are displayed on every case file carrying the tag.
       revalidatePath("/case_files");
@@ -107,7 +118,7 @@ export const updateTagFormAction = withAdminAction(
 );
 
 export const deleteTagFormAction = withAdminAction(
-  async (_admin, _prevState: TagMutationResult | null, formData: FormData) => {
+  async (admin, _prevState: TagMutationResult | null, formData: FormData) => {
     const parsedId = parsePositiveIntField(formData, "id", "Identifiant de tag manquant.");
     if (!parsedId.ok) return parsedId;
 
@@ -124,6 +135,11 @@ export const deleteTagFormAction = withAdminAction(
 
     try {
       await prisma.tag.delete({ where: { id: parsedId.value } });
+      logAdminAudit({
+        actorId: admin.userId,
+        action: "tag.delete",
+        target: { id: parsedId.value },
+      });
       revalidatePath(ADMIN_TAGS_PATH);
       return { ok: true };
     } catch (error) {

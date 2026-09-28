@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { type AdminMutationResult, withAdminAction } from "@/app/lib/admin-actions";
+import { logAdminAudit } from "@/app/lib/audit-log";
 import {
   describePrismaError,
   parsePositiveIntField,
@@ -16,7 +17,7 @@ const ADMIN_JURISDICTION_PATH = "/admin/jurisdiction";
 // Admins may only rename a jurisdiction (display name). shortName is the
 // Telerecours code and must never be changed from the UI.
 export const updateJurisdictionFormAction = withAdminAction(
-  async (_admin, _prevState: JurisdictionMutationResult | null, formData: FormData) => {
+  async (admin, _prevState: JurisdictionMutationResult | null, formData: FormData) => {
     const parsedId = parsePositiveIntField(formData, "id", "Identifiant de juridiction manquant.");
     if (!parsedId.ok) return parsedId;
 
@@ -27,6 +28,11 @@ export const updateJurisdictionFormAction = withAdminAction(
       await prisma.jurisdiction.update({
         where: { id: parsedId.value },
         data: { name: parsedName.value },
+      });
+      logAdminAudit({
+        actorId: admin.userId,
+        action: "jurisdiction.update",
+        target: { id: parsedId.value, name: parsedName.value },
       });
       revalidatePath(ADMIN_JURISDICTION_PATH);
       return { ok: true };
