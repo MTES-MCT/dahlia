@@ -142,6 +142,16 @@ export class AuthenticationError extends Error {
   }
 }
 
+// Dahlia may store several jurisdiction instances that share one Télérecours
+// court (TA069 and TA069bis). Credentials and the stored shortName stay on the
+// instance; only the API header may differ, via
+// `<INSTANCE>_TELERECOURS_JURISDICTION`. Without that variable the header is
+// the instance code itself.
+export function telerecoursApiJurisdictionCode(jurisdiction: string): string {
+  const override = process.env[`${jurisdiction}_TELERECOURS_JURISDICTION`]?.trim();
+  return override || jurisdiction;
+}
+
 /**
  * Perform a GET authenticated with retry (429/5xx + network errors) and return
  * the raw `Response` (already checked `ok`). Throws an AuthenticationError on
@@ -166,7 +176,7 @@ export async function fetchWithRetry(
         headers: {
           "User-Agent": USER_AGENT,
           Authorization: `Bearer ${accessToken}`,
-          "X-Jurisdiction-Code": jurisdiction,
+          "X-Jurisdiction-Code": telerecoursApiJurisdictionCode(jurisdiction),
           Accept: accept,
         },
       });

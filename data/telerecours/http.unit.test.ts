@@ -7,6 +7,7 @@ import {
   encodeApiPathSegment,
   fetchWithRetry,
   parseContentDispositionFileName,
+  telerecoursApiJurisdictionCode,
   telerecoursApiUrl,
 } from "./http";
 
@@ -86,14 +87,65 @@ describe("assertTelerecoursApiUrl", () => {
   });
 });
 
+describe("telerecoursApiJurisdictionCode", () => {
+  const saved = { ...process.env };
+  afterEach(() => {
+    process.env = { ...saved };
+  });
+
+  it("returns the jurisdiction when no override is set", () => {
+    delete process.env.TA069bis_TELERECOURS_JURISDICTION;
+    expect(telerecoursApiJurisdictionCode("TA069bis")).toBe("TA069bis");
+  });
+
+  it("returns the header override", () => {
+    process.env.TA069bis_TELERECOURS_JURISDICTION = "TA069";
+    expect(telerecoursApiJurisdictionCode("TA069bis")).toBe("TA069");
+  });
+
+  it("ignores a blank override", () => {
+    process.env.TA069bis_TELERECOURS_JURISDICTION = "   ";
+    expect(telerecoursApiJurisdictionCode("TA069bis")).toBe("TA069bis");
+  });
+});
+
 describe("fetchWithRetry", () => {
-  afterEach(() => vi.unstubAllGlobals());
+  const saved = { ...process.env };
+  afterEach(() => {
+    process.env = { ...saved };
+    vi.unstubAllGlobals();
+  });
 
   it("returns the response on success", async () => {
     const ok = new Response("ok", { status: 200 });
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(ok));
     const res = await fetchWithRetry("/api/case-file", "token", "TA069");
     expect(res.status).toBe(200);
+  });
+
+  it("sends the stored jurisdiction as X-Jurisdiction-Code", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response("ok", { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    await fetchWithRetry("/api/case-file", "token", "TA069bis");
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.any(URL),
+      expect.objectContaining({
+        headers: expect.objectContaining({ "X-Jurisdiction-Code": "TA069bis" }),
+      }),
+    );
+  });
+
+  it("sends the env override as X-Jurisdiction-Code", async () => {
+    process.env.TA069bis_TELERECOURS_JURISDICTION = "TA069";
+    const fetchMock = vi.fn().mockResolvedValue(new Response("ok", { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    await fetchWithRetry("/api/case-file", "token", "TA069bis");
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.any(URL),
+      expect.objectContaining({
+        headers: expect.objectContaining({ "X-Jurisdiction-Code": "TA069" }),
+      }),
+    );
   });
 
   it("throws AuthenticationError on 401 (to trigger re-login upstream)", async () => {
