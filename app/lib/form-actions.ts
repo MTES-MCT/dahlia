@@ -1,8 +1,7 @@
 import { Prisma } from "@prisma/client";
 
 export type ParseResult<T extends Record<string, unknown>> =
-  | ({ ok: true } & T)
-  | { ok: false; error: string };
+  ({ ok: true } & T) | { ok: false; error: string };
 
 export function parsePositiveIntField(
   formData: FormData,
@@ -29,6 +28,12 @@ export function parseRequiredText(
   return { ok: true, value };
 }
 
+const GENERIC_PERSISTENCE_ERROR = "Une erreur est survenue.";
+
+// Known Prisma codes get a caller-supplied message. Anything else (unmapped
+// code, validation error, connection failure) can embed column names and
+// constraint details, so the client only sees a generic message; the raw
+// error stays in the server log.
 export function describePrismaError(
   error: unknown,
   knownErrors: Readonly<Partial<Record<string, string>>> = {},
@@ -37,5 +42,6 @@ export function describePrismaError(
     const mapped = knownErrors[error.code];
     if (mapped) return mapped;
   }
-  return error instanceof Error ? error.message : String(error);
+  console.error(error);
+  return GENERIC_PERSISTENCE_ERROR;
 }

@@ -19,8 +19,6 @@ export type WorkspacePiece = {
   fileName: string;
   dahliaName: string | null;
   comment: string | null;
-  // Pièce type shown as a tag on the sidebar card: "family / type" when both
-  // are known, otherwise the one that is set. Null when neither is known.
   typeLabel: string | null;
   dataUrl: string;
   viewerMimeType: string;

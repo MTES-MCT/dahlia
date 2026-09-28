@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/app/lib/prisma";
 import { fetchAttachedFile } from "@/app/lib/data/attached-files";
+import { describePrismaError } from "@/app/lib/form-actions";
 
 export type UpdatePieceResult = { ok: true } | { ok: false; error: string };
 
@@ -45,7 +46,7 @@ async function persistPieceMetadata(
     revalidatePath(`/case_files/${encodedCaseFileNumber}`);
     return { ok: true };
   } catch (error) {
-    return { ok: false, error: error instanceof Error ? error.message : String(error) };
+    return { ok: false, error: describePrismaError(error) };
   }
 }
 
