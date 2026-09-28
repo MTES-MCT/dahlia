@@ -1,11 +1,11 @@
-// Juridiction Télérecours (tribunal administratif) ayant servi au scraping.
-// `shortName` porte le code Télérecours (ex. "TA069") : en-tête
-// `X-Jurisdiction-Code` et clé fonctionnelle en base. Les identifiants se
-// résolvent via le profil CLI (`--jurisdiction`), qui peut différer quand
-// `<PROFIL>_TELERECOURS_JURISDICTION` surcharge ce code.
-// `name` (libellé complet) est laissé vide par le scraper et édité à la main.
-// Contrairement à LegalEntityDivision, l'id n'est pas fourni par Télérecours :
-// il est généré côté Postgres.
+// Télérecours court (administrative tribunal) this scrape ran against.
+// `shortName` is the Dahlia jurisdiction key (e.g. "TA069", "TA069bis"):
+// credential prefix and stored instance. API calls send it as
+// `X-Jurisdiction-Code`, unless `<shortName>_TELERECOURS_JURISDICTION`
+// overrides that header only.
+// `name` (full label) is left empty by the scraper and edited by hand.
+// Unlike LegalEntityDivision, the id is not provided by Télérecours:
+// Postgres generates it.
 model Jurisdiction {
   id        Int    @id @default(autoincrement())
   name      String @default("")
