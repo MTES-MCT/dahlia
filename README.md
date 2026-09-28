@@ -8,6 +8,23 @@ Ce répertoire contient le code de la webapp DAHLIA
 - Application NextJS
 - Utilisation du DSFR via `@codegouvfr/react-dsfr`
 
+## Documentation publique
+
+Le site de documentation du service vit dans [docs-site/](docs-site/) : un projet
+**Docusaurus autonome**, habillé aux couleurs du DSFR, destiné à être servi sur
+un **sous-domaine dédié** (`docs.…`). Il a ses propres dépendances et son propre
+lockfile, et n'est pas monté dans l'application Next.js.
+
+```sh
+cd docs-site
+pnpm install   # dépendances isolées de celles de la webapp
+pnpm start     # http://localhost:3000
+pnpm build     # site statique dans docs-site/build/
+```
+
+Détails (variables `DOCS_URL` / `APP_URL`, conventions de rédaction, thème DSFR)
+dans [docs-site/README.md](docs-site/README.md).
+
 ## Getting Started
 
 ### Installation

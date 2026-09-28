@@ -12,3 +12,9 @@ public
 pnpm-lock.yaml
 package-lock.json
 yarn.lock
+
+docs-site/node_modules
+docs-site/build
+docs-site/.docusaurus
+docs-site/static/fonts
+docs-site/pnpm-lock.yaml
