@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterAll, vi } from "vitest";
 import { Prisma } from "@prisma/client";
 import {
   createTagFormAction,
@@ -15,6 +15,7 @@ const mockTagDelete = vi.fn();
 const mockTagFindFirst = vi.fn();
 const mockCaseFileTagCount = vi.fn();
 const mockFetchTagCaseFiles = vi.fn();
+const infoSpy = vi.spyOn(console, "info").mockImplementation(() => {});
 
 vi.mock("@/app/lib/auth", () => ({
   auth: {
@@ -62,7 +63,22 @@ function mockAdminSession(userId = "admin-1") {
   mockGetSession.mockResolvedValue({ user: { id: userId, isAdmin: true, isValidated: true } });
 }
 
+function auditEvents(): Array<{
+  action: string;
+  actorId: string;
+  target: Record<string, unknown>;
+}> {
+  return infoSpy.mock.calls
+    .map((call) => call[0])
+    .filter((line): line is string => typeof line === "string")
+    .map((line) => JSON.parse(line));
+}
+
 describe("admin tags actions", () => {
+  afterAll(() => {
+    infoSpy.mockRestore();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     mockTagFindFirst.mockResolvedValue(null);
@@ -135,6 +151,7 @@ describe("admin tags actions", () => {
 
       expect(result).toEqual({ ok: false, error: "Un tag porte déjà ce libellé." });
       expect(mockTagCreate).not.toHaveBeenCalled();
+      expect(auditEvents()).toEqual([]);
     });
 
     it("crée le tag et revalide la page d'administration", async () => {
@@ -151,6 +168,13 @@ describe("admin tags actions", () => {
         data: { label: "Urgent", color: "pink-tuile" },
       });
       expect(mockRevalidatePath).toHaveBeenCalledWith("/admin/tags");
+      expect(auditEvents()).toEqual([
+        expect.objectContaining({
+          actorId: "admin-1",
+          action: "tag.create",
+          target: { id: 1, label: "Urgent", color: "pink-tuile" },
+        }),
+      ]);
     });
   });
 
@@ -193,6 +217,13 @@ describe("admin tags actions", () => {
       });
       // The label is displayed on every case file carrying the tag.
       expect(mockRevalidatePath).toHaveBeenCalledWith("/case_files");
+      expect(auditEvents()).toEqual([
+        expect.objectContaining({
+          actorId: "admin-1",
+          action: "tag.update",
+          target: { id: 1, label: "Urgent", color: "green-menthe" },
+        }),
+      ]);
     });
 
     it("signale un tag introuvable", async () => {
@@ -233,6 +264,7 @@ describe("admin tags actions", () => {
         error: "Ce tag est utilisé par 3 dossiers et ne peut pas être supprimé.",
       });
       expect(mockTagDelete).not.toHaveBeenCalled();
+      expect(auditEvents()).toEqual([]);
     });
 
     it("accorde le pluriel au nombre de dossiers", async () => {
@@ -256,6 +288,13 @@ describe("admin tags actions", () => {
       expect(result).toEqual({ ok: true });
       expect(mockTagDelete).toHaveBeenCalledWith({ where: { id: 1 } });
       expect(mockRevalidatePath).toHaveBeenCalledWith("/admin/tags");
+      expect(auditEvents()).toEqual([
+        expect.objectContaining({
+          actorId: "admin-1",
+          action: "tag.delete",
+          target: { id: 1 },
+        }),
+      ]);
     });
 
     it("traduit la contrainte de clé étrangère", async () => {

@@ -1,10 +1,11 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterAll, vi } from "vitest";
 import { Prisma } from "@prisma/client";
 import { updateDivisionFormAction } from "./actions";
 
 const mockGetSession = vi.fn();
 const mockRevalidatePath = vi.fn();
 const mockDivisionUpdate = vi.fn();
+const infoSpy = vi.spyOn(console, "info").mockImplementation(() => {});
 
 vi.mock("@/app/lib/auth", () => ({
   auth: {
@@ -44,7 +45,22 @@ function mockAdminSession(userId = "admin-1") {
   });
 }
 
+function auditEvents(): Array<{
+  action: string;
+  actorId: string;
+  target: Record<string, unknown>;
+}> {
+  return infoSpy.mock.calls
+    .map((call) => call[0])
+    .filter((line): line is string => typeof line === "string")
+    .map((line) => JSON.parse(line));
+}
+
 describe("admin divisions actions", () => {
+  afterAll(() => {
+    infoSpy.mockRestore();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -106,6 +122,13 @@ describe("admin divisions actions", () => {
         data: { name: "1ère chambre" },
       });
       expect(mockRevalidatePath).toHaveBeenCalledWith("/admin/divisions");
+      expect(auditEvents()).toEqual([
+        expect.objectContaining({
+          actorId: "admin-1",
+          action: "division.update",
+          target: { id: 2488, name: "1ère chambre" },
+        }),
+      ]);
     });
 
     it("signale une division introuvable", async () => {
@@ -123,6 +146,7 @@ describe("admin divisions actions", () => {
       );
 
       expect(result).toEqual({ ok: false, error: "Division introuvable." });
+      expect(auditEvents()).toEqual([]);
     });
   });
 });

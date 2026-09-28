@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterAll, vi } from "vitest";
 import { Prisma } from "@prisma/client";
 import { createUserFormAction, deleteUserFormAction, updateUserFormAction } from "./actions";
 
@@ -6,7 +6,9 @@ const mockGetSession = vi.fn();
 const mockRevalidatePath = vi.fn();
 const mockUserCreate = vi.fn();
 const mockUserUpdate = vi.fn();
+const mockUserFindUnique = vi.fn();
 const mockUserDelete = vi.fn();
+const infoSpy = vi.spyOn(console, "info").mockImplementation(() => {});
 
 vi.mock("@/app/lib/auth", () => ({
   auth: {
@@ -21,6 +23,7 @@ vi.mock("@/app/lib/prisma", () => ({
     user: {
       create: (...args: unknown[]) => mockUserCreate(...args),
       update: (...args: unknown[]) => mockUserUpdate(...args),
+      findUnique: (...args: unknown[]) => mockUserFindUnique(...args),
       delete: (...args: unknown[]) => mockUserDelete(...args),
     },
   },
@@ -57,9 +60,29 @@ function mockAdminSession(userId = "admin-1") {
   });
 }
 
+type AuditEvent = {
+  type: string;
+  timestamp: string;
+  actorId: string;
+  action: string;
+  target: Record<string, unknown>;
+};
+
+function auditEvents(): AuditEvent[] {
+  return infoSpy.mock.calls
+    .map((call) => call[0])
+    .filter((line): line is string => typeof line === "string")
+    .map((line) => JSON.parse(line) as AuditEvent);
+}
+
 describe("admin users actions", () => {
+  afterAll(() => {
+    infoSpy.mockRestore();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUserFindUnique.mockResolvedValue(null);
   });
 
   describe("createUserFormAction", () => {
@@ -116,6 +139,22 @@ describe("admin users actions", () => {
         }),
       });
       expect(mockRevalidatePath).toHaveBeenCalledWith("/admin/users");
+      const createdId = (mockUserCreate.mock.calls[0]?.[0] as { data: { id: string } }).data.id;
+      expect(auditEvents()).toEqual([
+        expect.objectContaining({
+          type: "audit",
+          actorId: "admin-1",
+          action: "user.create",
+          target: {
+            id: createdId,
+            email: "alice.martin@example.gouv.fr",
+            isAdmin: true,
+            isValidated: true,
+            jurisdictionIds: [],
+          },
+        }),
+      ]);
+      expect(auditEvents()[0]?.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     });
 
     it("crée le périmètre de droit à partir des juridictions sélectionnées", async () => {
@@ -177,6 +216,7 @@ describe("admin users actions", () => {
         ok: false,
         error: "Un utilisateur avec cet email existe déjà.",
       });
+      expect(auditEvents()).toEqual([]);
     });
   });
 
@@ -184,6 +224,12 @@ describe("admin users actions", () => {
     it("met à jour l'utilisateur", async () => {
       mockAdminSession();
       mockUserUpdate.mockResolvedValue({});
+      mockUserFindUnique.mockResolvedValue({
+        email: "bob.old@example.gouv.fr",
+        isAdmin: true,
+        isValidated: false,
+        jurisdictionScopes: [],
+      });
 
       const result = await updateUserFormAction(
         null,
@@ -210,11 +256,36 @@ describe("admin users actions", () => {
           jurisdictionScopes: { deleteMany: {}, create: [] },
         },
       });
+      expect(auditEvents()).toEqual([
+        expect.objectContaining({
+          type: "audit",
+          actorId: "admin-1",
+          action: "user.update",
+          target: {
+            id: "u2",
+            email: "bob@example.gouv.fr",
+            isAdmin: false,
+            isValidated: true,
+            jurisdictionIds: [],
+            changes: {
+              email: { from: "bob.old@example.gouv.fr", to: "bob@example.gouv.fr" },
+              isAdmin: { from: true, to: false },
+              isValidated: { from: false, to: true },
+            },
+          },
+        }),
+      ]);
     });
 
     it("remplace intégralement le périmètre de droit", async () => {
       mockAdminSession();
       mockUserUpdate.mockResolvedValue({});
+      mockUserFindUnique.mockResolvedValue({
+        email: "bob@example.gouv.fr",
+        isAdmin: false,
+        isValidated: false,
+        jurisdictionScopes: [{ jurisdictionId: 1 }],
+      });
 
       const result = await updateUserFormAction(
         null,
@@ -230,6 +301,9 @@ describe("admin users actions", () => {
             create: [{ jurisdictionId: 2 }, { jurisdictionId: 5 }],
           },
         }),
+      });
+      expect(auditEvents()[0]?.target.changes).toEqual({
+        jurisdictionIds: { from: [1], to: [2, 5] },
       });
     });
 
@@ -266,12 +340,14 @@ describe("admin users actions", () => {
         error: "Vous ne pouvez pas retirer vos propres droits d'administrateur.",
       });
       expect(mockUserUpdate).not.toHaveBeenCalled();
+      expect(auditEvents()).toEqual([]);
     });
   });
 
   describe("deleteUserFormAction", () => {
     it("supprime un autre utilisateur", async () => {
       mockAdminSession("admin-1");
+      mockUserFindUnique.mockResolvedValue({ email: "bob@example.gouv.fr" });
       mockUserDelete.mockResolvedValue({});
 
       const result = await deleteUserFormAction(null, buildFormData({ id: "u2" }));
@@ -279,6 +355,14 @@ describe("admin users actions", () => {
       expect(result).toEqual({ ok: true });
       expect(mockUserDelete).toHaveBeenCalledWith({ where: { id: "u2" } });
       expect(mockRevalidatePath).toHaveBeenCalledWith("/admin/users");
+      expect(auditEvents()).toEqual([
+        expect.objectContaining({
+          type: "audit",
+          actorId: "admin-1",
+          action: "user.delete",
+          target: { id: "u2", email: "bob@example.gouv.fr" },
+        }),
+      ]);
     });
 
     it("refuse l'auto-suppression", async () => {
@@ -291,6 +375,7 @@ describe("admin users actions", () => {
         error: "Vous ne pouvez pas supprimer votre propre compte.",
       });
       expect(mockUserDelete).not.toHaveBeenCalled();
+      expect(auditEvents()).toEqual([]);
     });
   });
 });
