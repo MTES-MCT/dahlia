@@ -8,6 +8,15 @@ export function getEnv(key: string): string {
   return value;
 }
 
+// `--jurisdiction` names the credential profile (env prefix). An optional
+// `<PROFILE>_TELERECOURS_JURISDICTION` overrides the Télérecours code sent as
+// `X-Jurisdiction-Code` and stored as `Jurisdiction.shortName`. Without it,
+// the profile name is that code (TA069, TA034, …).
+export function resolveTelerecoursJurisdiction(credentialProfile: string): string {
+  const override = process.env[`${credentialProfile}_TELERECOURS_JURISDICTION`]?.trim();
+  return override || credentialProfile;
+}
+
 export function parseDivisionIds(value: string): number[] {
   return value
     .split(",")
@@ -18,14 +27,16 @@ export function parseDivisionIds(value: string): number[] {
 
 export const SCRAPE_USAGE = `Usage: pnpm scrape:telerecours -- [options]
 
-  --jurisdiction <code>            Code juridiction (défaut TA069). Détermine aussi les
-                                   variables d'env <code>_TELERECOURS_* lues.
+  --jurisdiction <code>            Profil d'identifiants (défaut TA069) : préfixe des variables
+                                   <code>_TELERECOURS_*. Le code Télérecours envoyé à l'API et
+                                   stocké en base est ce profil, sauf si
+                                   <code>_TELERECOURS_JURISDICTION est défini.
   --page <n>                       Page de départ (0-based) de la liste des dossiers (défaut 0).
   --size <n>                       Nombre de dossiers par page (défaut 30).
   --sort <champ>                   Critère de tri transmis tel quel à l'API.
   --all                            Récupère tous les dossiers, sans filtre de statut.
   --legalEntityDivisionIds <ids>   Filtre de divisions, séparées par des virgules (ex. 2488,1234).
-                                   Défaut : <JURIDICTION>_TELERECOURS_DIVISIONS.
+                                   Défaut : <PROFIL>_TELERECOURS_DIVISIONS.
   --anonymize                      Anonymise les acteurs avant insertion (défaut hors production).
   --no-anonymize                   Désactive l'anonymisation.
   --enrich <all|ongoing|none>      Phases B et C : ongoing (défaut, hors « Terminé »),
@@ -37,8 +48,10 @@ export const SCRAPE_USAGE = `Usage: pnpm scrape:telerecours -- [options]
 `;
 
 // Resolved run configuration plus the CLI-only --help flag, which short-circuits
-// the run in the entrypoint.
+// the run in the entrypoint. `credentialProfile` is the `--jurisdiction` value
+// (env prefix); `jurisdiction` is the Télérecours code after the optional override.
 export interface ScrapeCliArgs extends Args {
+  credentialProfile: string;
   help: boolean;
 }
 
@@ -51,9 +64,10 @@ export function parseEnrichMode(value: string): EnrichMode {
 
 // Parse process.argv into the resolved run configuration. Defaults come from the
 // environment when not provided on the CLI (anonymize unless production,
-// divisions from <JURISDICTION>_TELERECOURS_DIVISIONS).
+// divisions from <PROFILE>_TELERECOURS_DIVISIONS).
 export function parseArgs(argv: string[] = process.argv): ScrapeCliArgs {
   const args: ScrapeCliArgs = {
+    credentialProfile: "TA069",
     jurisdiction: "TA069",
     page: 0,
     size: 30,
@@ -76,7 +90,8 @@ export function parseArgs(argv: string[] = process.argv): ScrapeCliArgs {
   for (let i = 2; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === "--jurisdiction" && i + 1 < argv.length) {
-      args.jurisdiction = argv[++i];
+      args.credentialProfile = argv[++i];
+      args.jurisdiction = args.credentialProfile;
     } else if (arg === "--page" && i + 1 < argv.length) {
       args.page = parseInt(argv[++i], 10);
     } else if (arg === "--size" && i + 1 < argv.length) {
@@ -111,20 +126,23 @@ export function parseArgs(argv: string[] = process.argv): ScrapeCliArgs {
   // Nothing to resolve or log when the run is only going to print the usage.
   if (args.help) return args;
 
-  // Default for divisions: <JURISDICTION>_TELERECOURS_DIVISIONS env var
+  // Default for divisions: <PROFILE>_TELERECOURS_DIVISIONS env var
   // (e.g. TA069_TELERECOURS_DIVISIONS=2488,1234), unless provided via CLI.
   // If neither is set, the array stays empty and the division filter is simply
   // not applied (all divisions of the jurisdiction are scraped).
   if (!divisionIdsFromCli) {
-    const envValue = process.env[`${args.jurisdiction}_TELERECOURS_DIVISIONS`];
+    const envValue = process.env[`${args.credentialProfile}_TELERECOURS_DIVISIONS`];
     if (envValue) {
       args.legalEntityDivisionIds = parseDivisionIds(envValue);
       console.log("legalEntityDivisionIds set to", args.legalEntityDivisionIds);
     }
   }
 
+  args.jurisdiction = resolveTelerecoursJurisdiction(args.credentialProfile);
+
   console.log("--------------------------------------------------");
   console.log("ARGUMENTS:");
+  console.log("  - credentialProfile set to", args.credentialProfile);
   console.log("  - jurisdiction set to", args.jurisdiction);
   console.log("  - page set to", args.page);
   console.log("  - size set to", args.size);

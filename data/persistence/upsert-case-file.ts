@@ -46,22 +46,20 @@ export async function upsertCaseFile(
   jurisdictionId?: number,
 ): Promise<boolean> {
   const missingFields: string[] = [];
-  if (!caseFile.assignedToLegalEntityDivision) missingFields.push("assignedToLegalEntityDivision");
   if (!caseFile.lastStatus) missingFields.push("lastStatus");
   if (!caseFile.mainClaimant) missingFields.push("mainClaimant");
-  if (
-    missingFields.length > 0 ||
-    !caseFile.assignedToLegalEntityDivision ||
-    !caseFile.lastStatus ||
-    !caseFile.mainClaimant
-  ) {
+  if (missingFields.length > 0 || !caseFile.lastStatus || !caseFile.mainClaimant) {
     console.warn(
       `⚠ Skipping case file ${caseFile.caseFileNumber}: missing required field(s) ${missingFields.join(", ")}`,
     );
     return false;
   }
 
-  await upsertLegalEntityDivision(prisma, caseFile.assignedToLegalEntityDivision);
+  // Absent division is stored as null rather than skipping the case file.
+  const assignedToLegalEntityDivisionId = caseFile.assignedToLegalEntityDivision?.id ?? null;
+  if (caseFile.assignedToLegalEntityDivision) {
+    await upsertLegalEntityDivision(prisma, caseFile.assignedToLegalEntityDivision);
+  }
 
   if (caseFile.urgency) {
     await prisma.urgency.upsert({
@@ -107,7 +105,7 @@ export async function upsertCaseFile(
       isDeleted: false,
       deletedAt: null,
       procedureState: caseFile.procedureState,
-      assignedToLegalEntityDivisionId: caseFile.assignedToLegalEntityDivision.id,
+      assignedToLegalEntityDivisionId,
       // `undefined` leaves the column as-is rather than clearing it.
       jurisdictionId,
       urgencyId: caseFile.urgency?.id,
@@ -121,7 +119,7 @@ export async function upsertCaseFile(
     create: {
       caseFileNumber: caseFile.caseFileNumber,
       procedureState: caseFile.procedureState,
-      assignedToLegalEntityDivisionId: caseFile.assignedToLegalEntityDivision.id,
+      assignedToLegalEntityDivisionId,
       jurisdictionId,
       urgencyId: caseFile.urgency?.id,
       lastStatusId: caseFile.lastStatus.id,

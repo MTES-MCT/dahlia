@@ -21,6 +21,7 @@ describe("parseArgs", () => {
   it("applies defaults when no flag is given", () => {
     const args = parseArgs(argv());
     expect(args).toMatchObject({
+      credentialProfile: "TA069",
       jurisdiction: "TA069",
       page: 0,
       size: 30,
@@ -49,6 +50,7 @@ describe("parseArgs", () => {
       ),
     );
     expect(args).toMatchObject({
+      credentialProfile: "TA075",
       jurisdiction: "TA075",
       page: 2,
       size: 50,
@@ -81,10 +83,45 @@ describe("parseArgs", () => {
     expect(args.legalEntityDivisionIds).toEqual([111, 222]);
   });
 
-  it("falls back to <JURISDICTION>_TELERECOURS_DIVISIONS when no CLI value", () => {
+  it("falls back to <PROFILE>_TELERECOURS_DIVISIONS when no CLI value", () => {
     process.env.TA075_TELERECOURS_DIVISIONS = "42,43";
     const args = parseArgs(argv("--jurisdiction", "TA075"));
     expect(args.legalEntityDivisionIds).toEqual([42, 43]);
+  });
+
+  it("keeps the profile as the Télérecours code when no override is set", () => {
+    const args = parseArgs(argv("--jurisdiction", "TA069bis"));
+    expect(args.credentialProfile).toBe("TA069bis");
+    expect(args.jurisdiction).toBe("TA069bis");
+  });
+
+  it("overrides the Télérecours code from <PROFILE>_TELERECOURS_JURISDICTION", () => {
+    process.env.TA069bis_TELERECOURS_JURISDICTION = "TA069";
+    const args = parseArgs(argv("--jurisdiction", "TA069bis"));
+    expect(args.credentialProfile).toBe("TA069bis");
+    expect(args.jurisdiction).toBe("TA069");
+  });
+
+  it("reads divisions from the credential profile, not the overridden code", () => {
+    process.env.TA069bis_TELERECOURS_JURISDICTION = "TA069";
+    process.env.TA069bis_TELERECOURS_DIVISIONS = "2488";
+    process.env.TA069_TELERECOURS_DIVISIONS = "999";
+    const args = parseArgs(argv("--jurisdiction", "TA069bis"));
+    expect(args.jurisdiction).toBe("TA069");
+    expect(args.legalEntityDivisionIds).toEqual([2488]);
+  });
+
+  it("ignores a blank jurisdiction override", () => {
+    process.env.TA069_TELERECOURS_JURISDICTION = "   ";
+    expect(parseArgs(argv()).jurisdiction).toBe("TA069");
+  });
+
+  it("does not apply the jurisdiction override when help is asked", () => {
+    process.env.TA069bis_TELERECOURS_JURISDICTION = "TA069";
+    const args = parseArgs(argv("--jurisdiction", "TA069bis", "--help"));
+    expect(args.help).toBe(true);
+    expect(args.credentialProfile).toBe("TA069bis");
+    expect(args.jurisdiction).toBe("TA069bis");
   });
 
   it("does not ask for help by default", () => {
