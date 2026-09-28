@@ -102,7 +102,9 @@ export function CaseFileTelerecoursSync({ caseFileNumber, telerecoursSyncAt }: P
       {isPending ? <p className={fr.cx("fr-mb-0")}>Synchronisation…</p> : null}
       {error ? (
         <p className={clsx(fr.cx("fr-mb-0"), "text-(--text-default-error)")}>
-          Échec de la synchronisation : {error}
+          {process.env.NODE_ENV === "development"
+            ? `Échec de la synchronisation : ${error}`
+            : "Échec de la synchronisation"}
         </p>
       ) : null}
     </div>
