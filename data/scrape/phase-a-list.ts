@@ -1,7 +1,7 @@
 import { describeError, sleep } from "../telerecours/http";
 import { upsertCaseFile } from "../persistence/upsert-case-file";
 import { upsertJurisdiction } from "../persistence/upsert-jurisdiction";
-import { divisionWhere, enrichmentTargetsWhere } from "./where";
+import { scrapedPerimeterWhere } from "./where";
 import type { Args, ScrapeDeps } from "./pipeline";
 
 const DEFAULT_RATE_LIMIT_MS = 100;
@@ -107,13 +107,7 @@ export async function phaseA(
 // ───── Phase A.5: reconciliation (soft delete) ─────
 
 // Mark as deleted every case file present in DB within the scraped perimeter
-// but absent from the list returned by phase A. The perimeter must mirror the
-// scrape scope:
-//   - restricted to the scraped legalEntityDivisionIds when configured (CLI
-//     arg or env var); otherwise the filter is omitted and all divisions of
-//     the jurisdiction are considered;
-//   - without --all the perimeter is restricted to active dossiers (status
-//     groups INPROGRESS from Télérecours, excluding "Terminé").
+// but absent from the list returned by phase A. See scrapedPerimeterWhere.
 export async function reconcileDeleted(
   args: Args,
   seen: string[],
@@ -121,16 +115,9 @@ export async function reconcileDeleted(
 ): Promise<number> {
   console.log(`\n══ Phase A.5 — réconciliation (dossiers absents marqués supprimés) ══`);
 
-  // Reconciliation never widens to closed dossiers: without --all, phase A
-  // only lists INPROGRESS files, so "Terminé" ones would otherwise be marked
-  // deleted. --enrich all is B/C only.
-  const perimeter = args.all
-    ? { ...divisionWhere(args), isDeleted: false }
-    : enrichmentTargetsWhere({ ...args, enrich: "ongoing" });
-
   const result = await deps.prisma.caseFile.updateMany({
     where: {
-      ...perimeter,
+      ...scrapedPerimeterWhere(args, !args.all),
       caseFileNumber: { notIn: seen },
     },
     data: { isDeleted: true, deletedAt: new Date() },

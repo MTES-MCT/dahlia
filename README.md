@@ -352,7 +352,7 @@ data/
     phase-b-enrich.ts          # phaseB
     phase-c-related.ts         # phaseC + linkRelatedCaseFiles
     phase-d-classify.ts        # phaseD — classification (opt-in via --classify)
-    where.ts                   # divisionWhere / enrichmentTargetsWhere (fragments Prisma, purs)
+    where.ts                   # divisionWhere / scrapedPerimeterWhere (fragments Prisma, purs)
   classification/
     types.ts                   # champs analysés, attributs déduits, forme d'une règle
     normalize.ts               # normalizeText (minuscules, sans accent, ponctuation aplatie)
@@ -378,8 +378,8 @@ Trois principes guident cette organisation :
 3. **Phases A.5 (réconciliation)** — après la Phase A, tout dossier présent en
    base dans le périmètre scrapé mais **absent** de la liste renvoyée par
    Télérecours est marqué supprimé (soft-delete `isDeleted`/`deletedAt`). Le
-   périmètre reflète le scope du scrape (divisions ciblées, et hors « Terminé »
-   sans `--all`).
+   périmètre reflète le scope du scrape (juridiction Dahlia `--jurisdiction`,
+   divisions ciblées, et hors « Terminé » sans `--all`).
 
 La webapp réutilise une partie de ce code : `enrichCaseFile`
 (`data/persistence/enrich-case-file.ts`), `getTelerecoursCaseFileClient` et
@@ -402,7 +402,7 @@ réseau ni base réelle**, en mockant l'API Télérecours à deux niveaux :
   pas : retry sur 429/5xx, `AuthenticationError` sur 401 (déclenchant la
   reconnexion en amont), et le parsing de l'en-tête `Content-Disposition`.
 
-Les fonctions pures (`parseArgs`, `divisionWhere`/`enrichmentTargetsWhere`,
+Les fonctions pures (`parseArgs`, `divisionWhere`/`scrapedPerimeterWhere`,
 `describeError`, `findLastProducerId`) ont des tests unitaires directs. Le délai
 de rate-limiting (`rateLimitMs`) est injectable et fixé à `0` dans les tests pour
 ne pas attendre réellement.

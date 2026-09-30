@@ -97,6 +97,21 @@ export async function upsertCaseFile(
     await upsertHearingWithConclusion(prisma, caseFile.lastHearing);
   }
 
+  // A case file number is global. Two Dahlia instances of the same court
+  // (TA069 and TA069bis) can therefore rewrite each other's jurisdictionId.
+  // Warn when an already-tagged row is about to move, and keep going.
+  if (jurisdictionId !== undefined) {
+    const existing = await prisma.caseFile.findUnique({
+      where: { caseFileNumber: caseFile.caseFileNumber },
+      select: { jurisdictionId: true },
+    });
+    if (existing?.jurisdictionId != null && existing.jurisdictionId !== jurisdictionId) {
+      console.warn(
+        `⚠ Case file ${caseFile.caseFileNumber}: jurisdictionId changed from ${existing.jurisdictionId} to ${jurisdictionId}`,
+      );
+    }
+  }
+
   await prisma.caseFile.upsert({
     where: { caseFileNumber: caseFile.caseFileNumber },
     update: {
