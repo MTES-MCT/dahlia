@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { divisionWhere, enrichmentTargetsWhere } from "./where";
+import { divisionWhere, scrapedPerimeterWhere } from "./where";
 import type { Args } from "./pipeline";
 
 const args = (over: Partial<Args> = {}): Args => ({
@@ -27,21 +27,29 @@ describe("divisionWhere", () => {
   });
 });
 
-describe("enrichmentTargetsWhere", () => {
-  it("excludes closed dossiers and soft-deleted ones", () => {
-    expect(enrichmentTargetsWhere(args({ legalEntityDivisionIds: [2488] }))).toEqual({
+describe("scrapedPerimeterWhere", () => {
+  it("excludes closed dossiers and soft-deleted ones, scoped to the jurisdiction", () => {
+    expect(scrapedPerimeterWhere(args({ legalEntityDivisionIds: [2488] }), true)).toEqual({
       lastStatus: { label: { notIn: ["Terminé"] } },
       assignedToLegalEntityDivisionId: { in: [2488] },
+      jurisdiction: { shortName: "TA069" },
       isDeleted: false,
     });
   });
 
-  it("drops the status exclusion when --enrich all is set", () => {
-    expect(enrichmentTargetsWhere(args({ legalEntityDivisionIds: [2488], enrich: "all" }))).toEqual(
-      {
-        assignedToLegalEntityDivisionId: { in: [2488] },
-        isDeleted: false,
-      },
-    );
+  it("keeps the jurisdiction filter when no division is configured", () => {
+    expect(scrapedPerimeterWhere(args({ jurisdiction: "TA069bis" }), true)).toEqual({
+      lastStatus: { label: { notIn: ["Terminé"] } },
+      jurisdiction: { shortName: "TA069bis" },
+      isDeleted: false,
+    });
+  });
+
+  it("drops the status exclusion when closed dossiers are included", () => {
+    expect(scrapedPerimeterWhere(args({ legalEntityDivisionIds: [2488] }), false)).toEqual({
+      assignedToLegalEntityDivisionId: { in: [2488] },
+      jurisdiction: { shortName: "TA069" },
+      isDeleted: false,
+    });
   });
 });
