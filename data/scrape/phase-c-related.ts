@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { describeError, sleep } from "../telerecours/http";
 import { TelerecoursClient } from "../telerecours/client.interface";
-import { enrichmentTargetsWhere } from "./where";
+import { scrapedPerimeterWhere } from "./where";
 import type { Args, ScrapeDeps } from "./pipeline";
 
 const DEFAULT_RATE_LIMIT_MS = 100;
@@ -63,7 +63,7 @@ export async function phaseC(
   console.log(`\n══ Phase C — liens entre dossiers (related-case-files) ══`);
 
   const targets = await prisma.caseFile.findMany({
-    where: enrichmentTargetsWhere(args),
+    where: scrapedPerimeterWhere(args, args.enrich !== "all"),
     select: { caseFileNumber: true },
   });
 

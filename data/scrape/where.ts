@@ -1,9 +1,17 @@
 import type { Args } from "./pipeline";
 
-// Statuses treated as closed: skipped by default during enrichment (phase B/C)
-// and reconciliation (phase A.5). --enrich all lifts the exclusion for phases
-// B/C only.
+// Statuses treated as closed. scrapedPerimeterWhere skips them when its
+// caller passes excludeClosed (phases B/C unless --enrich all, phase A.5
+// unless --all).
 export const EXCLUDED_ENRICHMENT_STATUS_LABELS = ["Terminé"] as const;
+
+// Dahlia jurisdiction instance this scrape runs against (TA069 vs TA069bis).
+// Several instances can share one Télérecours court; without this clause a
+// run soft-deletes or enriches the other instance's case files. Rows still
+// at jurisdictionId null stay out of the perimeter until a scrape tags them.
+function jurisdictionWhere(args: Args): { jurisdiction: { shortName: string } } {
+  return { jurisdiction: { shortName: args.jurisdiction } };
+}
 
 // Build a Prisma where-fragment for the division filter. When no division is
 // configured (neither via CLI nor env), return an empty object so the clause is
@@ -17,16 +25,18 @@ export function divisionWhere(args: Args): {
     : {};
 }
 
-// The set of case files within the scraped perimeter used as the target for
-// enrichment (phase B) and linking (phase C): within the configured divisions,
-// not soft-deleted, and by default not closed ("Terminé"). Pass --enrich all
-// to drop the status exclusion.
-export function enrichmentTargetsWhere(args: Args) {
+// Case files inside the scraped perimeter: the scraped jurisdiction, the
+// configured divisions when any, and not soft-deleted. When excludeClosed is
+// true, dossiers whose status is "Terminé" are left out. Phases B and C pass
+// `args.enrich !== "all"`; phase A.5 passes `!args.all`, because phase A only
+// listed in-progress files unless --all.
+export function scrapedPerimeterWhere(args: Args, excludeClosed: boolean) {
   return {
-    ...(args.enrich === "all"
-      ? {}
-      : { lastStatus: { label: { notIn: [...EXCLUDED_ENRICHMENT_STATUS_LABELS] } } }),
+    ...(excludeClosed
+      ? { lastStatus: { label: { notIn: [...EXCLUDED_ENRICHMENT_STATUS_LABELS] } } }
+      : {}),
     ...divisionWhere(args),
+    ...jurisdictionWhere(args),
     isDeleted: false,
   };
 }

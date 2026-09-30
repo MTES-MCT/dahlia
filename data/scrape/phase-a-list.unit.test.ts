@@ -132,6 +132,26 @@ describe("reconcileDeleted", () => {
     expect(where).toMatchObject({
       caseFileNumber: { notIn: ["A", "B"] },
       assignedToLegalEntityDivisionId: { in: [2488] },
+      jurisdiction: { shortName: "TA069" },
+      isDeleted: false,
+    });
+  });
+
+  it("with --all, still limits the soft-delete to the scraped jurisdiction", async () => {
+    const prisma = mockDeep<PrismaClient>();
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    prisma.caseFile.updateMany.mockResolvedValue({ count: 1 });
+
+    await reconcileDeleted(
+      { ...baseArgs, all: true, jurisdiction: "TA069bis", legalEntityDivisionIds: [] },
+      ["A"],
+      makeDeps(prisma),
+    );
+
+    const where = prisma.caseFile.updateMany.mock.calls[0][0].where!;
+    expect(where).toEqual({
+      caseFileNumber: { notIn: ["A"] },
+      jurisdiction: { shortName: "TA069bis" },
       isDeleted: false,
     });
   });
@@ -146,6 +166,7 @@ describe("reconcileDeleted", () => {
     const where = prisma.caseFile.updateMany.mock.calls[0][0].where!;
     expect(where).toMatchObject({
       lastStatus: { label: { notIn: ["Terminé"] } },
+      jurisdiction: { shortName: "TA069" },
       isDeleted: false,
     });
   });

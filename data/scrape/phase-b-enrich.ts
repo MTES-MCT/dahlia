@@ -1,6 +1,6 @@
 import { describeError, sleep } from "../telerecours/http";
 import { enrichCaseFile } from "../persistence/enrich-case-file";
-import { EXCLUDED_ENRICHMENT_STATUS_LABELS, enrichmentTargetsWhere } from "./where";
+import { EXCLUDED_ENRICHMENT_STATUS_LABELS, scrapedPerimeterWhere } from "./where";
 import type { Args, ScrapeDeps } from "./pipeline";
 
 const DEFAULT_RATE_LIMIT_MS = 150;
@@ -21,7 +21,7 @@ export async function phaseB(
   );
 
   const targets = await prisma.caseFile.findMany({
-    where: enrichmentTargetsWhere(args),
+    where: scrapedPerimeterWhere(args, args.enrich !== "all"),
     select: { caseFileNumber: true },
     orderBy: { lastStatusDate: "desc" },
   });
