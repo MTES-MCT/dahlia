@@ -13,9 +13,6 @@ type ProconnectDiscovery = {
 
 export type ProconnectUserInfo = {
   id: string;
-  // OIDC subject. Better Auth uses `sub` (not `id`) as the account key
-  // for providers discovered as OpenID Connect.
-  sub: string;
   email: string | null;
   emailVerified: true;
   name: string;
@@ -66,10 +63,8 @@ export async function fetchProconnectUserInfo(
 
   const firstName = ((payload.given_name as string | undefined) ?? "").trim();
   const lastName = ((payload.usual_name as string | undefined) ?? "").trim();
-  const subject = String(payload.sub);
   return {
-    id: subject,
-    sub: subject,
+    id: String(payload.sub),
     email: (payload.email as string | undefined) ?? null,
     emailVerified: true,
     name: `${firstName} ${lastName}`.trim(),
