@@ -4,10 +4,10 @@ import { ProConnectLoginButton } from "./proconnect-login-button";
 
 // The button triggers the ProConnect OAuth2 flow via the better-auth client;
 // mock it so no real auth client is instantiated and the call is observable.
-const mockSocial = vi.fn();
+const mockOauth2 = vi.fn();
 
 vi.mock("@/app/lib/auth-client", () => ({
-  signIn: { social: (...args: unknown[]) => mockSocial(...args) },
+  signIn: { oauth2: (...args: unknown[]) => mockOauth2(...args) },
 }));
 
 describe("ProConnectLoginButton", () => {
@@ -30,9 +30,9 @@ describe("ProConnectLoginButton", () => {
 
     fireEvent.click(screen.getByRole("button"));
 
-    expect(mockSocial).toHaveBeenCalledTimes(1);
-    expect(mockSocial).toHaveBeenCalledWith({
-      provider: "proconnect",
+    expect(mockOauth2).toHaveBeenCalledTimes(1);
+    expect(mockOauth2).toHaveBeenCalledWith({
+      providerId: "proconnect",
       callbackURL: "/case_files",
     });
   });
