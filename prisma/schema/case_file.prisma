@@ -11,6 +11,7 @@ enum LitigationType {
 enum RightType {
   DALO // Logement
   DAHO // Hébergement
+  NI_DALO_NI_DAHO // Ni DALO ni DAHO (référé liberté, hébergement d'urgence, amende…)
 }
 
 // Type d'échéance à produire, saisi manuellement pour les dossiers en cours d'instruction.
@@ -63,6 +64,9 @@ model CaseFile {
 
   // User-managed tags (M2M via case_file_tags), edited from the details modal.
   caseFileTags CaseFileTag[]
+
+  // History of the fields written by the classification script.
+  classificationFieldChanges ClassificationFieldChange[]
 
   procedureState String?
 

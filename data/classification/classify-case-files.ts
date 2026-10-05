@@ -2,7 +2,12 @@ import type { LitigationType, Prisma, PrismaClient, RightType } from "@prisma/cl
 import type { ClassificationChange } from "./classification-csv";
 import { classify, hasClassification } from "./engine";
 import { DEFAULT_RULES } from "./rules";
-import type { ClassificationInput, ClassificationResult, ClassificationRule } from "./types";
+import type {
+  ClassificationAttribute,
+  ClassificationInput,
+  ClassificationResult,
+  ClassificationRule,
+} from "./types";
 
 // The classification-relevant state of a case file, as read from the database.
 export interface CaseFileClassificationState {
@@ -98,6 +103,25 @@ export function planCaseFileUpdate(
   return update;
 }
 
+// One history row per written field, attributed to the rule that produced the
+// new value (see the `classification_field_changes` table).
+export function fieldChangesOf(
+  current: CaseFileClassificationState,
+  update: CaseFileClassificationUpdate,
+  result: ClassificationResult,
+): Prisma.ClassificationFieldChangeCreateManyInput[] {
+  const ruleIdOf = (field: ClassificationAttribute) =>
+    result.matches.find((match) => match.attributes.includes(field))?.ruleId ?? "unknown";
+
+  return (Object.keys(update) as (keyof CaseFileClassificationUpdate)[]).map((field) => ({
+    caseFileNumber: current.caseFileNumber,
+    field,
+    previousValue: current[field],
+    newValue: String(update[field]),
+    ruleId: ruleIdOf(field),
+  }));
+}
+
 function caseFilesWhere(options: ClassifyCaseFilesOptions): Prisma.CaseFileWhereInput {
   // A case file without a title carries no text to classify: skip it entirely
   // so it neither gets scanned nor pollutes the unmatched sample.
@@ -182,10 +206,16 @@ export async function classifyCaseFiles(
     }
 
     if (!options.dryRun) {
-      await prisma.caseFile.update({
-        where: { caseFileNumber: caseFile.caseFileNumber },
-        data: update,
-      });
+      // The case file and its history are written together, or not at all.
+      await prisma.$transaction([
+        prisma.caseFile.update({
+          where: { caseFileNumber: caseFile.caseFileNumber },
+          data: update,
+        }),
+        prisma.classificationFieldChange.createMany({
+          data: fieldChangesOf(caseFile, update, result),
+        }),
+      ]);
     }
   }
 
