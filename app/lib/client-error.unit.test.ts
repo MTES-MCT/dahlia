@@ -43,7 +43,20 @@ describe("clientErrorMessage", () => {
     expect(message).toBe("Échec du téléchargement de la pièce");
     expect(message).not.toContain("administrations.telerecours.fr");
     expect(message).not.toContain("upstream-secret");
-    expect(consoleError).toHaveBeenCalledWith(UPSTREAM);
+    expect(consoleError).toHaveBeenCalledWith(
+      "Error: GET https://administrations.telerecours.fr/api/case-file/1 failed: 502Body: upstream-secret",
+    );
+  });
+
+  it("neutralise les retours à la ligne dans le journal", () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const injected = new Error("échec\r\nINFO forged entry\nBody: suite");
+
+    clientErrorMessage(injected, "Échec du téléchargement de la pièce");
+
+    const logged = consoleError.mock.calls[0]?.[0];
+    expect(logged).toBe("Error: échecINFO forged entryBody: suite");
+    expect(String(logged)).not.toMatch(/\n|\r/);
   });
 
   it("ajoute le diagnostic describeError en développement", () => {
