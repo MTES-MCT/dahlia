@@ -5,9 +5,12 @@ export type AdminMutationResult = { ok: true } | { ok: false; error: string };
 
 export type AdminAuthResult = { ok: true; userId: string } | { ok: false; error: string };
 
+// Validation is required in addition to the admin role, matching the protected
+// layout and case-file scope. An unvalidated admin must not reach admin actions
+// (including self-validation).
 export async function requireAdmin(): Promise<AdminAuthResult> {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user?.isAdmin) {
+  if (!session?.user?.isValidated || !session.user.isAdmin) {
     return { ok: false, error: "Accès réservé aux administrateurs." };
   }
   return { ok: true, userId: session.user.id };
