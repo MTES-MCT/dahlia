@@ -9,6 +9,7 @@
 import { cache } from "react";
 import { headers } from "next/headers";
 import type { Prisma } from "@prisma/client";
+import { clientIpFrom, logSecurityDenial } from "@/app/lib/audit-log";
 import { auth } from "@/app/lib/auth";
 import { prisma } from "@/app/lib/prisma";
 
@@ -66,5 +67,22 @@ export async function canAccessCaseFile(caseFileNumber: string): Promise<boolean
   const count = await prisma.caseFile.count({
     where: { caseFileNumber, ...(await caseFileScopeWhere()) },
   });
-  return count > 0;
+  if (count > 0) return true;
+  await logCaseFileScopeMiss({ resource: "case_file", caseFileNumber });
+  return false;
+}
+
+// A scoped read that misses (unknown id or outside the caller's jurisdictions)
+// is answered as 404. Record the attempt so enumeration is visible. The
+// user-facing response stays indistinguishable from a missing record.
+export async function logCaseFileScopeMiss(target: Record<string, string>): Promise<void> {
+  const requestHeaders = await headers();
+  const session = await auth.api.getSession({ headers: requestHeaders });
+  logSecurityDenial({
+    action: "auth.scope.denied",
+    actorId: session?.user?.id ?? null,
+    reason: "out_of_scope",
+    ip: clientIpFrom(requestHeaders),
+    target,
+  });
 }

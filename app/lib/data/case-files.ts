@@ -12,7 +12,7 @@ import {
   type CaseFileDashboardRow,
 } from "@/app/lib/case-files-dashboard-columns";
 import { prisma } from "@/app/lib/prisma";
-import { caseFileScopeWhere } from "@/app/lib/case-file-scope";
+import { caseFileScopeWhere, logCaseFileScopeMiss } from "@/app/lib/case-file-scope";
 import { normalizeForSearch, parseSearchQuery, type FacetKey } from "@/app/lib/case-file-search";
 import { buildWordAndFilter, combineAnd, facetSearchWords } from "@/app/lib/search-where";
 
@@ -242,22 +242,30 @@ const CASE_FILE_DETAIL_INCLUDE = {
 // query. `findFirst` rather than `findUnique`, because the permission scope adds
 // a non-unique condition: out of scope reads as "not found" (404).
 export const fetchCaseFileDetail = cache(async (caseFileNumber: string) => {
-  return prisma.caseFile.findFirst({
+  const caseFile = await prisma.caseFile.findFirst({
     where: { caseFileNumber, ...(await caseFileScopeWhere()) },
     include: CASE_FILE_DETAIL_INCLUDE,
   });
+  if (!caseFile) {
+    await logCaseFileScopeMiss({ resource: "case_file", caseFileNumber });
+  }
+  return caseFile;
 });
 
 export type CaseFileDetail = Prisma.PromiseReturnType<typeof fetchCaseFileDetail>;
 
 export async function fetchCaseFileDebugSnapshot(caseFileNumber: string) {
-  return prisma.caseFile.findFirst({
+  const caseFile = await prisma.caseFile.findFirst({
     where: { caseFileNumber, ...(await caseFileScopeWhere()) },
     include: {
       ...CASE_FILE_DETAIL_INCLUDE,
       attachedFiles: { include: { fileFamilyType: true } },
     },
   });
+  if (!caseFile) {
+    await logCaseFileScopeMiss({ resource: "case_file", caseFileNumber });
+  }
+  return caseFile;
 }
 
 export async function fetchAllCaseFilesForExport(

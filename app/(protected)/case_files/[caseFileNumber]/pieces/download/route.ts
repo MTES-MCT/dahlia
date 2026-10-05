@@ -1,5 +1,6 @@
 import { zipSync } from "fflate";
 import { getCaseFileDisplayName } from "@/app/lib/case-file-format";
+import { logCaseFileScopeMiss } from "@/app/lib/case-file-scope";
 import { fetchAttachedFile } from "@/app/lib/data/attached-files";
 import { fetchCaseFileDetail } from "@/app/lib/data/case-files";
 import { clientErrorMessage } from "@/app/lib/client-error";
@@ -60,6 +61,15 @@ export async function GET(request: Request, { params }: RouteContext) {
     for (const encodedFileId of encodedFileIds) {
       const file = await fetchAttachedFile(encodedFileId);
       if (!file || file.caseFileNumber !== decodedCaseFileNumber) {
+        // A null file is already recorded by `fetchAttachedFile`. A file that
+        // exists in scope but was requested under another case file number is not.
+        if (file) {
+          await logCaseFileScopeMiss({
+            resource: "attached_file",
+            encodedFileId,
+            caseFileNumber: decodedCaseFileNumber,
+          });
+        }
         return new Response(`Pièce introuvable : ${encodedFileId}`, { status: 404 });
       }
       const { data, downloadName } = await fetchPieceContent(file);

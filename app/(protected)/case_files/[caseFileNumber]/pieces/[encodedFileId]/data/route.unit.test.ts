@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+const mockLogCaseFileScopeMiss = vi.hoisted(() => vi.fn(async () => {}));
+
+vi.mock("@/app/lib/case-file-scope", () => ({
+  logCaseFileScopeMiss: mockLogCaseFileScopeMiss,
+}));
+
 vi.mock("@/app/lib/data/attached-files", () => ({
   fetchAttachedFile: vi.fn(),
 }));
@@ -46,6 +52,11 @@ describe("GET /case_files/[caseFileNumber]/pieces/[encodedFileId]/data", () => {
 
     expect(response.status).toBe(404);
     expect(mockedFetchPieceContent).not.toHaveBeenCalled();
+    expect(mockLogCaseFileScopeMiss).toHaveBeenCalledWith({
+      resource: "attached_file",
+      encodedFileId: "file-1",
+      caseFileNumber: CASE_FILE_NUMBER,
+    });
   });
 
   it("returns 502 without the upstream diagnostic outside development", async () => {

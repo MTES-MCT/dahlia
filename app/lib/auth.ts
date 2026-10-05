@@ -1,6 +1,8 @@
 import { betterAuth } from "better-auth/minimal";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { genericOAuth } from "better-auth/plugins";
+import { clientIpFrom, logSecurityDenial, oauthCallbackDenial } from "@/app/lib/audit-log";
 import { prisma } from "@/app/lib/prisma";
 import {
   fetchProconnectUserInfo,
@@ -16,6 +18,17 @@ const PROCONNECT_URL = process.env.PROCONNECT_URL ?? "https://fca.integ01.dev-ag
 const PROCONNECT_DISCOVERY_URL = `${PROCONNECT_URL}/api/v2/.well-known/openid-configuration`;
 
 export { getProconnectDiscovery };
+
+function headerValue(headers: HeadersInit | undefined, name: string): string | null {
+  if (!headers) return null;
+  if (headers instanceof Headers) return headers.get(name);
+  if (Array.isArray(headers)) {
+    const found = headers.find(([key]) => key.toLowerCase() === name);
+    return found?.[1] ?? null;
+  }
+  const value = headers[name] ?? headers[name.toLowerCase()];
+  return typeof value === "string" ? value : null;
+}
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, { provider: "postgresql" }),
@@ -54,6 +67,27 @@ export const auth = betterAuth({
         },
       },
     },
+  },
+  // Failed ProConnect callbacks (IdP error, bad code, missing profile) redirect
+  // with `?error=`. Record them: there is often no local user yet.
+  hooks: {
+    after: createAuthMiddleware(async (ctx) => {
+      const returned = ctx.context.returned;
+      const denial = oauthCallbackDenial({
+        path: ctx.path,
+        statusCode: returned instanceof APIError ? returned.statusCode : undefined,
+        location: returned instanceof APIError ? headerValue(returned.headers, "location") : null,
+      });
+      if (!denial) return;
+      const providerId = ctx.params?.providerId;
+      logSecurityDenial({
+        action: "auth.login.failed",
+        actorId: null,
+        reason: denial.reason,
+        ip: clientIpFrom(ctx.headers instanceof Headers ? ctx.headers : undefined),
+        target: { providerId: typeof providerId === "string" ? providerId : "unknown" },
+      });
+    }),
   },
   user: {
     additionalFields: {

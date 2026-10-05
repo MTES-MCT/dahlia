@@ -1,6 +1,12 @@
 import { unzipSync } from "fflate";
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 
+const mockLogCaseFileScopeMiss = vi.hoisted(() => vi.fn(async () => {}));
+
+vi.mock("@/app/lib/case-file-scope", () => ({
+  logCaseFileScopeMiss: mockLogCaseFileScopeMiss,
+}));
+
 vi.mock("@/app/lib/data/attached-files", () => ({
   fetchAttachedFile: vi.fn(),
 }));
@@ -154,6 +160,11 @@ describe("GET /case_files/[caseFileNumber]/pieces/download", () => {
     expect(response.status).toBe(404);
     expect(await response.text()).toBe("Pièce introuvable : file-1");
     expect(mockedFetchPieceContent).not.toHaveBeenCalled();
+    expect(mockLogCaseFileScopeMiss).toHaveBeenCalledWith({
+      resource: "attached_file",
+      encodedFileId: "file-1",
+      caseFileNumber: CASE_FILE_NUMBER,
+    });
   });
 
   it("returns a zip archive with the expected headers and entry names", async () => {
