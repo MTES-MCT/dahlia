@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 const mockGetSession = vi.fn();
 const mockScopeFindMany = vi.fn();
@@ -45,8 +45,14 @@ function mockScope(jurisdictionIds: number[]) {
 }
 
 describe("case-file-scope", () => {
+  const info = vi.spyOn(console, "info").mockImplementation(() => {});
+
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    info.mockClear();
   });
 
   describe("getCurrentCaseFileScope", () => {
@@ -175,6 +181,7 @@ describe("case-file-scope", () => {
       expect(mockCaseFileCount).toHaveBeenCalledWith({
         where: { caseFileNumber: "TA069-001", jurisdictionId: { in: [3] } },
       });
+      expect(info).not.toHaveBeenCalled();
     });
 
     it("refuse un dossier hors périmètre", async () => {
@@ -183,6 +190,16 @@ describe("case-file-scope", () => {
       mockCaseFileCount.mockResolvedValue(0);
 
       expect(await canAccessCaseFile("TA075-001")).toBe(false);
+      expect(JSON.parse(String(info.mock.calls[0]?.[0]))).toEqual(
+        expect.objectContaining({
+          type: "audit",
+          outcome: "denied",
+          actorId: "u1",
+          action: "auth.scope.denied",
+          reason: "out_of_scope",
+          target: { resource: "case_file", caseFileNumber: "TA075-001" },
+        }),
+      );
     });
   });
 });

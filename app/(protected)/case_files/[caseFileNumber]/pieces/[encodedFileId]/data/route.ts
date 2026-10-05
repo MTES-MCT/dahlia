@@ -1,4 +1,5 @@
 import { clientErrorMessage } from "@/app/lib/client-error";
+import { logCaseFileScopeMiss } from "@/app/lib/case-file-scope";
 import { fetchAttachedFile } from "@/app/lib/data/attached-files";
 import { fetchPieceContent } from "@/app/lib/data/piece-content";
 
@@ -16,6 +17,15 @@ export async function GET(_request: Request, { params }: RouteContext) {
 
   const file = await fetchAttachedFile(decodedFileId);
   if (!file || file.caseFileNumber !== decodedCaseFileNumber) {
+    // A null file is already recorded by `fetchAttachedFile`. A file that
+    // exists in scope but was requested under another case file number is not.
+    if (file) {
+      await logCaseFileScopeMiss({
+        resource: "attached_file",
+        encodedFileId: decodedFileId,
+        caseFileNumber: decodedCaseFileNumber,
+      });
+    }
     return new Response("Pièce introuvable", { status: 404 });
   }
 
