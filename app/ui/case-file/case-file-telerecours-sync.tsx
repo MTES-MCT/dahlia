@@ -6,11 +6,25 @@ import clsx from "clsx";
 import { fr } from "@codegouvfr/react-dsfr";
 import { type RefreshCaseFileResult } from "@/app/(protected)/case_files/[caseFileNumber]/actions";
 import { formatDateTimeFr } from "@/app/lib/case-file-format";
+import { withDevelopmentDetail } from "@/app/lib/development-detail";
 
 type Props = {
   caseFileNumber: string;
   telerecoursSyncAt: Date | null;
 };
+
+const SYNC_FAILURE = "Échec de la synchronisation";
+
+// The refresh action already returns SYNC_FAILURE, with the diagnostic appended
+// in development. Other failures ("Dossier introuvable.", network) are still
+// prefixed here. Outside development every message collapses to SYNC_FAILURE,
+// even if a caller forgot to strip the upstream detail.
+export function formatTelerecoursSyncError(error: string): string {
+  if (error === SYNC_FAILURE || error.startsWith(`${SYNC_FAILURE} : `)) {
+    return process.env.NODE_ENV === "development" ? error : SYNC_FAILURE;
+  }
+  return withDevelopmentDetail(SYNC_FAILURE, error);
+}
 
 export function telerecoursSyncPath(caseFileNumber: string): string {
   return `/case_files/${encodeURIComponent(caseFileNumber)}/telerecours-sync`;
@@ -105,9 +119,7 @@ export function CaseFileTelerecoursSync({ caseFileNumber, telerecoursSyncAt }: P
       {isPending ? <p className={fr.cx("fr-mb-0")}>Synchronisation…</p> : null}
       {error ? (
         <p className={clsx(fr.cx("fr-mb-0"), "text-(--text-default-error)")}>
-          {process.env.NODE_ENV === "development"
-            ? `Échec de la synchronisation : ${error}`
-            : "Échec de la synchronisation"}
+          {formatTelerecoursSyncError(error)}
         </p>
       ) : null}
     </div>

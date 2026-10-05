@@ -111,6 +111,8 @@ describe("GET /case_files/[caseFileNumber]/pieces/download", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
   });
 
   it("returns 400 when no piece id is provided", async () => {
@@ -166,7 +168,7 @@ describe("GET /case_files/[caseFileNumber]/pieces/download", () => {
     expect(response.headers.get("Content-Type")).toBe("application/zip");
     expect(response.headers.get("Cache-Control")).toBe("no-store");
     expect(response.headers.get("Content-Disposition")).toBe(
-      'attachment; filename="TA069_2024_001 - Dupont Jean - Injonction - DALO-2026-07-13.zip"; filename*=UTF-8\'\'TA069_2024_001%20-%20Dupont%20Jean%20-%20Injonction%20-%20DALO-2026-07-13.zip',
+      "attachment; filename=\"TA069_2024_001 - Dupont Jean - Injonction - DALO-2026-07-13.zip\"; filename*=UTF-8''TA069_2024_001%20-%20Dupont%20Jean%20-%20Injonction%20-%20DALO-2026-07-13.zip",
     );
 
     expect(mockedFetchCaseFileDetail).toHaveBeenCalledWith(CASE_FILE_NUMBER);
@@ -196,7 +198,7 @@ describe("GET /case_files/[caseFileNumber]/pieces/download", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("Content-Disposition")).toBe(
-      'attachment; filename="TA069_2024_001 - Dupont Jean c_ Pr_fecture du Rh_ne - Injonction - DALO-2026-07-13.zip"; filename*=UTF-8\'\'TA069_2024_001%20-%20Dupont%20Jean%20c_%20Pr%C3%A9fecture%20du%20Rh%C3%B4ne%20-%20Injonction%20-%20DALO-2026-07-13.zip',
+      "attachment; filename=\"TA069_2024_001 - Dupont Jean c_ Pr_fecture du Rh_ne - Injonction - DALO-2026-07-13.zip\"; filename*=UTF-8''TA069_2024_001%20-%20Dupont%20Jean%20c_%20Pr%C3%A9fecture%20du%20Rh%C3%B4ne%20-%20Injonction%20-%20DALO-2026-07-13.zip",
     );
   });
 
@@ -219,7 +221,28 @@ describe("GET /case_files/[caseFileNumber]/pieces/download", () => {
     expect(Array.from(entries["requete (1).pdf"]!)).toEqual([0x02]);
   });
 
-  it("returns 502 when fetching piece content fails", async () => {
+  it("returns 502 without the upstream diagnostic outside development", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    mockedFetchCaseFileDetail.mockResolvedValue(CASE_FILE as never);
+    mockedFetchAttachedFile.mockResolvedValue(attachedFile("file-1") as never);
+    mockedFetchPieceContent.mockRejectedValue(
+      new Error(
+        "GET https://administrations.telerecours.fr/api/file-api/1 failed: 502\nBody: upstream-secret",
+      ),
+    );
+
+    const response = await GET(downloadRequest(["file-1"]), routeContext());
+
+    expect(response.status).toBe(502);
+    const body = await response.text();
+    expect(body).toBe("Échec du téléchargement des pièces");
+    expect(body).not.toContain("administrations.telerecours.fr");
+    expect(body).not.toContain("upstream-secret");
+  });
+
+  it("returns 502 with the upstream diagnostic in development", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.spyOn(console, "error").mockImplementation(() => {});
     mockedFetchCaseFileDetail.mockResolvedValue(CASE_FILE as never);
     mockedFetchAttachedFile.mockResolvedValue(attachedFile("file-1") as never);
     mockedFetchPieceContent.mockRejectedValue(new Error("Télérecours indisponible"));

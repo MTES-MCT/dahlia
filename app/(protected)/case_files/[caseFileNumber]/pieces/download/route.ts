@@ -2,8 +2,8 @@ import { zipSync } from "fflate";
 import { getCaseFileDisplayName } from "@/app/lib/case-file-format";
 import { fetchAttachedFile } from "@/app/lib/data/attached-files";
 import { fetchCaseFileDetail } from "@/app/lib/data/case-files";
+import { clientErrorMessage } from "@/app/lib/client-error";
 import { fetchPieceContent } from "@/app/lib/data/piece-content";
-import { describeError } from "@/data/telerecours/http";
 
 // The download reads live per-user content and relies on Node.js APIs, so it is
 // fully dynamic and runs on the Node.js runtime.
@@ -83,7 +83,7 @@ export async function GET(request: Request, { params }: RouteContext) {
       },
     });
   } catch (error) {
-    return new Response(`Échec du téléchargement des pièces : ${describeError(error)}`, {
+    return new Response(clientErrorMessage(error, "Échec du téléchargement des pièces"), {
       status: 502,
     });
   }

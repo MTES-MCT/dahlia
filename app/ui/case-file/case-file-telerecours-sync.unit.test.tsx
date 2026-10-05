@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, waitFor } from "@testing-library/react";
-import { CaseFileTelerecoursSync, telerecoursSyncPath } from "./case-file-telerecours-sync";
+import {
+  CaseFileTelerecoursSync,
+  formatTelerecoursSyncError,
+  telerecoursSyncPath,
+} from "./case-file-telerecours-sync";
 
 const mockRouterRefresh = vi.fn();
 const mockFetch = vi.fn();
@@ -97,6 +101,35 @@ describe("CaseFileTelerecoursSync", () => {
     });
     expect(screen.queryByText(/telerecoursSyncAt/)).toBeNull();
     expect(mockRouterRefresh).not.toHaveBeenCalled();
+  });
+
+  it("n'ajoute pas une seconde fois le préfixe lorsque le serveur a déjà formaté l'erreur", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    const formatted =
+      "Échec de la synchronisation : Error: GET https://administrations.telerecours.fr/api/case-file/1";
+    mockFetch.mockResolvedValue(jsonResponse({ ok: false, error: formatted }));
+
+    render(
+      <CaseFileTelerecoursSync
+        caseFileNumber="TA069-SYNC-ERROR-PREFIX"
+        telerecoursSyncAt={new Date("2024-07-15T10:30:00Z")}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(formatted)).toBeTruthy();
+    });
+    expect(
+      screen.queryByText(/Échec de la synchronisation : Échec de la synchronisation/),
+    ).toBeNull();
+  });
+
+  it("masque un message déjà formaté en dehors du développement", () => {
+    expect(
+      formatTelerecoursSyncError(
+        "Échec de la synchronisation : Error: GET https://administrations.telerecours.fr/api/case-file/1",
+      ),
+    ).toBe("Échec de la synchronisation");
   });
 
   it("affiche le détail de l'erreur en environnement de développement", async () => {

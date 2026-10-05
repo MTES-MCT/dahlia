@@ -293,6 +293,45 @@ describe("case-files", () => {
       );
     });
 
+    it("sorts lastProducer by display name", async () => {
+      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
+      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
+
+      await fetchCaseFilesTableData(1, 10, "lastProducer", "ascending");
+
+      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { lastProducer: { displayName: { sort: "asc", nulls: "last" } } },
+        }),
+      );
+    });
+
+    it("sorts by depositDate when that dashboard column is requested", async () => {
+      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
+      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
+
+      await fetchCaseFilesTableData(1, 10, "depositDate", "descending");
+
+      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { depositDate: "desc" },
+        }),
+      );
+    });
+
+    it("falls back to the default column when sortBy is not a sortable dashboard column", async () => {
+      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
+      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
+
+      await fetchCaseFilesTableData(1, 10, "title", "descending");
+
+      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { memoryDeadlineDate: { sort: "desc", nulls: "last" } },
+        }),
+      );
+    });
+
     it("omits orderBy when sortBy is null", async () => {
       vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
       vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
@@ -794,6 +833,18 @@ describe("case-files", () => {
       expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { isDeleted: false, jurisdictionId: { in: [3] } },
+        }),
+      );
+    });
+
+    it("ignores a sortBy that is not a sortable dashboard column", async () => {
+      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
+
+      await fetchAllCaseFilesForExport("title", "descending");
+
+      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { memoryDeadlineDate: { sort: "desc", nulls: "last" } },
         }),
       );
     });
