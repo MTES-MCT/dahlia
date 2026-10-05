@@ -1,6 +1,6 @@
+import { clientErrorMessage } from "@/app/lib/client-error";
 import { fetchAttachedFile } from "@/app/lib/data/attached-files";
 import { fetchPieceContent } from "@/app/lib/data/piece-content";
-import { describeError } from "@/data/telerecours/http";
 
 type RouteContext = {
   params: Promise<{ caseFileNumber: string; encodedFileId: string }>;
@@ -34,7 +34,7 @@ export async function GET(_request: Request, { params }: RouteContext) {
       },
     });
   } catch (error) {
-    return new Response(`Échec du téléchargement de la pièce : ${describeError(error)}`, {
+    return new Response(clientErrorMessage(error, "Échec du téléchargement de la pièce"), {
       status: 502,
     });
   }

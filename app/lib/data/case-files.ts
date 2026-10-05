@@ -7,8 +7,8 @@ import {
   RIGHT_TYPE_LABELS,
 } from "@/app/lib/case-file-enums";
 import {
+  CASE_FILES_DASHBOARD_COLUMNS,
   CASE_FILES_DASHBOARD_INCLUDE,
-  HEARING_CONVOCATION_SORT_KEY,
   type CaseFileDashboardRow,
 } from "@/app/lib/case-files-dashboard-columns";
 import { prisma } from "@/app/lib/prisma";
@@ -26,17 +26,34 @@ export type CaseFilesTableData = {
   totalCount: number;
 };
 
+function defaultCaseFileOrderBy(
+  direction: Prisma.SortOrder,
+): Prisma.CaseFileOrderByWithRelationInput {
+  return { memoryDeadlineDate: { sort: direction, nulls: "last" } };
+}
+
+// `sortBy` comes from the query string (dashboard and export). Only columns
+// flagged sortable on the dashboard may become an orderBy field; every other
+// value falls back to the default column.
 function buildOrderBy(
   sortBy: string,
   direction: Prisma.SortOrder,
-): Prisma.CaseFileOrderByWithRelationInput | undefined {
-  if (sortBy === "lastProducer") {
-    return { lastProducer: { displayName: { sort: direction, nulls: "last" } } };
+): Prisma.CaseFileOrderByWithRelationInput {
+  const column = CASE_FILES_DASHBOARD_COLUMNS.find(
+    (candidate) => candidate.sortable === true && candidate.key === sortBy,
+  );
+
+  switch (column?.key) {
+    case "caseFileNumber":
+      return { caseFileNumber: direction };
+    case "depositDate":
+      return { depositDate: direction };
+    case "lastProducer":
+      return { lastProducer: { displayName: { sort: direction, nulls: "last" } } };
+    // `convocationDate` and any key outside the sortable whitelist.
+    default:
+      return defaultCaseFileOrderBy(direction);
   }
-  if (sortBy === HEARING_CONVOCATION_SORT_KEY) {
-    return { memoryDeadlineDate: { sort: direction, nulls: "last" } };
-  }
-  return { [sortBy]: direction };
 }
 
 function matchingLitigationTypesForSearchWord(word: string): LitigationType[] {
