@@ -8,7 +8,8 @@ import { NextResponse } from "next/server";
 // 2. delete the local session (better-auth) ;
 // 3. redirect to the ProConnect end_session_endpoint to close the session
 //    on the identity provider side, which will then redirect to /logout.
-//    post_logout_redirect_uri must match a logout URL registered on ProConnect.
+//    That route sends the user to the home page. post_logout_redirect_uri
+//    must match a logout URL registered on ProConnect.
 export async function GET(request: Request) {
   const requestHeaders = await headers();
 

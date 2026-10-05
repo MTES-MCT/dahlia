@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { metadata as rootMetadata } from "./layout";
 import { metadata as homeMetadata } from "./page";
 import { metadata as connexionMetadata } from "./connexion/page";
-import { metadata as logoutMetadata } from "./logout/page";
 import { metadata as mentionsLegalesMetadata } from "./mentions-legales/page";
 import { metadata as declarationAccessibiliteMetadata } from "./declaration-accessibilite/page";
 import { metadata as donneesPersonnellesMetadata } from "./donnees-personnelles/page";
@@ -92,10 +91,6 @@ describe("Titres des pages", () => {
     expect(resolveTitle(connexionMetadata.title)).toBe("Connexion - DAHLIA");
   });
 
-  it("intitule la page de déconnexion", () => {
-    expect(resolveTitle(logoutMetadata.title)).toBe("Déconnexion - DAHLIA");
-  });
-
   it("intitule la page des mentions légales", () => {
     expect(resolveTitle(mentionsLegalesMetadata.title)).toBe("Mentions légales - DAHLIA");
   });
@@ -162,7 +157,6 @@ describe("Titres des pages", () => {
     const titles = [
       homeMetadata.title,
       connexionMetadata.title,
-      logoutMetadata.title,
       mentionsLegalesMetadata.title,
       declarationAccessibiliteMetadata.title,
       donneesPersonnellesMetadata.title,
