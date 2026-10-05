@@ -8,10 +8,15 @@ vi.mock("@/app/lib/prisma", () => ({ prisma: {} }));
 // getProconnectDiscovery caches the document at the module level. We therefore
 // reimport the module freshly for each test to start with a fresh cache and keep
 // the tests independent of their execution order.
-async function freshGetProconnectDiscovery() {
+async function freshAuthModule() {
   vi.resetModules();
-  const mod = await import("./auth");
-  return mod.getProconnectDiscovery;
+  return import("./auth");
+}
+
+// A fresh Response per call: Better Auth reads discovery while initializing
+// the generic OAuth provider, and a Response body can only be consumed once.
+function mockDiscoveryFetch(body: string, status: number) {
+  return vi.fn().mockImplementation(() => Promise.resolve(new Response(body, { status })));
 }
 
 describe("getProconnectDiscovery", () => {
@@ -25,12 +30,10 @@ describe("getProconnectDiscovery", () => {
 
   it("récupère le document de discovery via l’URL OIDC bien connue", async () => {
     const discovery = { issuer: "https://fca.example/api/v2" };
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue(new Response(JSON.stringify(discovery), { status: 200 }));
+    const fetchMock = mockDiscoveryFetch(JSON.stringify(discovery), 200);
     vi.stubGlobal("fetch", fetchMock);
 
-    const getProconnectDiscovery = await freshGetProconnectDiscovery();
+    const { getProconnectDiscovery } = await freshAuthModule();
     const result = await getProconnectDiscovery();
 
     expect(result).toEqual(discovery);
@@ -40,23 +43,24 @@ describe("getProconnectDiscovery", () => {
   });
 
   it("met en cache le résultat : un seul appel réseau pour plusieurs lectures", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue(new Response(JSON.stringify({ issuer: "x" }), { status: 200 }));
+    const fetchMock = mockDiscoveryFetch(JSON.stringify({ issuer: "x" }), 200);
     vi.stubGlobal("fetch", fetchMock);
 
-    const getProconnectDiscovery = await freshGetProconnectDiscovery();
+    const { auth, getProconnectDiscovery } = await freshAuthModule();
+    // Plugin init also fetches discovery; wait for it before counting our calls.
+    await auth.$context;
+    const callsAfterAuthInit = fetchMock.mock.calls.length;
     await getProconnectDiscovery();
     await getProconnectDiscovery();
 
-    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(fetchMock.mock.calls.length - callsAfterAuthInit).toBe(1);
   });
 
   it("lève une erreur explicite quand la discovery répond un statut non-2xx", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(new Response("nope", { status: 503 }));
+    const fetchMock = mockDiscoveryFetch("nope", 503);
     vi.stubGlobal("fetch", fetchMock);
 
-    const getProconnectDiscovery = await freshGetProconnectDiscovery();
+    const { getProconnectDiscovery } = await freshAuthModule();
 
     await expect(getProconnectDiscovery()).rejects.toThrow("503");
   });

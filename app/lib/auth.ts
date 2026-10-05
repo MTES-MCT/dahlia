@@ -1,7 +1,6 @@
 import { betterAuth } from "better-auth/minimal";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { genericOAuth } from "better-auth/plugins";
-import type { OAuth2UserInfo } from "better-auth/oauth2";
 import { prisma } from "@/app/lib/prisma";
 import {
   fetchProconnectUserInfo,
@@ -80,19 +79,15 @@ export const auth = betterAuth({
           pkce: true,
           // ProConnect allows client_secret_post (cf. discovery).
           authentication: "post",
-          // ProConnect requires a `nonce` parameter on the authorization request.
-          authorizationUrlParams: () => ({ nonce: crypto.randomUUID() }),
+          // OIDC nonce is generated and verified by Better Auth when discovery
+          // publishes a JWKS (disableIdTokenNonceBinding defaults to false).
           // The ProConnect userinfo is returned as a signed JWT (application/jwt),
           // not in JSON : we need to verify it and then decode it.
           getUserInfo: async (tokens) => {
             if (!tokens.accessToken) {
               return null;
             }
-            const profile = await fetchProconnectUserInfo(tokens.accessToken);
-            if (!profile) {
-              return null;
-            }
-            return profile as OAuth2UserInfo & { firstName: string; lastName: string };
+            return fetchProconnectUserInfo(tokens.accessToken);
           },
           // Kept for documentation / future input:true fields. firstName/lastName
           // are input:false so Better Auth ignores these on persist; the
