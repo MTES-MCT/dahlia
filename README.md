@@ -88,7 +88,7 @@ sont montées sur `/api/auth/*`.
 | `PROCONNECT_URL`           | Domaine de base ProConnect (intégration : `https://fca.integ01.dev-agentconnect.fr`). Les endpoints OIDC sont sous `/api/v2`. |
 
 > Côté espace partenaire ProConnect, déclarer la **redirect URI**
-> `http://localhost:3000/api/auth/oauth2/callback/proconnect` et la
+> `http://localhost:3000/api/auth/callback/proconnect` et la
 > **post-logout redirect URI** `http://localhost:3000/`.
 
 ### Flux
