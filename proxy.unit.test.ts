@@ -38,6 +38,7 @@ describe("proxy (contrôle d’accès)", () => {
   it.each([
     "/",
     "/connexion",
+    "/logout",
     "/mentions-legales",
     "/declaration-accessibilite",
     "/donnees-personnelles",

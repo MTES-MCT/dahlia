@@ -7,7 +7,9 @@ import { NextResponse } from "next/server";
 // 1. retrieve the stored id_token for the ProConnect account (id_token_hint) ;
 // 2. delete the local session (better-auth) ;
 // 3. redirect to the ProConnect end_session_endpoint to close the session
-//    on the identity provider side, which will then redirect to the home page.
+//    on the identity provider side, which will then redirect to /logout.
+//    That route sends the user to the home page. post_logout_redirect_uri
+//    must match a logout URL registered on ProConnect.
 export async function GET(request: Request) {
   const requestHeaders = await headers();
 
@@ -53,7 +55,7 @@ export async function GET(request: Request) {
   const discovery = await getProconnectDiscovery();
   const logoutUrl = new URL(discovery.end_session_endpoint);
   logoutUrl.searchParams.set("id_token_hint", idToken);
-  logoutUrl.searchParams.set("post_logout_redirect_uri", `${baseUrl}/`);
+  logoutUrl.searchParams.set("post_logout_redirect_uri", new URL("/logout", baseUrl).href);
   logoutUrl.searchParams.set("state", crypto.randomUUID());
 
   const redirect = NextResponse.redirect(logoutUrl);

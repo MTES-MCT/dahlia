@@ -11,6 +11,7 @@ import {
 const PUBLIC_PATHS = [
   "/",
   "/connexion",
+  "/logout",
   "/mentions-legales",
   "/declaration-accessibilite",
   "/donnees-personnelles",

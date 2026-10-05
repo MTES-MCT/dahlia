@@ -2,6 +2,7 @@ import { fr } from "@codegouvfr/react-dsfr";
 import { Badge } from "@codegouvfr/react-dsfr/Badge";
 import { Header, type HeaderProps } from "@codegouvfr/react-dsfr/Header";
 import clsx from "clsx";
+import { LogoutLink } from "@/app/ui/header/logout-link";
 
 // Minimal shape of the authenticated user needed to render the header.
 export type HeaderDahliaUser = {
@@ -32,11 +33,7 @@ export function HeaderDahlia({ user }: { user?: HeaderDahliaUser | null }) {
               },
             ]
           : []),
-        {
-          iconId: "fr-icon-logout-box-r-line",
-          linkProps: { href: "/api/auth/proconnect-logout", prefetch: false },
-          text: "Se déconnecter",
-        },
+        <LogoutLink key="logout" />,
       ]
     : [
         {

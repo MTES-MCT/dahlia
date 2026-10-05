@@ -103,7 +103,9 @@ describe("GET /api/auth/proconnect-logout", () => {
     const location = new URL(response.headers.get("location")!);
     expect(location.origin + location.pathname).toBe("https://fca.example/api/v2/session/end");
     expect(location.searchParams.get("id_token_hint")).toBe("the-id-token");
-    expect(location.searchParams.get("post_logout_redirect_uri")).toBe("https://dahlia.example/");
+    expect(location.searchParams.get("post_logout_redirect_uri")).toBe(
+      "https://dahlia.example/logout",
+    );
     expect(location.searchParams.get("state")).toBeTruthy();
     // Le cookie d'invalidation de session doit aussi accompagner cette redirection.
     expect(response.headers.get("set-cookie")).toContain("better-auth.session_token=");

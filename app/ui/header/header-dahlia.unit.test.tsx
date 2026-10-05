@@ -53,7 +53,10 @@ describe("HeaderDahlia", () => {
 
     expect(screen.getAllByText("Jean Dupont").length).toBeGreaterThan(0);
     const liens = screen.getAllByRole("link", { name: /Se déconnecter/ });
+    expect(liens[0].tagName).toBe("A");
     expect(liens[0].getAttribute("href")).toBe("/api/auth/proconnect-logout");
+    expect(liens[0].className).toContain("fr-btn");
+    expect(liens[0].className).toContain("fr-icon-logout-box-r-line");
     expect(screen.queryAllByText(/Se connecter/)).toHaveLength(0);
     expect(screen.queryAllByRole("link", { name: /Administration/ })).toHaveLength(0);
   });
