@@ -4,6 +4,7 @@ import type { PrismaClient } from "@prisma/client";
 import {
   classifyCaseFiles,
   classificationInputOf,
+  fieldChangesOf,
   planCaseFileUpdate,
   type CaseFileClassificationState,
 } from "./classify-case-files";
@@ -200,5 +201,94 @@ describe("classifyCaseFiles", () => {
 
     expect(prisma.caseFile.update).not.toHaveBeenCalled();
     expect(stats.updated).toBe(1);
+  });
+});
+
+describe("fieldChangesOf", () => {
+  it("records one row per written field with the rule that produced it", () => {
+    const changes = fieldChangesOf(
+      caseFile({ summary: "Saisi à la main" }),
+      { rightType: "DALO", summary: "Liquidation d'astreinte" },
+      result({
+        rightType: "DALO",
+        litigationType: "LIQUIDATION_ASTREINTE",
+        summary: "Liquidation d'astreinte",
+        matches: [
+          { ruleId: "right-type-dalo-explicit", field: "title", attributes: ["rightType"] },
+          {
+            ruleId: "litigation-liquidation-astreinte",
+            field: "title",
+            attributes: ["litigationType", "summary"],
+          },
+        ],
+      }),
+    );
+
+    expect(changes).toEqual([
+      {
+        caseFileNumber: "TA069-001",
+        field: "rightType",
+        previousValue: null,
+        newValue: "DALO",
+        ruleId: "right-type-dalo-explicit",
+      },
+      {
+        caseFileNumber: "TA069-001",
+        field: "summary",
+        previousValue: "Saisi à la main",
+        newValue: "Liquidation d'astreinte",
+        ruleId: "litigation-liquidation-astreinte",
+      },
+    ]);
+  });
+});
+
+describe("classifyCaseFiles history", () => {
+  let prisma: DeepMockProxy<PrismaClient>;
+
+  beforeEach(() => {
+    prisma = mockDeep<PrismaClient>();
+    vi.spyOn(console, "log").mockImplementation(() => {});
+  });
+
+  it("writes the history of the changed fields in the same transaction", async () => {
+    prisma.caseFile.findMany.mockResolvedValue([
+      caseFile({ litigationType: "INJONCTION" }),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ] as any);
+
+    await classifyCaseFiles(prisma, { overwrite: false });
+
+    expect(prisma.$transaction).toHaveBeenCalledOnce();
+    expect(prisma.classificationFieldChange.createMany).toHaveBeenCalledExactlyOnceWith({
+      data: [
+        {
+          caseFileNumber: "TA069-001",
+          field: "rightType",
+          previousValue: null,
+          newValue: "DALO",
+          ruleId: "right-type-dalo-explicit",
+        },
+        {
+          caseFileNumber: "TA069-001",
+          field: "summary",
+          previousValue: null,
+          newValue: "Liquidation d'astreinte",
+          ruleId: "litigation-liquidation-astreinte",
+        },
+      ],
+    });
+  });
+
+  it("writes no history in dry-run", async () => {
+    prisma.caseFile.findMany.mockResolvedValue([
+      caseFile(),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ] as any);
+
+    await classifyCaseFiles(prisma, { overwrite: false, dryRun: true });
+
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.classificationFieldChange.createMany).not.toHaveBeenCalled();
   });
 });
