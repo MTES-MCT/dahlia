@@ -7,8 +7,8 @@ import { PRODUCTION_DEADLINE_TYPE_VALUES } from "@/app/lib/case-file-enums";
 import { prisma } from "@/app/lib/prisma";
 import { canAccessCaseFile } from "@/app/lib/case-file-scope";
 import { HAS_TAGS_FIELD_NAME, TAG_IDS_FIELD_NAME } from "@/app/lib/case-file-tags";
+import { clientErrorMessage } from "@/app/lib/client-error";
 import { describePrismaError } from "@/app/lib/form-actions";
-import { describeError } from "@/data/telerecours/http";
 import { getTelerecoursClientForCaseFile } from "@/app/lib/telerecours";
 import { enrichCaseFile } from "@/data/persistence/enrich-case-file";
 
@@ -36,7 +36,7 @@ export async function refreshCaseFile(caseFileNumber: string): Promise<RefreshCa
     revalidatePath(`/case_files/${encodeURIComponent(caseFileNumber)}`);
     return { ok: true };
   } catch (error) {
-    return { ok: false, error: describeError(error) };
+    return { ok: false, error: clientErrorMessage(error, "Échec de la synchronisation") };
   }
 }
 
