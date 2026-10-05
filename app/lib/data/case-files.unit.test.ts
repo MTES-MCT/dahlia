@@ -24,10 +24,14 @@ vi.mock("@/app/lib/prisma", () => ({
 
 // Permission scope: an empty fragment (administrator) by default, so the tests
 // below assert the search filter alone. The scoped cases set their own value.
-const mockCaseFileScopeWhere = vi.fn(async () => ({}) as Prisma.CaseFileWhereInput);
+const { mockCaseFileScopeWhere, mockLogCaseFileScopeMiss } = vi.hoisted(() => ({
+  mockCaseFileScopeWhere: vi.fn(async () => ({}) as Prisma.CaseFileWhereInput),
+  mockLogCaseFileScopeMiss: vi.fn(async () => {}),
+}));
 
 vi.mock("@/app/lib/case-file-scope", () => ({
   caseFileScopeWhere: () => mockCaseFileScopeWhere(),
+  logCaseFileScopeMiss: mockLogCaseFileScopeMiss,
 }));
 
 const actorBase = {
@@ -220,12 +224,17 @@ describe("case-files", () => {
         where: { caseFileNumber: "CF-2024-001" },
         include: expect.objectContaining({ caseFileActors: expect.anything() }),
       });
+      expect(mockLogCaseFileScopeMiss).not.toHaveBeenCalled();
     });
 
     it("renvoie null quand le dossier n'existe pas", async () => {
       vi.mocked(prisma.caseFile.findFirst).mockResolvedValue(null);
 
       expect(await fetchCaseFileDetail("CF-INCONNU")).toBeNull();
+      expect(mockLogCaseFileScopeMiss).toHaveBeenCalledWith({
+        resource: "case_file",
+        caseFileNumber: "CF-INCONNU",
+      });
     });
 
     it("restreint la recherche au périmètre de droit de l'utilisateur", async () => {
@@ -238,6 +247,10 @@ describe("case-files", () => {
       expect(vi.mocked(prisma.caseFile.findFirst)).toHaveBeenCalledWith({
         where: { caseFileNumber: "CF-HORS-PERIMETRE", jurisdictionId: { in: [7] } },
         include: expect.anything(),
+      });
+      expect(mockLogCaseFileScopeMiss).toHaveBeenCalledWith({
+        resource: "case_file",
+        caseFileNumber: "CF-HORS-PERIMETRE",
       });
     });
   });

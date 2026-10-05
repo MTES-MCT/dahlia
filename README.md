@@ -176,6 +176,29 @@ l'export `.xlsx` ne contient que les dossiers du périmètre ; et un utilisateur
 non administrateur sans aucune juridiction voit un message d'explication à la
 place du tableau.
 
+## Journalisation d'audit
+
+Chaque événement d'audit est une ligne JSON `{"type":"audit",…}` sur la sortie
+standard, collectée par le drain de logs de la plateforme. Rien n'est persisté
+en base. Le module est [app/lib/audit-log.ts](app/lib/audit-log.ts).
+
+**Refus** (`outcome` : `"denied"`, avec acteur, motif, adresse IP et
+horodatage) :
+
+| Action               | Motif                                           | Cas                                                                                       |
+| -------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `auth.login.failed`  | code d'erreur OAuth, ou `http_<statut>`         | callback ProConnect en échec (souvent sans compte local ; la cible porte le `providerId`) |
+| `auth.access.denied` | `not_validated`                                 | session valide, compte pas encore validé                                                  |
+| `auth.admin.denied`  | `unauthenticated`, `not_validated`, `not_admin` | page `/admin` ou Server Action d'administration refusée                                   |
+| `auth.scope.denied`  | `out_of_scope`                                  | dossier ou pièce hors périmètre, ou identifiant inconnu (la réponse HTTP reste un 404)    |
+
+La cible d'un refus de périmètre indique la ressource (`case_file` ou
+`attached_file`) et ses identifiants.
+
+**Mutations d'administration réussies** (acteur, action, cible, horodatage, sans
+`outcome`) : `user.create`, `user.update`, `user.delete`, `tag.create`,
+`tag.update`, `tag.delete`, `division.update`, `jurisdiction.update`.
+
 ## En-têtes de sécurité HTTP
 
 [proxy.ts](proxy.ts) est le point unique où sont posés les en-têtes de sécurité
