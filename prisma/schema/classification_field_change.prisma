@@ -1,0 +1,22 @@
+// Audit trail of the case-file fields written by the classification script
+// (data/cli/classify-case-files.ts): one row per field change, with the rule
+// that produced the new value. Never written by the UI nor by the scraper.
+model ClassificationFieldChange {
+  id Int @id @default(autoincrement())
+
+  caseFileNumber String
+  caseFile       CaseFile @relation(fields: [caseFileNumber], references: [caseFileNumber], onDelete: Cascade)
+
+  // Classification attribute written: "litigationType", "rightType" or "summary".
+  field         String
+  // Value stored before the change (null when the field was empty).
+  previousValue String?
+  newValue      String
+  // Id of the rule that produced the new value (see data/classification/rules.ts).
+  ruleId        String
+
+  changedAt DateTime @default(now())
+
+  @@index([caseFileNumber, changedAt])
+  @@map("classification_field_changes")
+}

@@ -411,7 +411,7 @@ ne pas attendre réellement.
 ## Classification automatique des dossiers
 
 Les caractéristiques métier d'un dossier — `litigationType` (type de contentieux)
-et `rightType` (DALO / DAHO) — sont saisies à la main dans l'application. Un
+et `rightType` (DALO / DAHO / ni DALO ni DAHO) — sont saisies à la main dans l'application. Un
 moteur de règles (`data/classification/`) permet de les **déduire du texte
 scrapé** : aujourd'hui le titre Télérecours, demain la décision (les deux champs
 sont déjà exposés au moteur).
@@ -470,15 +470,20 @@ réécrire les champs existants). Les dossiers soft-supprimés sont toujours exc
    liberté » vs « Référé suspension »).
 4. L'écriture en base ne touche jamais un champ que les règles n'ont pas produit,
    ni — sans `--overwrite` — un champ déjà renseigné.
+5. Chaque champ écrit est tracé dans la table `classification_field_changes`
+   (dossier, champ, ancienne et nouvelle valeur, règle, `changedAt`), dans la
+   même transaction que la mise à jour du dossier. Rien n'est tracé en
+   `--dry-run`.
 
-Les règles sont ordonnées en quatre sections :
+Les règles sont ordonnées en sections :
 
-| Section                                    | Rôle                                                                                                                                                               |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| A. Type de droit                           | Acronyme explicite (`DALO`/`DAHO`) prioritaire sur le vocabulaire générique (« logement » / « hébergement »).                                                      |
-| B. Situations ne qualifiant pas le recours | Alimentent seulement `summary` (exécution de jugement, carence en hébergement d'urgence…), avant la section C car plus informatives que le libellé du contentieux. |
-| C. Type de contentieux                     | Marqueurs explicites : liquidation d'astreinte, référé, indemnitaire, injonction, excès de pouvoir.                                                                |
-| D. Situations qualifiantes                 | `summary` **et** `litigationType` (refus de reconnaissance prioritaire, rejet de la commission, absence de proposition…).                                          |
+| Section                                    | Rôle                                                                                                                                                                       |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0. Ni DALO ni DAHO                         | Référé liberté, hébergement d'urgence, arrêté / amende / collectivité : posent `rightType = NI_DALO_NI_DAHO` en premier, aucune autre règle ne peut alors poser DALO/DAHO. |
+| A. Type de droit                           | Absence de proposition d'hébergement → DAHO, puis acronyme explicite (`DALO`/`DAHO`) prioritaire sur le vocabulaire générique (« logement » / « hébergement »).            |
+| B. Situations ne qualifiant pas le recours | Alimentent seulement `summary` (exécution de jugement, carence en hébergement d'urgence…), avant la section C car plus informatives que le libellé du contentieux.         |
+| C. Type de contentieux                     | Marqueurs explicites : liquidation d'astreinte, référé, indemnitaire, injonction, excès de pouvoir.                                                                        |
+| D. Situations qualifiantes                 | `summary` **et** `litigationType` (refus de reconnaissance prioritaire, rejet de la commission, absence de proposition…).                                                  |
 
 ### Ajouter une règle
 
@@ -589,6 +594,16 @@ erDiagram
         string caseFileNumber PK_FK
         int tagId PK_FK
         DateTime createdAt
+    }
+
+    ClassificationFieldChange {
+        int id PK
+        string caseFileNumber FK
+        string field "litigationType | rightType | summary"
+        string previousValue "nullable"
+        string newValue
+        string ruleId
+        DateTime changedAt
     }
 
     Conclusion {
@@ -715,6 +730,7 @@ erDiagram
     Hearing             ||--o{ CaseFileHearing : "caseFiles"
     CaseFile            ||--o{ CaseFileTag : "caseFileTags"
     Tag                 ||--o{ CaseFileTag : "dossiers étiquetés"
+    CaseFile            ||--o{ ClassificationFieldChange : "classificationFieldChanges"
     Actor               ||--o{ CaseFile : "mainClaimant"
     Actor               ||--o{ CaseFile : "mainDefender"
     Actor               |o--o{ CaseFile : "lastProducer"

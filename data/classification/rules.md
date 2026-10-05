@@ -9,10 +9,10 @@ classification.
 
 Trois attributs, les mêmes que ceux produits par la classification automatique :
 
-| Attribut         | Valeurs                                                                             | Sens                                 |
-| ---------------- | ----------------------------------------------------------------------------------- | ------------------------------------ |
-| `rightType`      | `DALO` / `DAHO`                                                                     | Droit au logement ou à l’hébergement |
-| `litigationType` | `LIQUIDATION_ASTREINTE`, `REFERE`, `INDEMNITAIRE`, `INJONCTION`, `EXCES_DE_POUVOIR` | Nature du recours                    |
+| Attribut         | Valeurs                                                                             | Sens                                                                      |
+| ---------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `rightType`      | `DALO` / `DAHO` / `NI_DALO_NI_DAHO`                                                 | Droit au logement ou à l’hébergement, ou aucun des deux                   |
+| `litigationType` | `LIQUIDATION_ASTREINTE`, `REFERE`, `INDEMNITAIRE`, `INJONCTION`, `EXCES_DE_POUVOIR` | Nature du recours                                                         |
 | `summary`        | Chaîne libre courte                                                                 | **Déprécié** : plus affiché ni saisi dans l’application, conservé en base |
 
 Une règle n’est pas obligée de tout remplir. Certaines ne posent que le type de
@@ -124,21 +124,34 @@ Conséquences pratiques :
 - On peut donc laisser une règle de section B poser un `summary` informatif,
   puis une règle de section C poser seulement le `litigationType` manquant.
 
-## Les cinq sections, de la plus spécifique à la plus générique
+## Les six sections, de la plus spécifique à la plus générique
 
-Le fichier est découpé en blocs A → E. Ce n’est pas décoratif : c’est
+Le fichier est découpé en blocs 0 → E. Ce n’est pas décoratif : c’est
 l’ordre d’évaluation.
+
+### 0. Ni DALO ni DAHO (`rightType = NI_DALO_NI_DAHO`)
+
+Évaluées **en premier** : dès que l’une matche, `rightType` est pris et
+aucune règle suivante ne peut plus poser DALO ou DAHO. Le type de contentieux
+reste, lui, déduit par les autres sections (un « référé liberté » reste un
+`REFERE`).
+
+| Id                                           | Motif                             |
+| -------------------------------------------- | --------------------------------- |
+| `right-type-none-refere-liberte`             | Référé liberté                    |
+| `right-type-none-hebergement-urgence`        | Hébergement d’urgence             |
+| `right-type-none-arrete-amende-collectivite` | Arrêté, amende ou collectivité(s) |
 
 ### A. Type de droit (`rightType` seulement)
 
 But : décider DALO vs DAHO **avant** que le reste du titre ne brouille la
 piste.
 
-1. Acronymes explicites `DAHO` puis `DALO` — un dossier
-   « DALO : absence de proposition d’hébergement » reste un **DALO**, même si
-   le mot « hébergement » apparaît.
-2. Mot « hébergement » sans acronyme → DAHO.
-3. Mot « logement » / `logt` / `lgt` sans acronyme → DALO.
+1. Absence de proposition d’hébergement → **DAHO**, même si le titre dit
+   « DALO » ou « logement ».
+2. Acronymes explicites `DAHO` puis `DALO`.
+3. Mot « hébergement » sans acronyme → DAHO.
+4. Mot « logement » / `logt` / `lgt` sans acronyme → DALO.
 
 Ces règles ne touchent ni au contentieux ni à la raison.
 
@@ -149,11 +162,10 @@ s’agit d’un REP, d’une injonction, etc. Elles viennent **avant** la sectio
 pour que le `summary` soit déjà pris : une liquidation d’astreinte plus bas ne
 pourra plus l’écraser.
 
-| Id                                      | Raison posée                           | Ne pose pas      |
-| --------------------------------------- | -------------------------------------- | ---------------- |
-| `situation-execution-jugement`          | Exécution de jugement                  | `litigationType` |
-| `situation-sortie-dispositif`           | Recours contre la sortie du dispositif | `litigationType` |
-| `situation-carence-hebergement-urgence` | Carence en hébergement d’urgence       | `litigationType` |
+| Id                                      | Raison posée                     | Ne pose pas      |
+| --------------------------------------- | -------------------------------- | ---------------- |
+| `situation-execution-jugement`          | Exécution de jugement            | `litigationType` |
+| `situation-carence-hebergement-urgence` | Carence en hébergement d’urgence | `litigationType` |
 
 Le type de contentieux, s’il est identifiable par ailleurs, sera posé par C
 (ou D, ou E).
@@ -164,7 +176,9 @@ Quand le titre **nomme** la procédure.
 
 | Id                                 | `litigationType`        | `summary`                                        |
 | ---------------------------------- | ----------------------- | ------------------------------------------------ |
+| `litigation-faux-dalo`             | `EXCES_DE_POUVOIR`      | _(aucun)_                                        |
 | `litigation-liquidation-astreinte` | `LIQUIDATION_ASTREINTE` | Liquidation d’astreinte                          |
+| `litigation-demande-astreinte`     | `INJONCTION`            | _(aucun)_                                        |
 | `litigation-refere`                | `REFERE`                | Référé / Référé liberté / Référé suspension      |
 | `litigation-indemnitaire`          | `INDEMNITAIRE`          | Recours indemnitaire                             |
 | `litigation-injonction`            | `INJONCTION`            | Recours en injonction                            |
@@ -178,12 +192,15 @@ du préjudice », « trouble dans les conditions d’existence ».
 
 Le titre décrit un **fait** d’où l’on infère le recours, sans le nommer.
 
-| Id                                           | Inférence                                      | Pourquoi cet ordre interne                                                                                               |
-| -------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `situation-rejet-commission`                 | REP — recours contre le rejet de la commission | La commission est nommée : c’est le libellé le plus précis                                                               |
-| `situation-refus-reconnaissance-prioritaire` | REP — refus de reconnaissance prioritaire      | **Après** la précédente : si la commission est citée, on préfère son `summary`                                           |
-| `situation-absence-proposition-logement`     | Injonction DALO                                |                                                                                                                          |
-| `situation-absence-proposition-hebergement`  | Injonction DAHO                                | Même si le titre dit « LOGEMENT », l’absence d’hébergement reste une injonction ; le `rightType` a déjà été tranché en A |
+| Id                                           | Inférence                                           | Pourquoi cet ordre interne                                                     |
+| -------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `situation-rejet-commission`                 | REP — recours contre le rejet de la commission      | La commission est nommée : c’est le libellé le plus précis                     |
+| `situation-refus-reconnaissance-prioritaire` | REP — refus de reconnaissance prioritaire           | **Après** la précédente : si la commission est citée, on préfère son `summary` |
+| `situation-sortie-dispositif`                | Injonction — recours contre la sortie du dispositif |                                                                                |
+| `situation-demande-execution`                | Injonction (le `summary` vient de B)                |                                                                                |
+| `situation-refus-logement`                   | Injonction — refus de logement                      |                                                                                |
+| `situation-absence-proposition-logement`     | Injonction DALO                                     |                                                                                |
+| `situation-absence-proposition-hebergement`  | Injonction DAHO                                     | Le `rightType` DAHO a déjà été posé en A                                       |
 
 ### E. Filet de sécurité (évalué en dernier)
 
@@ -201,23 +218,25 @@ Titre : `DALO : absence de proposition d'hébergement. Décision du 05/01/2016.`
 
 1. Normalisation →
    `dalo absence de proposition d hebergement decision du 05 01 2016`.
-2. **A** `right-type-dalo-explicit` (`\bdalo\b`) → `rightType = DALO`.
-   Plus tard, `right-type-daho-hebergement` matcherait aussi « hebergement »,
-   mais `rightType` est déjà pris.
-3. **B** : aucun motif d’exécution / sortie / carence.
-4. **C** : pas de liquidation, référé, indemnitaire, injonction **nommée**, ni
+2. **0** : ni référé liberté, ni hébergement d’urgence, ni arrêté / amende /
+   collectivité.
+3. **A** `right-type-daho-absence-proposition-hebergement` → `rightType = DAHO`.
+   Plus tard, `right-type-dalo-explicit` matcherait aussi « dalo », mais
+   `rightType` est déjà pris.
+4. **B** : aucun motif d’exécution / carence.
+5. **C** : pas de liquidation, référé, indemnitaire, injonction **nommée**, ni
    « exces de pouvoir » / `rep`.
-5. **D** `situation-absence-proposition-hebergement` →
+6. **D** `situation-absence-proposition-hebergement` →
    `litigationType = INJONCTION`,
    `summary = "Absence de proposition d'hébergement"`.
-6. **E** matcherait « decision » dans un autre intitulé d’annulation ; ici
+7. **E** matcherait « decision » dans un autre intitulé d’annulation ; ici
    `litigationType` et `summary` sont déjà posés, donc sans effet.
 
-Résultat : DALO + injonction + « Absence de proposition d’hébergement ».
+Résultat : DAHO + injonction + « Absence de proposition d’hébergement ».
 
 Autre cas fréquent, `DALO_Liquidation d'astreinte` :
 
-- A → DALO ;
+- 0 ne matche pas, A → DALO ;
 - C → liquidation d’astreinte (type **et** raison) ;
 - B n’a rien pris avant, donc C peut encore poser le `summary`.
 

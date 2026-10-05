@@ -47,10 +47,12 @@ function matchingLitigationTypesForSearchWord(word: string): LitigationType[] {
   });
 }
 
+// Prefix match (not `includes`): "dalo" must find DALO case files, not the
+// "Ni DALO ni DAHO" ones whose label also contains the acronym.
 function matchingRightTypesForSearchWord(word: string): RightType[] {
   return (Object.keys(RIGHT_TYPE_LABELS) as RightType[]).filter((type) => {
     const fullLabel = normalizeForSearch(RIGHT_TYPE_LABELS[type]);
-    return fullLabel.includes(word);
+    return fullLabel.startsWith(word);
   });
 }
 

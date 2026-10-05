@@ -10,9 +10,15 @@ import type { ClassificationRule } from "./types";
 // seen as "dalo liquidation d astreinte(s)".
 //
 // Order matters: rules are evaluated top-down and the first one providing a
-// given attribute wins. Hence the three sections below, from the most specific
+// given attribute wins. Hence the sections below, from the most specific
 // to the most generic:
-//   A. right type   — explicit acronym (DALO/DAHO) before the generic wording
+//   0. out of scope — "ni DALO ni DAHO" situations (référé liberté, hébergement
+//                     d'urgence, arrêté / amende / collectivité). Evaluated
+//                     first so that they lock `rightType`: no later rule can
+//                     set it to DALO or DAHO. The litigation type is still left
+//                     to the other sections.
+//   A. right type   — "absence de proposition d'hébergement" (always DAHO),
+//                     then explicit acronym (DALO/DAHO) before the generic wording
 //                     (logement/hébergement), so "DALO : absence de proposition
 //                     d'hébergement" stays a DALO case file.
 //   B. situations that do NOT qualify the procedure — they only feed `summary`,
@@ -24,7 +30,51 @@ import type { ClassificationRule } from "./types";
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const DEFAULT_RULES: readonly ClassificationRule[] = [
+  // ───── 0. Out of scope: neither DALO nor DAHO (locks `rightType`) ─────
+  {
+    id: "right-type-none-refere-liberte",
+    description: "Référé liberté : ni DALO ni DAHO",
+    pattern: /\brefere liberte\b/,
+    rightType: "NI_DALO_NI_DAHO",
+    examples: [
+      "Référé liberté - Demande d'orientation vers un hébergement d'urgence stable et pérenne",
+      "ETRANGERS - Organiser l'accueil provisoire d'urgence, incluant le logement et la prise en charge de ses besoins alimentaires quotidiens - Référé LIBERTE",
+    ],
+  },
+  {
+    id: "right-type-none-hebergement-urgence",
+    description: "Hébergement d'urgence : ni DALO ni DAHO",
+    pattern: /\bhebergement d urgence\b/,
+    rightType: "NI_DALO_NI_DAHO",
+    examples: [
+      "LOGEMENT: Contestation de la fin de prise en charge d'un hébergement d'urgence - Décision du 28/07/2025",
+    ],
+  },
+  {
+    id: "right-type-none-arrete-amende-collectivite",
+    description: "Arrêté, amende ou collectivité(s) : ni DALO ni DAHO",
+    pattern: /\b(arretes?|amendes?|collectivites?)\b/,
+    rightType: "NI_DALO_NI_DAHO",
+    examples: [
+      "ECONOMIE : Amende administrative suite à un contrôle - décision du 08/08/2024 - REFERE SUSPENSION",
+      "LOGEMENT - Arrêté du 12/11/2025 n°DDT-69-2025-11-12-00001 prescrivant une amende administrative prévue par l'article 140 de la loi 2018-1021 du 23/11/2018 d'un montant de 4 200€ pour cause de dépassement du loyer de référence du logement situé au 24 rue Pierre Baratin à Villeurbanne",
+      "COLLECTIVITES TERRITORIALES  Arrêté de tarification n° 18-109 du 27/06/2018",
+    ],
+  },
+
   // ───── A. Right type ─────
+  {
+    // Placed before the explicit acronyms: an "absence de proposition
+    // d'hébergement" is a DAHO case file even when the title says "DALO".
+    id: "right-type-daho-absence-proposition-hebergement",
+    description: "Absence de proposition d'hébergement : DAHO (prioritaire sur l'acronyme DALO)",
+    pattern: /\babsence (de |d une )?proposition (d |de l )?hebergement\b/,
+    rightType: "DAHO",
+    examples: [
+      "Logement DALO   absence de proposition d'hébergement   décision du 09/03/2021",
+      "LOGEMENT - ABSENCE PROPOSITION D'HEBERGEMENT",
+    ],
+  },
   {
     id: "right-type-daho-explicit",
     description: "Acronyme DAHO explicite dans le champ",
@@ -37,7 +87,7 @@ export const DEFAULT_RULES: readonly ClassificationRule[] = [
     description: "Acronyme DALO explicite (prioritaire sur le mot « hébergement »)",
     pattern: /\bdalo\b/,
     rightType: "DALO",
-    examples: ["DALO_Liquidation d'astreinte", "DALO : absence de proposition d'hébergement."],
+    examples: ["DALO_Liquidation d'astreinte", "DALO - Décision du 08/04/2025"],
   },
   {
     id: "right-type-daho-hebergement",
@@ -70,13 +120,6 @@ export const DEFAULT_RULES: readonly ClassificationRule[] = [
     ],
   },
   {
-    id: "situation-sortie-dispositif",
-    description: "Recours contre une sortie du dispositif",
-    pattern: /\bsortie du dispositif\b/,
-    summary: "Recours contre la sortie du dispositif",
-    examples: ["DALO_Recours sortie du dispositif - Décision du 02/03/2026"],
-  },
-  {
     id: "situation-carence-hebergement-urgence",
     description: "Carence de l'État ou de la métropole en matière d'hébergement d'urgence",
     pattern: /\bcarence\b.*\bhebergement d urgence\b/,
@@ -87,6 +130,14 @@ export const DEFAULT_RULES: readonly ClassificationRule[] = [
   },
 
   // ───── C. Litigation type ─────
+  {
+    // "Faux DALO": the commission refused to recognize the case as DALO.
+    id: "litigation-faux-dalo",
+    description: "« Faux DALO » : recours pour excès de pouvoir",
+    pattern: /\bfaux dalo\b/,
+    litigationType: "EXCES_DE_POUVOIR",
+    examples: ["LOGEMENT - FAUX DALO_Décision du11/03/25", "FAUX DALO_décision du 12/11/2024"],
+  },
   {
     id: "litigation-liquidation-astreinte",
     description: "Liquidation d'astreinte (avec ou sans apostrophe, au pluriel ou non)",
@@ -101,6 +152,17 @@ export const DEFAULT_RULES: readonly ClassificationRule[] = [
       "Hébergement_Liquidation d'astreinte",
       "LIQUIDATION DE L'ASTREINTE DU DOSSIER DALO N° 2400745. JUGEMENT DU 19MARS 2024.",
       "LIQUIDATION DE L'ASTREINTE DU JUGEMENT DALO N° 2505293 DU 29 OCTOBRE 2025.",
+    ],
+  },
+  {
+    // After the liquidation rule, so "liquidation d'astreinte" never lands here.
+    id: "litigation-demande-astreinte",
+    description: "Demande d'astreinte : recours injonction",
+    pattern: /\bdemande (d |de l )?astreintes?\b/,
+    litigationType: "INJONCTION",
+    examples: [
+      "DALO_Décision du 15/04/25 + demande d'astreinte",
+      "DAHO_ Demande d'astreinte décision TA du 10/08/24",
     ],
   },
   {
@@ -189,6 +251,37 @@ export const DEFAULT_RULES: readonly ClassificationRule[] = [
       "DALO: ANNULATION DE LA DECISION EN DATE DU 4 MARS 2025 REFUSANT LA RECONNAISSANCE DU CARACTERE PRIORITAIRE DE SA DEMANDE DE LOGEMENT.",
       "DALO: ANNULATION DE LA DECISION EN DATE DU 7 JANVIER 2025 REFUSANT LE CARACTERE PRIORITAIRE DE SA DEMANDE DE LOGEMENT",
     ],
+  },
+  {
+    id: "situation-sortie-dispositif",
+    description: "Recours contre une sortie du dispositif : recours injonction",
+    pattern: /\bsortie (du )?dispositif\b/,
+    litigationType: "INJONCTION",
+    summary: "Recours contre la sortie du dispositif",
+    examples: [
+      "DALO_Recours sortie du dispositif - Décision du 02/03/2026",
+      "DALO_Contestation sortie du dispositif DALO",
+    ],
+  },
+  {
+    // Only provides the litigation type: the summary "Exécution de jugement"
+    // is already set by `situation-execution-jugement` (section B).
+    id: "situation-demande-execution",
+    description: "Demande d'exécution (d'un jugement, d'une décision) : recours injonction",
+    pattern: /\bdemande (d )?execution\b/,
+    litigationType: "INJONCTION",
+    examples: [
+      "DAHO -demande execution de jugement du 18/10/2023",
+      "DALO_Demande d'exécution ordonance TA 2403103 du 26/07/24",
+    ],
+  },
+  {
+    id: "situation-refus-logement",
+    description: "Refus de logement : recours injonction",
+    pattern: /\brefus (de |d un )?logement\b/,
+    litigationType: "INJONCTION",
+    summary: "Refus de logement",
+    examples: ["LOGEMENT-DALO  REFUS LOGEMENT PROPOSE  DECISION DU 4/10/17"],
   },
   {
     id: "situation-absence-proposition-logement",

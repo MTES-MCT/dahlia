@@ -27,6 +27,7 @@ export const LITIGATION_TYPE_SHORT_LABELS: Record<LitigationType, string> = {
 export const RIGHT_TYPE_LABELS: Record<RightType, string> = {
   DALO: "DALO",
   DAHO: "DAHO",
+  NI_DALO_NI_DAHO: "Ni DALO ni DAHO",
 };
 
 // Empty string is the form value for an unset right type (stored as null in the database).
@@ -47,6 +48,7 @@ const RIGHT_TYPE_ORDER = [
   RIGHT_TYPE_UNDEFINED_VALUE,
   "DALO",
   "DAHO",
+  "NI_DALO_NI_DAHO",
 ] as const satisfies readonly RightTypeFormValue[];
 
 export const LITIGATION_TYPE_OPTIONS: { value: LitigationType; label: string }[] =
@@ -83,8 +85,7 @@ export const PRODUCTION_DEADLINE_TYPE_UNDEFINED_VALUE = "" as const;
 export const PRODUCTION_DEADLINE_TYPE_UNDEFINED_LABEL = "Aucun";
 
 export type ProductionDeadlineTypeFormValue =
-  | ProductionDeadlineType
-  | typeof PRODUCTION_DEADLINE_TYPE_UNDEFINED_VALUE;
+  ProductionDeadlineType | typeof PRODUCTION_DEADLINE_TYPE_UNDEFINED_VALUE;
 
 export const PRODUCTION_DEADLINE_TYPE_VALUES = [
   "MISE_EN_DEMEURE_DE_PRODUIRE",

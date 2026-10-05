@@ -43,11 +43,11 @@ const cases: {
     },
   },
   {
-    // The explicit acronym wins over the generic "hébergement" wording.
+    // An absence of accommodation offer is DAHO, even when the title says DALO.
     title: "DALO : absence de proposition d'hébergement. Décision du 05/01/2016.",
     expected: {
       litigationType: "INJONCTION",
-      rightType: "DALO",
+      rightType: "DAHO",
       summary: "Absence de proposition d'hébergement",
     },
   },
@@ -93,10 +93,11 @@ const cases: {
     },
   },
   {
+    // Référé liberté is neither DALO nor DAHO; the litigation type stays deduced.
     title: "ETRANGERS - Hébergement d'urgence - Référé Liberté",
     expected: {
       litigationType: "REFERE",
-      rightType: "DAHO",
+      rightType: "NI_DALO_NI_DAHO",
       summary: "Référé liberté",
     },
   },
@@ -106,7 +107,7 @@ const cases: {
       "LOGEMENT - Refus implicite d'indemnisation du préjudice subi du fait de la carence de l'Etat dans la prise en charge de personnes sans abri au titre de sa compétence en matière d'hébergement d'urgence à compter du 01/01/2021 - Responsabilité",
     expected: {
       litigationType: "INDEMNITAIRE",
-      rightType: "DAHO",
+      rightType: "NI_DALO_NI_DAHO",
       summary: "Carence en hébergement d'urgence",
     },
   },
@@ -121,6 +122,7 @@ const cases: {
   {
     title: "DALO_Recours sortie du dispositif - Décision du 02/03/2026",
     expected: {
+      litigationType: "INJONCTION",
       rightType: "DALO",
       summary: "Recours contre la sortie du dispositif",
     },
@@ -182,6 +184,32 @@ const cases: {
       litigationType: "INDEMNITAIRE",
       summary: "Recours indemnitaire",
     },
+  },
+  {
+    // "Ni DALO ni DAHO" wins over the "logement" wording.
+    title:
+      "LOGEMENT - Arrêté du 06/03/2026 n°DDT-69-2026-03-06-00077 prescrivant une amende administrative prévue par l'article 140 de la loi 2018-1021 du 23/11/2018 d'un montant de 11 550€ pour cause de dépassement du loyer de référence du logement situé au 6 rue Saint Nizier à Lyon 2 - REFERE SUSPENSION",
+    expected: {
+      litigationType: "REFERE",
+      rightType: "NI_DALO_NI_DAHO",
+      summary: "Référé suspension",
+    },
+  },
+  {
+    title: "LOGEMENT - FAUX DALO_Décision du11/03/25",
+    expected: { litigationType: "EXCES_DE_POUVOIR", rightType: "DALO" },
+  },
+  {
+    title: "DALO_Décision du 15/04/25 + demande d'astreinte",
+    expected: { litigationType: "INJONCTION", rightType: "DALO" },
+  },
+  {
+    title: "DAHO -demande execution de jugement du 18/10/2023",
+    expected: { litigationType: "INJONCTION", rightType: "DAHO" },
+  },
+  {
+    title: "LOGEMENT-DALO  REFUS LOGEMENT PROPOSE  DECISION DU 4/10/17",
+    expected: { litigationType: "INJONCTION", rightType: "DALO", summary: "Refus de logement" },
   },
   {
     // Only the right type can be deduced from a bare decision date.
