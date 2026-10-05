@@ -89,7 +89,8 @@ sont montées sur `/api/auth/*`.
 
 > Côté espace partenaire ProConnect, déclarer la **redirect URI**
 > `http://localhost:3000/api/auth/callback/proconnect` et la
-> **post-logout redirect URI** `http://localhost:3000/`.
+> **post-logout redirect URI** `http://localhost:3000/logout` (cette route
+> redirige ensuite vers l'accueil)
 
 ### Flux
 
