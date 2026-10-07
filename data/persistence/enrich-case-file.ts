@@ -38,6 +38,10 @@ function normalizeLabel(value: string): string {
     .toLowerCase();
 }
 
+function sanitizeForLog(value: unknown): string {
+  return String(value ?? "").replace(/[\r\n]+/g, " ");
+}
+
 // The "last producer" is the actor of the most recent event whose measure label
 // starts with "reception" (case- and accent-insensitive). Returns its actorId,
 // or null when no such event exists.
@@ -69,7 +73,7 @@ async function upsertLastDecisionReading(
   const readingDate = parseDate(lastDecisionReading.readingDate);
   if (!readingDate) {
     console.warn(
-      `⚠ Skipping lastDecisionReading for ${key.caseFileNumber}: invalid readingDate "${lastDecisionReading.readingDate}"`,
+      `⚠ Skipping lastDecisionReading for ${sanitizeForLog(key.caseFileNumber)}: invalid readingDate "${sanitizeForLog(lastDecisionReading.readingDate)}"`,
     );
     await prisma.lastDecisionReading.deleteMany({ where: key });
     return;
