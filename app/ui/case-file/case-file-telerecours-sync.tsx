@@ -4,11 +4,13 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
 import { fr } from "@codegouvfr/react-dsfr";
-import { type RefreshCaseFileResult } from "@/app/(protected)/case_files/[caseFileNumber]/actions";
+import { type RefreshCaseFileResult } from "@/app/(protected)/case_files/[jurisdictionCode]/[caseFileNumber]/actions";
 import { formatDateTimeFr } from "@/app/lib/case-file-format";
+import { caseFileHref } from "@/app/lib/case-file-key";
 import { withDevelopmentDetail } from "@/app/lib/development-detail";
 
 type Props = {
+  jurisdictionCode: string;
   caseFileNumber: string;
   telerecoursSyncAt: Date | null;
 };
@@ -26,19 +28,20 @@ export function formatTelerecoursSyncError(error: string): string {
   return withDevelopmentDetail(SYNC_FAILURE, error);
 }
 
-export function telerecoursSyncPath(caseFileNumber: string): string {
-  return `/case_files/${encodeURIComponent(caseFileNumber)}/telerecours-sync`;
+export function telerecoursSyncPath(jurisdictionCode: string, caseFileNumber: string): string {
+  return caseFileHref({ jurisdictionCode, caseFileNumber }, "/telerecours-sync");
 }
 
 // Overlapping refresh calls for the same dossier (React Strict Mode in
 // dev, or a remount while a request is still in flight) share one promise so
-// Télérecours is not hit twice. The entry is cleared when the call finishes,
-// so opening the dossier again later starts a new sync.
+// Télérecours is not hit twice. Entries are keyed by sync path, which identifies
+// the dossier (court + number). The entry is cleared when the call finishes, so
+// opening the dossier again later starts a new sync.
 const refreshInFlight = new Map<string, Promise<RefreshCaseFileResult>>();
 
-async function requestTelerecoursSync(caseFileNumber: string): Promise<RefreshCaseFileResult> {
+async function requestTelerecoursSync(syncPath: string): Promise<RefreshCaseFileResult> {
   try {
-    const response = await fetch(telerecoursSyncPath(caseFileNumber), { method: "POST" });
+    const response = await fetch(syncPath, { method: "POST" });
     if (!response.ok) {
       return { ok: false, error: `Erreur HTTP ${response.status}` };
     }
@@ -51,14 +54,14 @@ async function requestTelerecoursSync(caseFileNumber: string): Promise<RefreshCa
   }
 }
 
-function refreshCaseFileCoalesced(caseFileNumber: string): Promise<RefreshCaseFileResult> {
-  const existing = refreshInFlight.get(caseFileNumber);
+function refreshCaseFileCoalesced(syncPath: string): Promise<RefreshCaseFileResult> {
+  const existing = refreshInFlight.get(syncPath);
   if (existing) return existing;
 
-  const pending = requestTelerecoursSync(caseFileNumber).finally(() => {
-    refreshInFlight.delete(caseFileNumber);
+  const pending = requestTelerecoursSync(syncPath).finally(() => {
+    refreshInFlight.delete(syncPath);
   });
-  refreshInFlight.set(caseFileNumber, pending);
+  refreshInFlight.set(syncPath, pending);
   return pending;
 }
 
@@ -73,26 +76,32 @@ function formatTelerecoursSyncLabel(telerecoursSyncAt: Date | null): string {
 // The request goes through fetch() rather than the Server Action: Next.js wraps
 // every Server Action in startTransition, which marks the whole page as pending
 // and disables forms until Télérecours answers.
-export function CaseFileTelerecoursSync({ caseFileNumber, telerecoursSyncAt }: Props) {
+export function CaseFileTelerecoursSync({
+  jurisdictionCode,
+  caseFileNumber,
+  telerecoursSyncAt,
+}: Props) {
   const router = useRouter();
-  const [previousCaseFileNumber, setPreviousCaseFileNumber] = useState(caseFileNumber);
-  const [isPending, setIsPending] = useState(Boolean(caseFileNumber));
+  // Empty when there is no dossier to sync; otherwise identifies the dossier.
+  const syncPath = caseFileNumber ? telerecoursSyncPath(jurisdictionCode, caseFileNumber) : "";
+  const [previousSyncPath, setPreviousSyncPath] = useState(syncPath);
+  const [isPending, setIsPending] = useState(Boolean(syncPath));
   const [error, setError] = useState<string | null>(null);
 
   // Reset the pending/error display when the dossier changes. Adjusting state
   // during render avoids a synchronous setState inside the effect below.
-  if (caseFileNumber !== previousCaseFileNumber) {
-    setPreviousCaseFileNumber(caseFileNumber);
-    setIsPending(Boolean(caseFileNumber));
+  if (syncPath !== previousSyncPath) {
+    setPreviousSyncPath(syncPath);
+    setIsPending(Boolean(syncPath));
     setError(null);
   }
 
   useEffect(() => {
-    if (!caseFileNumber) return;
+    if (!syncPath) return;
 
     let cancelled = false;
 
-    refreshCaseFileCoalesced(caseFileNumber).then((result) => {
+    refreshCaseFileCoalesced(syncPath).then((result) => {
       if (cancelled) return;
       setIsPending(false);
       if (result.ok) {
@@ -105,7 +114,7 @@ export function CaseFileTelerecoursSync({ caseFileNumber, telerecoursSyncAt }: P
     return () => {
       cancelled = true;
     };
-  }, [caseFileNumber, router]);
+  }, [syncPath, router]);
 
   return (
     <div

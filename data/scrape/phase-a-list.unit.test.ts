@@ -15,6 +15,7 @@ const baseArgs: Args = {
   anonymize: true,
   enrich: "ongoing",
   updatePieceNumbers: false,
+  force: false,
   classify: false,
   classifyOverwrite: false,
 };
@@ -31,7 +32,12 @@ describe("phaseA", () => {
 
   beforeEach(() => {
     prisma = mockDeep<PrismaClient>();
-    prisma.jurisdiction.upsert.mockResolvedValue({ id: 1, name: "", shortName: "TA069" });
+    prisma.jurisdiction.upsert.mockResolvedValue({
+      id: 1,
+      name: "",
+      shortName: "TA069",
+      jurisdictionCode: "TA069",
+    });
     // Silence the script's progress logs during tests.
     vi.spyOn(console, "log").mockImplementation(() => {});
     vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -53,7 +59,12 @@ describe("phaseA", () => {
   });
 
   it("tags every upserted case file with the scraped jurisdiction", async () => {
-    prisma.jurisdiction.upsert.mockResolvedValue({ id: 42, name: "", shortName: "TA075" });
+    prisma.jurisdiction.upsert.mockResolvedValue({
+      id: 42,
+      name: "",
+      shortName: "TA075",
+      jurisdictionCode: "TA075",
+    });
     const client = fakeTelerecoursClient({
       getCaseFiles: vi
         .fn()
@@ -62,16 +73,16 @@ describe("phaseA", () => {
 
     await phaseA({ ...baseArgs, jurisdiction: "TA075" }, makeDeps(prisma, client));
 
-    // The jurisdiction row is resolved once per run, keyed on its Telerecours
-    // code, and left with an empty name (edited manually later).
+    // The jurisdiction row is resolved once per run, keyed on its Dahlia
+    // instance code, and left with an empty name (edited manually later).
     expect(prisma.jurisdiction.upsert).toHaveBeenCalledExactlyOnceWith({
       where: { shortName: "TA075" },
       update: {},
-      create: { shortName: "TA075" },
+      create: { shortName: "TA075", jurisdictionCode: "TA075" },
     });
     expect(prisma.caseFile.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
-        create: expect.objectContaining({ jurisdictionId: 42 }),
+        create: expect.objectContaining({ jurisdictionId: 42, jurisdictionCode: "TA075" }),
         update: expect.objectContaining({ jurisdictionId: 42 }),
       }),
     );

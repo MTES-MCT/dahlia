@@ -20,6 +20,7 @@ import { parseTableQueryState } from "@/app/lib/table-query-state";
 import { statusLabelForCount } from "@/app/lib/status-label-plural";
 import { resolveCurrentStatut, resolveDefaultStatut } from "@/app/lib/dashboard-filter";
 import { buildCaseFilesSearchConfig } from "@/app/ui/form/case-files-search";
+import { caseFileHref } from "@/app/lib/case-file-key";
 import { CaseFileDossierCell } from "@/app/ui/table/case-file-dossier-cell";
 import { DataTable, type DataTableColumn } from "@/app/ui/table/data-table";
 import { MemoryDeadlineCell } from "@/app/ui/table/memory-deadline-cell";
@@ -59,7 +60,7 @@ function dashboardColumns(detailQueryString: string): DataTableColumn<CaseFileDa
         return (
           <CaseFileDossierCell
             caseFile={caseFile}
-            href={`/case_files/${encodeURIComponent(caseFile.caseFileNumber)}${suffix}#case-file-details`}
+            href={caseFileHref(caseFile, `${suffix}#case-file-details`)}
           />
         );
       }

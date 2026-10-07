@@ -6,8 +6,9 @@ import { fr } from "@codegouvfr/react-dsfr";
 import { Button } from "@codegouvfr/react-dsfr/Button";
 import { Input } from "@codegouvfr/react-dsfr/Input";
 import { Alert } from "@codegouvfr/react-dsfr/Alert";
+import { caseFileHref, type CaseFileKey } from "@/app/lib/case-file-key";
 import { pieceDisplayLabel, pieceDownloadFileName } from "@/app/lib/piece-display";
-import { savePieceMetadataAction } from "@/app/(protected)/case_files/[caseFileNumber]/pieces/[encodedFileId]/actions";
+import { savePieceMetadataAction } from "@/app/(protected)/case_files/[jurisdictionCode]/[caseFileNumber]/pieces/[encodedFileId]/actions";
 import { PieceViewer } from "@/app/ui/piece-viewer";
 
 // One pièce as needed by the workspace. Raw editable fields are kept so labels
@@ -31,7 +32,7 @@ type Override = {
 };
 
 type Props = {
-  caseFileNumber: string;
+  caseFileKey: CaseFileKey;
   pieces: WorkspacePiece[];
 };
 
@@ -40,7 +41,7 @@ function filenameFromDisposition(header: string | null): string | undefined {
   return header?.match(/filename="([^"]+)"/)?.[1];
 }
 
-export function PiecesWorkspace({ caseFileNumber, pieces }: Props) {
+export function PiecesWorkspace({ caseFileKey, pieces }: Props) {
   const [overrides, setOverrides] = useState<Record<string, Override>>({});
   const firstId = pieces[0]?.encodedFileId ?? null;
   const [currentId, setCurrentId] = useState<string | null>(firstId);
@@ -87,7 +88,7 @@ export function PiecesWorkspace({ caseFileNumber, pieces }: Props) {
   return (
     <div className={clsx("flex", "min-h-100", "flex-1", "flex-col", "md:flex-row")}>
       <PiecesSidebar
-        caseFileNumber={caseFileNumber}
+        caseFileKey={caseFileKey}
         pieces={merged}
         currentId={currentId}
         selectedIds={selectedIds}
@@ -99,6 +100,7 @@ export function PiecesWorkspace({ caseFileNumber, pieces }: Props) {
       />
 
       <PieceDetailPane
+        caseFileKey={caseFileKey}
         piece={current}
         editing={editing}
         onEdit={() => setEditing(true)}
@@ -116,7 +118,7 @@ type MergedPiece = WorkspacePiece;
 
 type SidebarProps = {
   className?: string;
-  caseFileNumber: string;
+  caseFileKey: CaseFileKey;
   pieces: MergedPiece[];
   currentId: string | null;
   selectedIds: Set<string>;
@@ -129,7 +131,7 @@ type SidebarProps = {
 
 function PiecesSidebar({
   className,
-  caseFileNumber,
+  caseFileKey,
   pieces,
   currentId,
   selectedIds,
@@ -151,7 +153,7 @@ function PiecesSidebar({
         if (selected.length === 0) return;
 
         const ids = selected.map((piece) => piece.encodedFileId);
-        const base = `/case_files/${encodeURIComponent(caseFileNumber)}/pieces`;
+        const base = caseFileHref(caseFileKey, "/pieces");
         const url =
           selected.length === 1
             ? `${base}/${encodeURIComponent(ids[0])}/data`
@@ -343,6 +345,7 @@ function PiecesSidebar({
 
 type DetailPaneProps = {
   className?: string;
+  caseFileKey: CaseFileKey;
   piece: MergedPiece | null;
   editing: boolean;
   onEdit: () => void;
@@ -352,6 +355,7 @@ type DetailPaneProps = {
 
 function PieceDetailPane({
   className,
+  caseFileKey,
   piece,
   editing,
   onEdit,
@@ -363,6 +367,7 @@ function PieceDetailPane({
       {piece ? (
         <PieceDetail
           key={piece.encodedFileId}
+          caseFileKey={caseFileKey}
           piece={piece}
           editing={editing}
           onEdit={onEdit}
@@ -377,6 +382,7 @@ function PieceDetailPane({
 }
 
 type DetailProps = {
+  caseFileKey: CaseFileKey;
   piece: MergedPiece;
   editing: boolean;
   onEdit: () => void;
@@ -384,13 +390,18 @@ type DetailProps = {
   onSaved: (id: string, values: Override) => void;
 };
 
-function PieceDetail({ piece, editing, onEdit, onCancel, onSaved }: DetailProps) {
+function PieceDetail({ caseFileKey, piece, editing, onEdit, onCancel, onSaved }: DetailProps) {
   const name = piece.dahliaName ?? piece.fileName;
 
   return (
     <div className={clsx("flex", "h-full", "min-h-0", "flex-col")}>
       {editing ? (
-        <PieceDetailForm piece={piece} onCancel={onCancel} onSaved={onSaved} />
+        <PieceDetailForm
+          caseFileKey={caseFileKey}
+          piece={piece}
+          onCancel={onCancel}
+          onSaved={onSaved}
+        />
       ) : (
         <div className={clsx("shrink-0", fr.cx("fr-mb-3w"))}>
           <div className={clsx("flex", "items-baseline", "gap-2", fr.cx("fr-mb-1w"))}>
@@ -426,12 +437,13 @@ function PieceDetail({ piece, editing, onEdit, onCancel, onSaved }: DetailProps)
 }
 
 type FormProps = {
+  caseFileKey: CaseFileKey;
   piece: MergedPiece;
   onCancel: () => void;
   onSaved: (id: string, values: Override) => void;
 };
 
-function PieceDetailForm({ piece, onCancel, onSaved }: FormProps) {
+function PieceDetailForm({ caseFileKey, piece, onCancel, onSaved }: FormProps) {
   const [dahliaName, setDahliaName] = useState(piece.dahliaName ?? piece.fileName);
   const [number, setNumber] = useState(piece.number ?? "");
   const [comment, setComment] = useState(piece.comment ?? "");
@@ -445,7 +457,7 @@ function PieceDetailForm({ piece, onCancel, onSaved }: FormProps) {
       const trimmedDahliaName = dahliaName.trim();
       const dahliaNameToSave = trimmedDahliaName !== piece.fileName.trim() ? trimmedDahliaName : "";
 
-      const result = await savePieceMetadataAction(piece.encodedFileId, {
+      const result = await savePieceMetadataAction(caseFileKey, piece.encodedFileId, {
         dahliaName: dahliaNameToSave,
         number,
         comment,

@@ -7,8 +7,16 @@ import type { TagListRow } from "@/app/lib/data/tags";
 const listTagCaseFilesAction = vi.fn(async () => ({
   ok: true as const,
   caseFiles: [
-    { caseFileNumber: "TA069/1", displayName: "TA069/1 - Dupont c/ Préfet" },
-    { caseFileNumber: "TA069/2", displayName: "TA069/2 - Martin c/ Préfet" },
+    {
+      jurisdictionCode: "TA069",
+      caseFileNumber: "TA069/1",
+      displayName: "TA069/1 - Dupont c/ Préfet",
+    },
+    {
+      jurisdictionCode: "TA069",
+      caseFileNumber: "TA069/2",
+      displayName: "TA069/2 - Martin c/ Préfet",
+    },
   ],
 }));
 
@@ -164,7 +172,7 @@ describe("TagRowActions", () => {
       });
 
       const link = within(dialog).getByRole("link", { name: /TA069\/1 - Dupont/ });
-      expect(link.getAttribute("href")).toBe("/case_files/TA069%2F1");
+      expect(link.getAttribute("href")).toBe("/case_files/TA069/TA069%2F1");
       expect(link.getAttribute("target")).toBe("_blank");
       expect(link.getAttribute("rel")).toContain("noopener");
 

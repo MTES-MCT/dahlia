@@ -4,13 +4,16 @@
 // scrapés au préalable. Sinon le scraper logge un warning et incrémente un
 // compteur de liens orphelins (cf. scrape-telerecours.ts, phase C).
 model RelatedCaseFile {
+  // Both case files belong to the same court (the related report is scoped to it).
+  jurisdictionCode String
+
   caseFileNumber String
-  caseFile       CaseFile @relation("RelatedCaseFileSource", fields: [caseFileNumber], references: [caseFileNumber], onDelete: Cascade)
+  caseFile       CaseFile @relation("RelatedCaseFileSource", fields: [jurisdictionCode, caseFileNumber], references: [jurisdictionCode, caseFileNumber], onDelete: Cascade)
 
   relatedCaseFileNumber String
-  relatedCaseFile       CaseFile @relation("RelatedCaseFileTarget", fields: [relatedCaseFileNumber], references: [caseFileNumber], onDelete: Cascade)
+  relatedCaseFile       CaseFile @relation("RelatedCaseFileTarget", fields: [jurisdictionCode, relatedCaseFileNumber], references: [jurisdictionCode, caseFileNumber], onDelete: Cascade)
 
-  @@id([caseFileNumber, relatedCaseFileNumber])
-  @@index([relatedCaseFileNumber])
+  @@id([jurisdictionCode, caseFileNumber, relatedCaseFileNumber])
+  @@index([jurisdictionCode, relatedCaseFileNumber])
   @@map("related_case_files")
 }

@@ -5,6 +5,7 @@ import { LitigationType, RightType } from "@prisma/client";
 import type { ProductionDeadlineType } from "@prisma/client";
 import { PRODUCTION_DEADLINE_TYPE_VALUES } from "@/app/lib/case-file-enums";
 import { prisma } from "@/app/lib/prisma";
+import { caseFileHref, caseFileUniqueWhere, type CaseFileKey } from "@/app/lib/case-file-key";
 import { canAccessCaseFile } from "@/app/lib/case-file-scope";
 import { HAS_TAGS_FIELD_NAME, TAG_IDS_FIELD_NAME } from "@/app/lib/case-file-tags";
 import { clientErrorMessage } from "@/app/lib/client-error";
@@ -17,23 +18,28 @@ export type RefreshCaseFileResult = { ok: true } | { ok: false; error: string };
 // Re-fetch a single case file from Télérecours and upsert it into the database,
 // reusing the same enrichment pipeline as the scraping script. The Télérecours
 // client is a singleton per jurisdiction (see getTelerecoursCaseFileClient).
-export async function refreshCaseFile(caseFileNumber: string): Promise<RefreshCaseFileResult> {
-  // The case file number comes from the client: re-check it against the caller's
-  // permission scope before hitting Télérecours and writing to the database.
-  if (!(await canAccessCaseFile(caseFileNumber))) {
+export async function refreshCaseFile(key: CaseFileKey): Promise<RefreshCaseFileResult> {
+  // The case file key comes from the client: check its shape, then re-check it
+  // against the caller's permission scope before hitting Télérecours and
+  // writing to the database.
+  if (
+    typeof key?.jurisdictionCode !== "string" ||
+    typeof key?.caseFileNumber !== "string" ||
+    !(await canAccessCaseFile(key))
+  ) {
     return { ok: false, error: "Dossier introuvable." };
   }
 
   try {
     // Credentials follow the case file's own jurisdiction (e.g. TA034 vs TA069).
-    const { client, jurisdiction } = await getTelerecoursClientForCaseFile(caseFileNumber);
+    const { client, jurisdiction } = await getTelerecoursClientForCaseFile(key);
 
     // Anonymize everywhere except in production, mirroring the scraping script.
     const anonymize = process.env.ENVIRONMENT !== "production";
 
-    await enrichCaseFile(prisma, client, caseFileNumber, jurisdiction, anonymize);
+    await enrichCaseFile(prisma, client, key.caseFileNumber, jurisdiction, anonymize);
 
-    revalidatePath(`/case_files/${encodeURIComponent(caseFileNumber)}`);
+    revalidatePath(caseFileHref(key));
     return { ok: true };
   } catch (error) {
     return { ok: false, error: clientErrorMessage(error, "Échec de la synchronisation") };
@@ -111,14 +117,17 @@ export async function updateCaseFileDetailsFormAction(
   _prevState: UpdateCaseFileDetailsResult | null,
   formData: FormData,
 ): Promise<UpdateCaseFileDetailsResult> {
-  const caseFileNumber = String(formData.get("caseFileNumber") ?? "").trim();
-  if (!caseFileNumber) {
+  const key: CaseFileKey = {
+    jurisdictionCode: String(formData.get("jurisdictionCode") ?? "").trim(),
+    caseFileNumber: String(formData.get("caseFileNumber") ?? "").trim(),
+  };
+  if (!key.jurisdictionCode || !key.caseFileNumber) {
     return { ok: false, error: "Numéro de dossier manquant." };
   }
 
   // Same wording as an unknown case file, so the answer does not reveal that a
   // case file outside the caller's permission scope exists.
-  if (!(await canAccessCaseFile(caseFileNumber))) {
+  if (!(await canAccessCaseFile(key))) {
     return { ok: false, error: "Dossier introuvable." };
   }
 
@@ -183,7 +192,7 @@ export async function updateCaseFileDetailsFormAction(
 
   try {
     await prisma.caseFile.update({
-      where: { caseFileNumber },
+      where: caseFileUniqueWhere(key),
       data: {
         litigationType: litigation.value,
         rightType: right.value,
@@ -200,7 +209,7 @@ export async function updateCaseFileDetailsFormAction(
       },
     });
 
-    revalidatePath(`/case_files/${encodeURIComponent(caseFileNumber)}`);
+    revalidatePath(caseFileHref(key));
     // Tags are displayed in the dashboard rows too, so the list must refresh.
     revalidatePath("/case_files");
     return { ok: true };

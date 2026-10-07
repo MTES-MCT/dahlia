@@ -2,6 +2,7 @@ import type { CaseFileClassificationUpdate, UnmatchedCaseFile } from "./classify
 
 // One line of the dry-run/verbose report, in the shape the CSV export needs.
 export interface ClassificationChange {
+  jurisdictionCode: string;
   caseFileNumber: string;
   title: string | null;
   // Telerecours status label (Status.label), independent of classification.
@@ -12,6 +13,7 @@ export interface ClassificationChange {
 }
 
 const CSV_HEADER = [
+  "jurisdictionCode",
   "caseFileNumber",
   "title",
   "status",
@@ -45,6 +47,7 @@ export function toClassificationCsv(
   for (const change of changes) {
     lines.push(
       csvLine([
+        change.jurisdictionCode,
         change.caseFileNumber,
         change.title,
         change.status,
@@ -56,7 +59,18 @@ export function toClassificationCsv(
     );
   }
   for (const caseFile of unmatched) {
-    lines.push(csvLine([caseFile.caseFileNumber, caseFile.title, caseFile.status, "", "", "", ""]));
+    lines.push(
+      csvLine([
+        caseFile.jurisdictionCode,
+        caseFile.caseFileNumber,
+        caseFile.title,
+        caseFile.status,
+        "",
+        "",
+        "",
+        "",
+      ]),
+    );
   }
   return `﻿${lines.join("\n")}\n`;
 }

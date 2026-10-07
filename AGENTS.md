@@ -82,6 +82,7 @@ applique aussitôt et échoue avant qu'on puisse corriger le SQL.
 
 - **Schéma Prisma multi-fichiers** : `prisma/schema/*.prisma` (un fichier par domaine, agrégés automatiquement). `schema.prisma` ne contient que datasource + generator ; l'URL de connexion vit dans `prisma.config.ts` (`DATABASE_URL`), **pas** dans le schéma (changement Prisma 7).
 - **Tables en snake_case** via `@@map` (ex. `case_files`), modèles/champs en camelCase côté code.
+- **Ids Télérecours par juridiction (tribunal administratif)** : numéros de dossier, acteurs, événements, pièces, audiences, conclusions et chambres ne sont uniques que par tribunal. Ces tables ont une clé composite `(jurisdictionCode, <id>)` et leurs FK incluent `jurisdictionCode` (ex. `where: { jurisdictionCode_caseFileNumber: … }`). Côté app, un dossier s'identifie par `CaseFileKey` / `caseFileHref()` (`app/lib/case-file-key.ts`), jamais par `caseFileNumber` seul. Détails dans le README, section « Identifiants Télérecours et `jurisdictionCode` ».
 - **Client Prisma** : importer depuis `@/app/lib/prisma` (singleton sur `globalThis` pour survivre au HMR). Ne jamais instancier `new PrismaClient()` ailleurs (sauf scripts standalone dans `data/`).
 - **Périmètre de droit** : toute requête sur `CaseFile`, `AttachedFile` ou `CaseFileEvent` doit être cloisonnée via `app/lib/case-file-scope.ts` (`caseFileScopeWhere()` / `caseFileRelationScopeWhere()`), et toute Server Action qui écrit sur un dossier doit d'abord appeler `canAccessCaseFile()`. Un dossier hors périmètre se comporte comme un dossier inexistant (404). Règle détaillée dans le README, section « Périmètre de droit ».
 - **Composants client** : `'use client'` uniquement quand nécessaire (hooks navigateur, état local interactif — ex. `useRouter` / `useSearchParams`). Le tri/pagination passent par les query params de l'URL.
@@ -100,7 +101,7 @@ applique aussitôt et échoue avant qu'on puisse corriger le SQL.
 
 ## Modèle métier
 
-`CaseFile` (dossier, PK = `caseFileNumber`) relie `Actor` (mainClaimant/mainDefender), `Urgency` (optionnelle), `Status` (lastStatus), `LegalEntityDivision`, `Hearing` → `Conclusion`. Il porte aussi des `Tag` (étiquettes applicatives, M2M via `case_file_tags`), administrés dans `/admin/tags` et jamais touchés par le scraper. Schéma complet (diagramme mermaid) dans `README.md`, à mettre à jour manuellement lors d'un changement de schéma.
+`CaseFile` (dossier, PK = `(jurisdictionCode, caseFileNumber)`) relie `Actor` (mainClaimant/mainDefender), `Urgency` (optionnelle), `Status` (lastStatus), `LegalEntityDivision`, `Hearing` → `Conclusion`. Il porte aussi des `Tag` (étiquettes applicatives, M2M via `case_file_tags`), administrés dans `/admin/tags` et jamais touchés par le scraper. Schéma complet (diagramme mermaid) dans `README.md`, à mettre à jour manuellement lors d'un changement de schéma.
 
 ## Debugging
 

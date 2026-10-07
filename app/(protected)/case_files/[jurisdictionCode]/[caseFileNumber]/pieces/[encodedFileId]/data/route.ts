@@ -1,31 +1,24 @@
 import { clientErrorMessage } from "@/app/lib/client-error";
-import { logCaseFileScopeMiss } from "@/app/lib/case-file-scope";
+import { caseFileKeyFromParams } from "@/app/lib/case-file-key";
 import { fetchAttachedFile } from "@/app/lib/data/attached-files";
 import { fetchPieceContent } from "@/app/lib/data/piece-content";
 
 type RouteContext = {
-  params: Promise<{ caseFileNumber: string; encodedFileId: string }>;
+  params: Promise<{ jurisdictionCode: string; caseFileNumber: string; encodedFileId: string }>;
 };
 
 // Stream a pièce's binary content from Télérecours through our backend, so the
 // access token never reaches the browser. We verify the file actually belongs
-// to the requested case file before downloading anything.
+// to the requested case file (lookup by case-file key) before downloading anything.
 export async function GET(_request: Request, { params }: RouteContext) {
-  const { caseFileNumber, encodedFileId } = await params;
-  const decodedCaseFileNumber = decodeURIComponent(caseFileNumber);
-  const decodedFileId = decodeURIComponent(encodedFileId);
+  const resolvedParams = await params;
+  const key = caseFileKeyFromParams(resolvedParams);
+  const decodedFileId = decodeURIComponent(resolvedParams.encodedFileId);
 
-  const file = await fetchAttachedFile(decodedFileId);
-  if (!file || file.caseFileNumber !== decodedCaseFileNumber) {
-    // A null file is already recorded by `fetchAttachedFile`. A file that
-    // exists in scope but was requested under another case file number is not.
-    if (file) {
-      await logCaseFileScopeMiss({
-        resource: "attached_file",
-        encodedFileId: decodedFileId,
-        caseFileNumber: decodedCaseFileNumber,
-      });
-    }
+  // Null (and recorded by `fetchAttachedFile`) when unknown, attached to another
+  // case file or out of the caller's scope.
+  const file = await fetchAttachedFile(key, decodedFileId);
+  if (!file) {
     return new Response("Pièce introuvable", { status: 404 });
   }
 

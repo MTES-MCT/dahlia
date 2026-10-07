@@ -1,12 +1,14 @@
 model LastDecisionReading {
-  caseFileNumber String @id
+  jurisdictionCode String
+  caseFileNumber   String
 
   readingDate      DateTime
   notificationDate DateTime?
   nature           String?
   operativePart    String?
 
-  caseFile CaseFile @relation(fields: [caseFileNumber], references: [caseFileNumber], onDelete: Cascade)
+  caseFile CaseFile @relation(fields: [jurisdictionCode, caseFileNumber], references: [jurisdictionCode, caseFileNumber], onDelete: Cascade)
 
+  @@id([jurisdictionCode, caseFileNumber])
   @@map("last_decision_readings")
 }

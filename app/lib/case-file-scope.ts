@@ -11,6 +11,7 @@ import { headers } from "next/headers";
 import type { Prisma } from "@prisma/client";
 import { clientIpFrom, logSecurityDenial } from "@/app/lib/audit-log";
 import { auth } from "@/app/lib/auth";
+import type { CaseFileKey } from "@/app/lib/case-file-key";
 import { prisma } from "@/app/lib/prisma";
 
 // `unrestricted` is reserved to administrators with no assigned jurisdiction;
@@ -63,12 +64,16 @@ export async function caseFileRelationScopeWhere(): Promise<{
 }
 
 // Guard for Server Actions that mutate a case file without reading it first.
-export async function canAccessCaseFile(caseFileNumber: string): Promise<boolean> {
+export async function canAccessCaseFile(key: CaseFileKey): Promise<boolean> {
   const count = await prisma.caseFile.count({
-    where: { caseFileNumber, ...(await caseFileScopeWhere()) },
+    where: {
+      jurisdictionCode: key.jurisdictionCode,
+      caseFileNumber: key.caseFileNumber,
+      ...(await caseFileScopeWhere()),
+    },
   });
   if (count > 0) return true;
-  await logCaseFileScopeMiss({ resource: "case_file", caseFileNumber });
+  await logCaseFileScopeMiss({ resource: "case_file", ...key });
   return false;
 }
 

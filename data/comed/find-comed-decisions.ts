@@ -7,6 +7,7 @@ import {
 
 const comedDecisionSelect = {
   encodedFileId: true,
+  jurisdictionCode: true,
   caseFileNumber: true,
   fileName: true,
   fileTypeLabel: true,
@@ -22,7 +23,7 @@ const comedDecisionSelect = {
 export async function findComedDecisions(prisma: PrismaClient): Promise<ComedDecision[]> {
   const files = await prisma.attachedFile.findMany({
     select: comedDecisionSelect,
-    orderBy: [{ caseFileNumber: "asc" }, { eventCreationDate: "asc" }],
+    orderBy: [{ caseFileNumber: "asc" }, { jurisdictionCode: "asc" }, { eventCreationDate: "asc" }],
   });
   return selectComedDecisions(files);
 }

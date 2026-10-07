@@ -20,15 +20,18 @@ model Tag {
 // Deleting a case file drops its links; deleting a tag still used by a case file
 // is refused by the database (Restrict), mirroring the admin UI rule.
 model CaseFileTag {
+  // Telerecours court code, part of every composite key (see CaseFile).
+  jurisdictionCode String
+
   caseFileNumber String
-  caseFile       CaseFile @relation(fields: [caseFileNumber], references: [caseFileNumber], onDelete: Cascade)
+  caseFile       CaseFile @relation(fields: [jurisdictionCode, caseFileNumber], references: [jurisdictionCode, caseFileNumber], onDelete: Cascade)
 
   tagId Int
   tag   Tag @relation(fields: [tagId], references: [id], onDelete: Restrict)
 
   createdAt DateTime @default(now())
 
-  @@id([caseFileNumber, tagId])
+  @@id([jurisdictionCode, caseFileNumber, tagId])
   @@index([tagId])
   @@map("case_file_tags")
 }

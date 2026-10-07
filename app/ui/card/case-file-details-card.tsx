@@ -27,6 +27,7 @@ type Props = {
 
 export function CaseFileDetailsCard({ caseFile, availableTags }: Props) {
   const editorProps: CaseFileDetailsEditorProps = {
+    jurisdictionCode: caseFile.jurisdictionCode,
     caseFileNumber: caseFile.caseFileNumber,
     title: caseFile.title,
     statusLabel: caseFile.lastStatus.label,
@@ -71,6 +72,7 @@ export function CaseFileDetailsCard({ caseFile, availableTags }: Props) {
           title={editorProps.title}
           statusLabel={editorProps.statusLabel}
           tags={editorProps.tags}
+          jurisdictionCode={caseFile.jurisdictionCode}
           caseFileNumber={caseFile.caseFileNumber}
           telerecoursSyncAt={caseFile.telerecoursSyncAt}
         />
@@ -78,6 +80,7 @@ export function CaseFileDetailsCard({ caseFile, availableTags }: Props) {
 
       {/* Rendered outside the sticky section so the modal backdrop covers the header. */}
       <CaseFileDetailsModal
+        jurisdictionCode={editorProps.jurisdictionCode}
         caseFileNumber={editorProps.caseFileNumber}
         statusLabel={editorProps.statusLabel}
         litigationType={editorProps.litigationType}

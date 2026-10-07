@@ -60,6 +60,11 @@ describe("parseArgs", () => {
     });
   });
 
+  it("active --force (désactivé par défaut)", () => {
+    expect(parseArgs(argv()).force).toBe(false);
+    expect(parseArgs(argv("--force")).force).toBe(true);
+  });
+
   it("--classify-overwrite implies --classify", () => {
     const args = parseArgs(argv("--classify-overwrite"));
     expect(args).toMatchObject({ classify: true, classifyOverwrite: true });

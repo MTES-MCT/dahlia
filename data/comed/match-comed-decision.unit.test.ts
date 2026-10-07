@@ -25,6 +25,7 @@ function source(
 function file(overrides: Partial<AttachedFileComedSource> = {}): AttachedFileComedSource {
   return {
     encodedFileId: "enc-1",
+    jurisdictionCode: "TA069",
     caseFileNumber: "2400001",
     fileName: "3_COMED_23.12.25.pdf",
     fileTypeLabel: "Notification",
@@ -156,5 +157,14 @@ describe("selectComedDecisions", () => {
     });
     expect(decisions[1].verdict).toBe("probable");
     expect(countComedDossiers(decisions)).toBe(1);
+  });
+
+  it("counts the same case-file number in two courts as two dossiers", () => {
+    const decisions = selectComedDecisions([
+      file(),
+      file({ encodedFileId: "enc-2", jurisdictionCode: "TA034" }),
+    ]);
+
+    expect(countComedDossiers(decisions)).toBe(2);
   });
 });
