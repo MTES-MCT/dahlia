@@ -12,7 +12,6 @@ import { metadata as adminJurisdictionMetadata } from "./(protected)/admin/juris
 import { metadata as adminDivisionsMetadata } from "./(protected)/admin/divisions/page";
 import { metadata as adminTagsMetadata } from "./(protected)/admin/tags/page";
 import { generateMetadata as caseFileMetadata } from "./(protected)/case_files/[jurisdictionCode]/[caseFileNumber]/page";
-import { metadata as caseFileRedirectMetadata } from "./(protected)/case_files/[jurisdictionCode]/page";
 import { fetchCaseFileDetail } from "@/app/lib/data/case-files";
 
 vi.mock("@/app/lib/prisma", () => ({ prisma: {} }));
@@ -128,12 +127,6 @@ describe("Titres des pages", () => {
     expect(resolveTitle(adminTagsMetadata.title)).toBe("Mots-clés - Administration - DAHLIA");
   });
 
-  it("intitule la page de redirection des anciennes URL de dossier", () => {
-    expect(resolveTitle(caseFileRedirectMetadata.title)).toBe(
-      "Redirection vers le dossier - DAHLIA",
-    );
-  });
-
   it("intitule une fiche dossier avec le libellé du dossier", async () => {
     mockedFetchCaseFileDetail.mockResolvedValue(caseFile as never);
 
@@ -172,7 +165,6 @@ describe("Titres des pages", () => {
       adminJurisdictionMetadata.title,
       adminDivisionsMetadata.title,
       adminTagsMetadata.title,
-      caseFileRedirectMetadata.title,
     ].map(resolveTitle);
 
     expect(new Set(titles).size).toBe(titles.length);
