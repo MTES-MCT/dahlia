@@ -15,6 +15,15 @@ import { enrichCaseFile } from "@/data/persistence/enrich-case-file";
 
 export type RefreshCaseFileResult = { ok: true } | { ok: false; error: string };
 
+function isSafeCaseFileKeyPart(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    value.length > 0 &&
+    value.length <= 128 &&
+    /^[A-Za-z0-9._/-]+$/.test(value)
+  );
+}
+
 // Re-fetch a single case file from Télérecours and upsert it into the database,
 // reusing the same enrichment pipeline as the scraping script. The Télérecours
 // client is a singleton per jurisdiction (see getTelerecoursCaseFileClient).
@@ -23,8 +32,8 @@ export async function refreshCaseFile(key: CaseFileKey): Promise<RefreshCaseFile
   // against the caller's permission scope before hitting Télérecours and
   // writing to the database.
   if (
-    typeof key?.jurisdictionCode !== "string" ||
-    typeof key?.caseFileNumber !== "string" ||
+    !isSafeCaseFileKeyPart(key?.jurisdictionCode) ||
+    !isSafeCaseFileKeyPart(key?.caseFileNumber) ||
     !(await canAccessCaseFile(key))
   ) {
     return { ok: false, error: "Dossier introuvable." };
