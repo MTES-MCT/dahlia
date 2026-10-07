@@ -3,19 +3,20 @@ import { notFound } from "next/navigation";
 import { fetchCaseFileDetail } from "@/app/lib/data/case-files";
 import { fetchTagOptions } from "@/app/lib/data/tags";
 import { getCaseFileDisplayName } from "@/app/lib/case-file-format";
+import { caseFileKeyFromParams } from "@/app/lib/case-file-key";
 import { CaseFileBreadcrumb } from "@/app/ui/breadcrumb/case-file-breadcrumb";
 import { CaseFileDetailsCard } from "@/app/ui/card/case-file-details-card";
 import { CaseFileTabs } from "@/app/ui/tabs/case-file-tabs";
 import { parseCaseFileTab } from "@/app/lib/case-file-tabs";
 import clsx from "clsx";
 type Props = {
-  params: Promise<{ caseFileNumber: string }>;
+  params: Promise<{ jurisdictionCode: string; caseFileNumber: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { caseFileNumber } = await params;
-  const caseFile = await fetchCaseFileDetail(decodeURIComponent(caseFileNumber));
+  const { jurisdictionCode, caseFileNumber } = caseFileKeyFromParams(await params);
+  const caseFile = await fetchCaseFileDetail(jurisdictionCode, caseFileNumber);
 
   // Same label as the breadcrumb and the details card, so the tab title matches
   // what is displayed on the page.
@@ -25,13 +26,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function Page({ params, searchParams }: Props) {
-  const { caseFileNumber } = await params;
-  const decodedCaseFileNumber = decodeURIComponent(caseFileNumber);
+  const { jurisdictionCode, caseFileNumber } = caseFileKeyFromParams(await params);
   const resolvedSearchParams = await searchParams;
   const tab = parseCaseFileTab(resolvedSearchParams.tab, resolvedSearchParams);
 
   const [caseFile, availableTags] = await Promise.all([
-    fetchCaseFileDetail(decodedCaseFileNumber),
+    fetchCaseFileDetail(jurisdictionCode, caseFileNumber),
     fetchTagOptions(),
   ]);
 

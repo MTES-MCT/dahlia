@@ -3,16 +3,19 @@ enum ActorType {
   NATURAL_PERSON
 }
 
+// Telerecours actor ids are only unique within a court: the primary key is
+// (jurisdictionCode, id).
 model Actor {
-  id              Int       @id
-  firstName       String?
-  lastName        String?
-  lastFirstName   String?
-  firstLastName   String?
-  legalPersonName String?
-  legalEntityName String?
-  legalEntityId   Int?
-  actorType       ActorType
+  jurisdictionCode String
+  id               Int
+  firstName        String?
+  lastName         String?
+  lastFirstName    String?
+  firstLastName    String?
+  legalPersonName  String?
+  legalEntityName  String?
+  legalEntityId    Int?
+  actorType        ActorType
 
   // Column computed by Postgres (GENERATED ALWAYS ... STORED, cf. migration)
   // reproducing getActorDisplayName, to allow sorting in the database on the
@@ -38,6 +41,7 @@ model Actor {
   // actor_display_name & search_unaccent. Déclarés ici pour que Prisma ne
   // tente plus de les DROP/CREATE à chaque diff (l'index sur displayName
   // est créé par actor_display_name mais Prisma l'ignorait jusqu'ici).
+  @@id([jurisdictionCode, id])
   @@index([displayName])
   @@map("actors")
 }

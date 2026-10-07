@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { upsertCaseFileActorLink } from "./upsert-case-file-actors";
 import { actorFixture } from "../test-support/fixtures";
 
+const caseFileKey = { jurisdictionCode: "TA069", caseFileNumber: "2506122" };
+
 const mockQualityUpsert = vi.fn();
 const mockActorUpsert = vi.fn();
 const mockCaseFileActorUpdateMany = vi.fn();
@@ -30,7 +32,7 @@ describe("upsertCaseFileActorLink", () => {
 
     await upsertCaseFileActorLink(
       prisma,
-      "2506122",
+      caseFileKey,
       actor,
       { isMainClaimant: true, isMainDefender: false },
       false,
@@ -38,6 +40,7 @@ describe("upsertCaseFileActorLink", () => {
 
     expect(mockCaseFileActorUpdateMany).toHaveBeenCalledExactlyOnceWith({
       where: {
+        jurisdictionCode: "TA069",
         caseFileNumber: "2506122",
         isMainClaimant: true,
         actorId: { not: 1275635 },
@@ -52,7 +55,7 @@ describe("upsertCaseFileActorLink", () => {
 
     await upsertCaseFileActorLink(
       prisma,
-      "2506122",
+      caseFileKey,
       actor,
       { isMainClaimant: false, isMainDefender: true },
       false,
@@ -60,6 +63,7 @@ describe("upsertCaseFileActorLink", () => {
 
     expect(mockCaseFileActorUpdateMany).toHaveBeenCalledExactlyOnceWith({
       where: {
+        jurisdictionCode: "TA069",
         caseFileNumber: "2506122",
         isMainDefender: true,
         actorId: { not: 1275638 },
@@ -73,7 +77,7 @@ describe("upsertCaseFileActorLink", () => {
 
     await upsertCaseFileActorLink(
       prisma,
-      "2506122",
+      caseFileKey,
       actor,
       { isMainClaimant: false, isMainDefender: false },
       false,
@@ -81,5 +85,34 @@ describe("upsertCaseFileActorLink", () => {
 
     expect(mockCaseFileActorUpdateMany).not.toHaveBeenCalled();
     expect(mockCaseFileActorUpsert).toHaveBeenCalled();
+  });
+
+  it("rattache l'acteur et le lien au tribunal du dossier", async () => {
+    const actor = actorFixture({ id: 42 });
+
+    await upsertCaseFileActorLink(
+      prisma,
+      { jurisdictionCode: "TA034", caseFileNumber: "2506122" },
+      actor,
+      { isMainClaimant: false, isMainDefender: false },
+      false,
+    );
+
+    expect(mockActorUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { jurisdictionCode_id: { jurisdictionCode: "TA034", id: 42 } },
+      }),
+    );
+    expect(mockCaseFileActorUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          jurisdictionCode_caseFileNumber_actorId: {
+            jurisdictionCode: "TA034",
+            caseFileNumber: "2506122",
+            actorId: 42,
+          },
+        },
+      }),
+    );
   });
 });

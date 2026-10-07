@@ -33,6 +33,7 @@ function attachedFile(
   } = {},
 ) {
   return {
+    jurisdictionCode: "TA069",
     caseFileNumber: "TA069-001",
     encodedFileId: "file-abc",
     fileTypeLabel: "Requête",
@@ -122,7 +123,10 @@ describe("fetchPieceContent", () => {
       const file = attachedFile({ encodedFileId: "enc-123" });
       const result = await fetchPieceContent(file);
 
-      expect(mockedGetTelerecoursClientForCaseFile).toHaveBeenCalledWith("TA069-001");
+      expect(mockedGetTelerecoursClientForCaseFile).toHaveBeenCalledWith({
+        jurisdictionCode: "TA069",
+        caseFileNumber: "TA069-001",
+      });
       expect(downloadFileMock).toHaveBeenCalledWith("enc-123", "TA069");
       expect(readMockedPdfMock).not.toHaveBeenCalled();
       expect(result.mimeType).toBe("image/png");

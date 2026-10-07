@@ -1,6 +1,7 @@
 import type { ComedDecision } from "./match-comed-decision";
 
 const CSV_HEADER = [
+  "jurisdictionCode",
   "caseFileNumber",
   "caseFileTitle",
   "encodedFileId",
@@ -29,6 +30,7 @@ export function toComedDecisionCsv(decisions: readonly ComedDecision[]): string 
   for (const decision of decisions) {
     lines.push(
       csvLine([
+        decision.jurisdictionCode,
         decision.caseFileNumber,
         decision.caseFileTitle,
         decision.encodedFileId,

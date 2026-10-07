@@ -23,6 +23,7 @@ vi.mock("next/cache", () => ({
 import { savePieceMetadataAction } from "./actions";
 
 const INPUT = { dahliaName: "Requête", number: "002", comment: "" };
+const KEY = { jurisdictionCode: "TA069", caseFileNumber: "TA069-001" };
 
 describe("savePieceMetadataAction", () => {
   beforeEach(() => {
@@ -35,23 +36,25 @@ describe("savePieceMetadataAction", () => {
 
   it("enregistre les métadonnées d'une pièce accessible", async () => {
     mockFetchAttachedFile.mockResolvedValue({ encodedFileId: "piece-1" });
-    mockAttachedFileUpdate.mockResolvedValue({ caseFileNumber: "TA069-001" });
+    mockAttachedFileUpdate.mockResolvedValue({});
 
-    expect(await savePieceMetadataAction("piece-1", INPUT)).toEqual({ ok: true });
+    expect(await savePieceMetadataAction(KEY, "piece-1", INPUT)).toEqual({ ok: true });
+    expect(mockFetchAttachedFile).toHaveBeenCalledWith(KEY, "piece-1");
     expect(mockAttachedFileUpdate).toHaveBeenCalledWith({
-      where: { encodedFileId: "piece-1" },
+      where: {
+        jurisdictionCode_encodedFileId: { jurisdictionCode: "TA069", encodedFileId: "piece-1" },
+      },
       data: { dahliaName: "Requête", number: "002", comment: null },
-      select: { caseFileNumber: true },
     });
-    expect(mockRevalidatePath).toHaveBeenCalledWith("/case_files/TA069-001");
+    expect(mockRevalidatePath).toHaveBeenCalledWith("/case_files/TA069/TA069-001");
   });
 
   it("refuse une pièce hors du périmètre de droit", async () => {
-    // `fetchAttachedFile` is scoped: it returns null both for an unknown pièce
-    // and for one whose case file is out of scope.
+    // `fetchAttachedFile` is scoped: it returns null for an unknown pièce, for
+    // one of another case file and for one whose case file is out of scope.
     mockFetchAttachedFile.mockResolvedValue(null);
 
-    expect(await savePieceMetadataAction("piece-interdite", INPUT)).toEqual({
+    expect(await savePieceMetadataAction(KEY, "piece-interdite", INPUT)).toEqual({
       ok: false,
       error: "Pièce introuvable.",
     });
@@ -60,7 +63,7 @@ describe("savePieceMetadataAction", () => {
   });
 
   it("refuse un identifiant de pièce vide sans interroger la base", async () => {
-    expect(await savePieceMetadataAction("  ", INPUT)).toEqual({
+    expect(await savePieceMetadataAction(KEY, "  ", INPUT)).toEqual({
       ok: false,
       error: "Identifiant de pièce manquant.",
     });
@@ -68,7 +71,7 @@ describe("savePieceMetadataAction", () => {
   });
 
   it("refuse un numéro non numérique", async () => {
-    const result = await savePieceMetadataAction("piece-1", { ...INPUT, number: "2a" });
+    const result = await savePieceMetadataAction(KEY, "piece-1", { ...INPUT, number: "2a" });
 
     expect(result).toEqual({
       ok: false,
@@ -84,7 +87,7 @@ describe("savePieceMetadataAction", () => {
       new Error("Unique constraint failed on the fields: (`encodedFileId`)"),
     );
 
-    const result = await savePieceMetadataAction("piece-1", INPUT);
+    const result = await savePieceMetadataAction(KEY, "piece-1", INPUT);
 
     expect(result).toEqual({ ok: false, error: "Une erreur est survenue." });
   });

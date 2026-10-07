@@ -39,7 +39,10 @@ export async function fetchPieceContent(
   }
 
   // Credentials follow the case file's own jurisdiction (e.g. TA034 vs TA069).
-  const { client, jurisdiction } = await getTelerecoursClientForCaseFile(file.caseFileNumber);
+  const { client, jurisdiction } = await getTelerecoursClientForCaseFile({
+    jurisdictionCode: file.jurisdictionCode,
+    caseFileNumber: file.caseFileNumber,
+  });
   const { data, mimeType } = await client.downloadFile(file.encodedFileId, jurisdiction);
   return {
     data: toBytes(data),

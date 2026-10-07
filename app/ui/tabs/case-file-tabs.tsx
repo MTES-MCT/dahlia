@@ -1,5 +1,6 @@
 import { fr } from "@codegouvfr/react-dsfr";
 import clsx from "clsx";
+import { caseFileHref } from "@/app/lib/case-file-key";
 import { formatDateFr, getActorDisplayName } from "@/app/lib/case-file-format";
 import { type CaseFileEventListRow } from "@/app/lib/data/case-file-events";
 import { fetchCaseFileDebugSnapshot, type CaseFileDetail } from "@/app/lib/data/case-files";
@@ -60,23 +61,21 @@ const HISTORIQUE_COLUMNS: DataTableColumn<CaseFileEventListRow>[] = [
 ];
 
 export async function CaseFileTabs({ caseFile, tab, searchParams }: Props) {
-  const { caseFileNumber } = caseFile;
+  const caseFileKey = {
+    jurisdictionCode: caseFile.jurisdictionCode,
+    caseFileNumber: caseFile.caseFileNumber,
+  };
   const showDebugTab = isDebugTabEnabled(searchParams);
 
   const [pieces, historiqueTable, debugSnapshot] = await Promise.all([
     tab === "pieces"
-      ? fetchCaseFilePiecesFiltered(
-          caseFileNumber,
-          PIECES_DEFAULT_SORT_BY,
-          PIECES_DEFAULT_ORDER,
-          null,
-        )
+      ? fetchCaseFilePiecesFiltered(caseFileKey, PIECES_DEFAULT_SORT_BY, PIECES_DEFAULT_ORDER, null)
       : null,
-    tab === "historique" ? fetchCaseFileEventsTableData(caseFileNumber, searchParams) : null,
-    tab === "debug" ? fetchCaseFileDebugSnapshot(caseFileNumber) : null,
+    tab === "historique" ? fetchCaseFileEventsTableData(caseFileKey, searchParams) : null,
+    tab === "debug" ? fetchCaseFileDebugSnapshot(caseFileKey) : null,
   ]);
 
-  const caseFilePath = `/case_files/${encodeURIComponent(caseFileNumber)}`;
+  const caseFilePath = caseFileHref(caseFileKey);
 
   const workspacePieces: WorkspacePiece[] | null =
     pieces?.map((piece) => ({
@@ -106,7 +105,7 @@ export async function CaseFileTabs({ caseFile, tab, searchParams }: Props) {
     >
       <CaseFileTabNav selectedTabId={tab} showDebugTab={showDebugTab}>
         {tab === "pieces" && workspacePieces && (
-          <PiecesWorkspace caseFileNumber={caseFileNumber} pieces={workspacePieces} />
+          <PiecesWorkspace caseFileKey={caseFileKey} pieces={workspacePieces} />
         )}
 
         {tab === "historique" && historiqueTable && (

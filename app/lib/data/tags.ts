@@ -31,7 +31,11 @@ export type TagListRow = {
 };
 
 // A case file using a tag, reduced to what the deletion-blocked modal displays.
-export type TagCaseFileRow = { caseFileNumber: string; displayName: string };
+export type TagCaseFileRow = {
+  jurisdictionCode: string;
+  caseFileNumber: string;
+  displayName: string;
+};
 
 function toSortOrder(sortOrder: SortOrder): Prisma.SortOrder {
   return sortOrder === "ascending" ? "asc" : "desc";
@@ -142,11 +146,12 @@ export async function fetchTagCaseFiles(tagId: number, limit = 100): Promise<Tag
       ...(await caseFileScopeWhere()),
     },
     include: { caseFileActors: { include: CASE_FILE_ACTOR_INCLUDE } },
-    orderBy: { caseFileNumber: "asc" },
+    orderBy: [{ caseFileNumber: "asc" }, { jurisdictionCode: "asc" }],
     take: limit,
   });
 
   return caseFiles.map((caseFile) => ({
+    jurisdictionCode: caseFile.jurisdictionCode,
     caseFileNumber: caseFile.caseFileNumber,
     displayName: getCaseFileDisplayName(caseFile),
   }));

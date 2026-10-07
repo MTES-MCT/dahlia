@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import type { CaseFileKey } from "@/app/lib/case-file-key";
 import { prisma } from "@/app/lib/prisma";
 import { caseFileRelationScopeWhere, logCaseFileScopeMiss } from "@/app/lib/case-file-scope";
 import { normalizeForSearch, parseSearchQuery } from "@/app/lib/case-file-search";
@@ -51,11 +52,10 @@ function buildPiecesOrderBy(
   }
 }
 
-function buildPiecesWhere(
-  caseFileNumber: string,
-  query: string | null,
-): Prisma.AttachedFileWhereInput {
-  const conditions: Prisma.AttachedFileWhereInput[] = [{ caseFileNumber }];
+function buildPiecesWhere(key: CaseFileKey, query: string | null): Prisma.AttachedFileWhereInput {
+  const conditions: Prisma.AttachedFileWhereInput[] = [
+    { jurisdictionCode: key.jurisdictionCode, caseFileNumber: key.caseFileNumber },
+  ];
 
   if (query) {
     const { freeText, facets } = parseSearchQuery(query, PIECES_FACET_KEYS);
@@ -105,13 +105,13 @@ function toSortOrder(sortOrder: SortOrder): Prisma.SortOrder {
 
 // Full filtered/sorted list for the pièces workspace sidebar.
 export async function fetchCaseFilePiecesFiltered(
-  caseFileNumber: string,
+  key: CaseFileKey,
   sortBy: string,
   sortOrder: SortOrder,
   query: string | null,
 ): Promise<CaseFilePiece[]> {
   const where = {
-    ...buildPiecesWhere(caseFileNumber, query),
+    ...buildPiecesWhere(key, query),
     ...(await caseFileRelationScopeWhere()),
   };
   return prisma.attachedFile.findMany({
@@ -121,15 +121,22 @@ export async function fetchCaseFilePiecesFiltered(
   });
 }
 
-// Fetch a single attached file (pièce). Returns null when unknown *or* when its
-// case file lies outside the current user's permission scope — which is what
-// makes the pièce routes (viewer and zip download) answer 404 in that case.
-export async function fetchAttachedFile(encodedFileId: string) {
+// Fetch a single attached file (pièce) of a case file. `encodedFileId` is only
+// unique within a court, hence the case-file key. Returns null when unknown,
+// attached to another case file, *or* when its case file lies outside the
+// current user's permission scope — which is what makes the pièce routes
+// (viewer and zip download) answer 404 in that case.
+export async function fetchAttachedFile(key: CaseFileKey, encodedFileId: string) {
   const file = await prisma.attachedFile.findFirst({
-    where: { encodedFileId, ...(await caseFileRelationScopeWhere()) },
+    where: {
+      jurisdictionCode: key.jurisdictionCode,
+      caseFileNumber: key.caseFileNumber,
+      encodedFileId,
+      ...(await caseFileRelationScopeWhere()),
+    },
   });
   if (!file) {
-    await logCaseFileScopeMiss({ resource: "attached_file", encodedFileId });
+    await logCaseFileScopeMiss({ resource: "attached_file", ...key, encodedFileId });
   }
   return file;
 }

@@ -1,8 +1,12 @@
+// Chamber ids are only unique within a court: the primary key is
+// (jurisdictionCode, id).
 model Chamber {
-  id   Int    @id
-  name String
+  jurisdictionCode String
+  id               Int
+  name             String
 
   caseFiles CaseFile[]
 
+  @@id([jurisdictionCode, id])
   @@map("chambers")
 }

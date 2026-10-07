@@ -16,8 +16,11 @@ model Measure {
 
 // Un événement / mesure appliqué à un dossier (mesure datée).
 // `id` est l'identifiant numérique fourni par l'API (Télérecours).
+// Event ids are only unique within a court: the primary key is
+// (jurisdictionCode, id).
 model CaseFileEvent {
-  id                     Int       @id
+  jurisdictionCode       String
+  id                     Int
   subEventId             Int       @default(0)
   eventDate              DateTime
   deadlineLabel          String?
@@ -35,16 +38,17 @@ model CaseFileEvent {
   deadlineLabelSearchNormalized String?
 
   caseFileNumber String
-  caseFile       CaseFile @relation(fields: [caseFileNumber], references: [caseFileNumber], onDelete: Cascade)
+  caseFile       CaseFile @relation(fields: [jurisdictionCode, caseFileNumber], references: [jurisdictionCode, caseFileNumber], onDelete: Cascade)
 
   measureCode String
   measure     Measure @relation(fields: [measureCode], references: [code])
 
   actorId Int?
-  actor   Actor? @relation("CaseFileEventActor", fields: [actorId], references: [id])
+  actor   Actor? @relation("CaseFileEventActor", fields: [jurisdictionCode, actorId], references: [jurisdictionCode, id])
 
   attachedFiles AttachedFile[]
 
-  @@index([caseFileNumber])
+  @@id([jurisdictionCode, id])
+  @@index([jurisdictionCode, caseFileNumber])
   @@map("case_file_events")
 }

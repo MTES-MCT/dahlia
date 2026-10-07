@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { caseFileHref, type CaseFileKey } from "@/app/lib/case-file-key";
 import { prisma } from "@/app/lib/prisma";
 import { fetchAttachedFile } from "@/app/lib/data/attached-files";
 import { describePrismaError } from "@/app/lib/form-actions";
@@ -17,6 +18,7 @@ type PieceMetadataInput = {
 // All fields are optional: empty strings are stored as null. `number` keeps its
 // leading zeros because it is a string column (e.g. "002").
 async function persistPieceMetadata(
+  key: CaseFileKey,
   encodedFileId: string,
   input: PieceMetadataInput,
 ): Promise<UpdatePieceResult> {
@@ -26,24 +28,24 @@ async function persistPieceMetadata(
       return { ok: false, error: "Le numéro ne doit contenir que des chiffres." };
     }
 
-    // Scoped read: null when the pièce is unknown *or* belongs to a case file
-    // outside the caller's permission scope. Same wording in both cases.
-    if (!(await fetchAttachedFile(encodedFileId))) {
+    // Scoped read: null when the pièce is unknown, belongs to another case file
+    // *or* to a case file outside the caller's permission scope. Same wording.
+    if (!(await fetchAttachedFile(key, encodedFileId))) {
       return { ok: false, error: "Pièce introuvable." };
     }
 
-    const file = await prisma.attachedFile.update({
-      where: { encodedFileId },
+    await prisma.attachedFile.update({
+      where: {
+        jurisdictionCode_encodedFileId: { jurisdictionCode: key.jurisdictionCode, encodedFileId },
+      },
       data: {
         dahliaName: input.dahliaName.trim() || null,
         number: number || null,
         comment: input.comment.trim() || null,
       },
-      select: { caseFileNumber: true },
     });
 
-    const encodedCaseFileNumber = encodeURIComponent(file.caseFileNumber);
-    revalidatePath(`/case_files/${encodedCaseFileNumber}`);
+    revalidatePath(caseFileHref(key));
     return { ok: true };
   } catch (error) {
     return { ok: false, error: describePrismaError(error) };
@@ -53,6 +55,7 @@ async function persistPieceMetadata(
 // Structured variant used by the inline editor of the pièces workspace, which
 // holds its own client state instead of relying on a native <form> submission.
 export async function savePieceMetadataAction(
+  key: CaseFileKey,
   encodedFileId: string,
   input: PieceMetadataInput,
 ): Promise<UpdatePieceResult> {
@@ -60,5 +63,5 @@ export async function savePieceMetadataAction(
   if (!trimmed) {
     return { ok: false, error: "Identifiant de pièce manquant." };
   }
-  return persistPieceMetadata(trimmed, input);
+  return persistPieceMetadata(key, trimmed, input);
 }

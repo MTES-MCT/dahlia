@@ -1,11 +1,14 @@
 import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
 import { render, screen, cleanup, within, fireEvent } from "@testing-library/react";
 import { PiecesWorkspace, type WorkspacePiece } from "./pieces-workspace";
-import { savePieceMetadataAction } from "@/app/(protected)/case_files/[caseFileNumber]/pieces/[encodedFileId]/actions";
+import { savePieceMetadataAction } from "@/app/(protected)/case_files/[jurisdictionCode]/[caseFileNumber]/pieces/[encodedFileId]/actions";
 
-vi.mock("@/app/(protected)/case_files/[caseFileNumber]/pieces/[encodedFileId]/actions", () => ({
-  savePieceMetadataAction: vi.fn(),
-}));
+vi.mock(
+  "@/app/(protected)/case_files/[jurisdictionCode]/[caseFileNumber]/pieces/[encodedFileId]/actions",
+  () => ({
+    savePieceMetadataAction: vi.fn(),
+  }),
+);
 
 const pieces: WorkspacePiece[] = [
   {
@@ -31,7 +34,12 @@ const pieces: WorkspacePiece[] = [
 ];
 
 function renderWorkspace() {
-  return render(<PiecesWorkspace caseFileNumber="TA069-2026-001" pieces={pieces} />);
+  return render(
+    <PiecesWorkspace
+      caseFileKey={{ jurisdictionCode: "TA069", caseFileNumber: "TA069-2026-001" }}
+      pieces={pieces}
+    />,
+  );
 }
 
 function sidebar() {
@@ -94,6 +102,7 @@ describe("PiecesWorkspace", () => {
 
     await screen.findByRole("heading", { name: "Nouveau nom" });
     expect(savePieceMetadataAction).toHaveBeenCalledWith(
+      { jurisdictionCode: "TA069", caseFileNumber: "TA069-2026-001" },
       "f1",
       expect.objectContaining({ dahliaName: "Nouveau nom" }),
     );

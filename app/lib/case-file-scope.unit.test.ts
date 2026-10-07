@@ -177,9 +177,15 @@ describe("case-file-scope", () => {
       mockScope([3]);
       mockCaseFileCount.mockResolvedValue(1);
 
-      expect(await canAccessCaseFile("TA069-001")).toBe(true);
+      expect(
+        await canAccessCaseFile({ jurisdictionCode: "TA069", caseFileNumber: "TA069-001" }),
+      ).toBe(true);
       expect(mockCaseFileCount).toHaveBeenCalledWith({
-        where: { caseFileNumber: "TA069-001", jurisdictionId: { in: [3] } },
+        where: {
+          jurisdictionCode: "TA069",
+          caseFileNumber: "TA069-001",
+          jurisdictionId: { in: [3] },
+        },
       });
       expect(info).not.toHaveBeenCalled();
     });
@@ -189,7 +195,9 @@ describe("case-file-scope", () => {
       mockScope([3]);
       mockCaseFileCount.mockResolvedValue(0);
 
-      expect(await canAccessCaseFile("TA075-001")).toBe(false);
+      expect(
+        await canAccessCaseFile({ jurisdictionCode: "TA075", caseFileNumber: "TA075-001" }),
+      ).toBe(false);
       expect(JSON.parse(String(info.mock.calls[0]?.[0]))).toEqual(
         expect.objectContaining({
           type: "audit",
@@ -197,7 +205,7 @@ describe("case-file-scope", () => {
           actorId: "u1",
           action: "auth.scope.denied",
           reason: "out_of_scope",
-          target: { resource: "case_file", caseFileNumber: "TA075-001" },
+          target: { resource: "case_file", jurisdictionCode: "TA075", caseFileNumber: "TA075-001" },
         }),
       );
     });

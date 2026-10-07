@@ -8,14 +8,17 @@ function parseDate(value: string | null | undefined): Date | undefined {
 }
 
 // Upsert a hearing session, its conclusion(s), and optionally the M2M link to a
-// case file. Conclusion ids are scoped by hearingId (composite PK). Order
-// matters: hearing row first (without lastConclusion), then conclusion, then
-// set Hearing.lastConclusionId.
+// case file. Hearing ids are scoped by court (jurisdictionCode) and conclusion
+// ids by hearing (composite PKs). Order matters: hearing row first (without
+// lastConclusion), then conclusion, then set Hearing.lastConclusionId.
 export async function upsertHearingWithConclusion(
   prisma: PrismaClient,
+  jurisdictionCode: string,
   hearing: Hearing,
   caseFileNumber?: string,
 ): Promise<void> {
+  const hearingKey = { jurisdictionCode, hearingId: hearing.hearingId };
+
   const hearingBase = {
     convocationDate: new Date(hearing.convocationDate),
     room: hearing.room,
@@ -24,10 +27,10 @@ export async function upsertHearingWithConclusion(
   };
 
   await prisma.hearing.upsert({
-    where: { hearingId: hearing.hearingId },
+    where: { jurisdictionCode_hearingId: hearingKey },
     update: hearingBase,
     create: {
-      hearingId: hearing.hearingId,
+      ...hearingKey,
       ...hearingBase,
       lastConclusionId: null,
     },
@@ -49,7 +52,7 @@ export async function upsertHearingWithConclusion(
     const operativePartId = lastConclusion.conclusionOperativePart?.id ?? null;
     await prisma.conclusion.upsert({
       where: {
-        id_hearingId: { id: lastConclusion.id, hearingId: hearing.hearingId },
+        jurisdictionCode_hearingId_id: { ...hearingKey, id: lastConclusion.id },
       },
       update: {
         conclusionSense: lastConclusion.conclusionSense,
@@ -58,8 +61,8 @@ export async function upsertHearingWithConclusion(
         conclusionOperativePartId: operativePartId,
       },
       create: {
+        ...hearingKey,
         id: lastConclusion.id,
-        hearingId: hearing.hearingId,
         conclusionSense: lastConclusion.conclusionSense,
         publicationDate: new Date(lastConclusion.publicationDate),
         author: lastConclusion.author,
@@ -68,7 +71,7 @@ export async function upsertHearingWithConclusion(
     });
 
     await prisma.hearing.update({
-      where: { hearingId: hearing.hearingId },
+      where: { jurisdictionCode_hearingId: hearingKey },
       data: { lastConclusionId: lastConclusion.id },
     });
   }
@@ -76,15 +79,15 @@ export async function upsertHearingWithConclusion(
   if (caseFileNumber) {
     await prisma.caseFileHearing.upsert({
       where: {
-        caseFileNumber_hearingId: { caseFileNumber, hearingId: hearing.hearingId },
+        jurisdictionCode_caseFileNumber_hearingId: { ...hearingKey, caseFileNumber },
       },
       update: {},
-      create: { caseFileNumber, hearingId: hearing.hearingId },
+      create: { ...hearingKey, caseFileNumber },
     });
   }
 
   await prisma.caseFile.updateMany({
-    where: { lastHearingId: hearing.hearingId },
+    where: { jurisdictionCode, lastHearingId: hearing.hearingId },
     data: { lastHearingConvocationDate: new Date(hearing.convocationDate) },
   });
 }

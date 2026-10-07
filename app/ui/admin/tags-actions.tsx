@@ -24,6 +24,7 @@ import {
 } from "@/app/(protected)/admin/tags/actions";
 import { type TagCaseFileRow, type TagListRow } from "@/app/lib/data/tags";
 import { TagFormFields } from "@/app/ui/admin/tag-form-fields";
+import { caseFileHref } from "@/app/lib/case-file-key";
 
 const editTagModal = createModal({
   isOpenedByDefault: false,
@@ -168,12 +169,8 @@ function TagInUseContent({ tag, usage }: { tag: TagListRow; usage: TagUsage | nu
       {usage?.status === "loaded" && (
         <ul>
           {usage.caseFiles.map((caseFile) => (
-            <li key={caseFile.caseFileNumber}>
-              <a
-                href={`/case_files/${encodeURIComponent(caseFile.caseFileNumber)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+            <li key={`${caseFile.jurisdictionCode}/${caseFile.caseFileNumber}`}>
+              <a href={caseFileHref(caseFile)} target="_blank" rel="noopener noreferrer">
                 {caseFile.displayName}
                 <span className={fr.cx("fr-sr-only")}> (nouvelle fenêtre)</span>
               </a>

@@ -73,10 +73,11 @@ async function main(): Promise<number> {
         lastStatus: { label: SOURCE_STATUS_LABEL },
       },
       select: {
+        jurisdictionCode: true,
         caseFileNumber: true,
         lastHearingId: true,
       },
-      orderBy: { caseFileNumber: "asc" },
+      orderBy: [{ caseFileNumber: "asc" }, { jurisdictionCode: "asc" }],
     });
 
     if (caseFiles.length === 0) {
@@ -102,10 +103,12 @@ async function main(): Promise<number> {
     for (const [index, caseFile] of caseFiles.entries()) {
       const convocationDate = hearingConvocationDateForIndex(index, now);
       const hearingId = devScheduledHearingId(caseFile.caseFileNumber);
+      const { jurisdictionCode } = caseFile;
+      const key = { jurisdictionCode, caseFileNumber: caseFile.caseFileNumber };
       const scheduleLabel = index === 0 ? "in 2 days" : index === 1 ? "in 1 week" : "in 1 month";
 
       console.log(
-        `  ${caseFile.caseFileNumber}: status → "${TARGET_STATUS_LABEL}", ` +
+        `  ${jurisdictionCode} ${caseFile.caseFileNumber}: status → "${TARGET_STATUS_LABEL}", ` +
           `hearing ${hearingId} → ${convocationDate.toISOString()} (${scheduleLabel})` +
           (caseFile.lastHearingId && caseFile.lastHearingId !== hearingId
             ? ` [was ${caseFile.lastHearingId}]`
@@ -116,25 +119,19 @@ async function main(): Promise<number> {
 
       await prisma.$transaction([
         prisma.hearing.upsert({
-          where: { hearingId },
+          where: { jurisdictionCode_hearingId: { jurisdictionCode, hearingId } },
           update: { convocationDate },
-          create: { hearingId, convocationDate },
+          create: { jurisdictionCode, hearingId, convocationDate },
         }),
         prisma.caseFileHearing.upsert({
           where: {
-            caseFileNumber_hearingId: {
-              caseFileNumber: caseFile.caseFileNumber,
-              hearingId,
-            },
+            jurisdictionCode_caseFileNumber_hearingId: { ...key, hearingId },
           },
           update: {},
-          create: {
-            caseFileNumber: caseFile.caseFileNumber,
-            hearingId,
-          },
+          create: { ...key, hearingId },
         }),
         prisma.caseFile.update({
-          where: { caseFileNumber: caseFile.caseFileNumber },
+          where: { jurisdictionCode_caseFileNumber: key },
           data: {
             lastStatusId: targetStatus.id,
             lastStatusDate: now,

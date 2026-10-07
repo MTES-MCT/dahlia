@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { Actor, CaseFileActorDto } from "../telerecours/types";
 import { anonymizeActor } from "../anonymize";
+import type { CaseFileKey } from "./case-file-key";
 import { upsertActor } from "./upsert-case-file";
 
 type CaseFileActorRole = {
@@ -26,7 +27,7 @@ async function upsertQuality(
 
 export async function upsertCaseFileActorLink(
   prisma: PrismaClient,
-  caseFileNumber: string,
+  key: CaseFileKey,
   actor: Actor,
   role: CaseFileActorRole,
   anonymize: boolean,
@@ -35,16 +36,16 @@ export async function upsertCaseFileActorLink(
     actor = anonymizeActor(actor);
   }
   const qualityCode = await upsertQuality(prisma, actor.quality, "R");
-  await upsertActor(prisma, actor, anonymize);
+  await upsertActor(prisma, key.jurisdictionCode, actor, anonymize);
 
   // Partial unique indexes allow at most one main claimant / defender per case
   // file. Clear the flag on any previous holder before assigning it here,
   // otherwise a main-actor identity change fails the upsert with a unique
-  // violation on caseFileNumber.
+  // violation on the case file.
   if (role.isMainClaimant) {
     await prisma.caseFileActor.updateMany({
       where: {
-        caseFileNumber,
+        ...key,
         isMainClaimant: true,
         actorId: { not: actor.id },
       },
@@ -54,7 +55,7 @@ export async function upsertCaseFileActorLink(
   if (role.isMainDefender) {
     await prisma.caseFileActor.updateMany({
       where: {
-        caseFileNumber,
+        ...key,
         isMainDefender: true,
         actorId: { not: actor.id },
       },
@@ -64,7 +65,7 @@ export async function upsertCaseFileActorLink(
 
   await prisma.caseFileActor.upsert({
     where: {
-      caseFileNumber_actorId: { caseFileNumber, actorId: actor.id },
+      jurisdictionCode_caseFileNumber_actorId: { ...key, actorId: actor.id },
     },
     update: {
       qualityCode,
@@ -72,7 +73,7 @@ export async function upsertCaseFileActorLink(
       isMainDefender: role.isMainDefender,
     },
     create: {
-      caseFileNumber,
+      ...key,
       actorId: actor.id,
       qualityCode,
       isMainClaimant: role.isMainClaimant,
@@ -100,7 +101,7 @@ function collectActorsFromDto(
 // links that disappeared since the previous scrape.
 export async function upsertCaseFileActorsFromApi(
   prisma: PrismaClient,
-  caseFileNumber: string,
+  key: CaseFileKey,
   actors: CaseFileActorDto[],
   anonymize: boolean,
 ): Promise<void> {
@@ -129,7 +130,7 @@ export async function upsertCaseFileActorsFromApi(
   for (const actor of uniqueActors.values()) {
     await upsertCaseFileActorLink(
       prisma,
-      caseFileNumber,
+      key,
       actor,
       {
         isMainClaimant: actor.isMainClaimant,
@@ -142,16 +143,16 @@ export async function upsertCaseFileActorsFromApi(
   const actorIds = [...uniqueActors.keys()];
   await prisma.caseFileActor.deleteMany({
     where: {
-      caseFileNumber,
+      ...key,
       ...(actorIds.length > 0 ? { actorId: { notIn: actorIds } } : {}),
     },
   });
 
-  await prisma.actorRepresentation.deleteMany({ where: { caseFileNumber } });
+  await prisma.actorRepresentation.deleteMany({ where: key });
   for (const link of representationLinks) {
     await prisma.actorRepresentation.create({
       data: {
-        caseFileNumber,
+        ...key,
         representedActorId: link.representedActorId,
         representativeActorId: link.representativeActorId,
       },

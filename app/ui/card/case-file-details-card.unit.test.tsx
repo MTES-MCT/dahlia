@@ -219,6 +219,7 @@ describe("CaseFileDetailsCard", () => {
         availableTags={TAG_OPTIONS}
         caseFile={caseFileFixture({
           lastDecisionReading: {
+            jurisdictionCode: "TA069",
             caseFileNumber: "TA069-2026-001",
             readingDate: new Date("2025-07-14T22:00:00.000Z"),
             notificationDate: new Date("2025-07-15T00:00:00.000Z"),

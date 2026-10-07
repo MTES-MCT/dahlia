@@ -11,7 +11,7 @@ import { metadata as adminUsersMetadata } from "./(protected)/admin/users/page";
 import { metadata as adminJurisdictionMetadata } from "./(protected)/admin/jurisdiction/page";
 import { metadata as adminDivisionsMetadata } from "./(protected)/admin/divisions/page";
 import { metadata as adminTagsMetadata } from "./(protected)/admin/tags/page";
-import { generateMetadata as caseFileMetadata } from "./(protected)/case_files/[caseFileNumber]/page";
+import { generateMetadata as caseFileMetadata } from "./(protected)/case_files/[jurisdictionCode]/[caseFileNumber]/page";
 import { fetchCaseFileDetail } from "@/app/lib/data/case-files";
 
 vi.mock("@/app/lib/prisma", () => ({ prisma: {} }));
@@ -70,9 +70,9 @@ const caseFile = {
   ],
 };
 
-function metadataParams(caseFileNumber: string) {
+function metadataParams(caseFileNumber: string, jurisdictionCode = "TA069") {
   return {
-    params: Promise.resolve({ caseFileNumber }),
+    params: Promise.resolve({ jurisdictionCode, caseFileNumber }),
     searchParams: Promise.resolve({}),
   };
 }
@@ -142,7 +142,7 @@ describe("Titres des pages", () => {
 
     await caseFileMetadata(metadataParams(encodeURIComponent("TA069/2500123")));
 
-    expect(mockedFetchCaseFileDetail).toHaveBeenCalledWith("TA069/2500123");
+    expect(mockedFetchCaseFileDetail).toHaveBeenCalledWith("TA069", "TA069/2500123");
   });
 
   it("signale un dossier introuvable plutôt qu'un titre vide", async () => {
