@@ -1,11 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const mockLogCaseFileScopeMiss = vi.hoisted(() => vi.fn(async () => {}));
-
-vi.mock("@/app/lib/case-file-scope", () => ({
-  logCaseFileScopeMiss: mockLogCaseFileScopeMiss,
-}));
-
 vi.mock("@/app/lib/data/attached-files", () => ({
   fetchAttachedFile: vi.fn(),
 }));
@@ -26,13 +20,14 @@ const CASE_FILE_NUMBER = "TA069/2024/001";
 function routeContext() {
   return {
     params: Promise.resolve({
+      jurisdictionCode: "TA069",
       caseFileNumber: encodeURIComponent(CASE_FILE_NUMBER),
       encodedFileId: encodeURIComponent("file-1"),
     }),
   };
 }
 
-describe("GET /case_files/[caseFileNumber]/pieces/[encodedFileId]/data", () => {
+describe("GET /case_files/[jurisdictionCode]/[caseFileNumber]/pieces/[encodedFileId]/data", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -42,21 +37,19 @@ describe("GET /case_files/[caseFileNumber]/pieces/[encodedFileId]/data", () => {
     vi.restoreAllMocks();
   });
 
-  it("returns 404 when the piece does not belong to the case file", async () => {
-    mockedFetchAttachedFile.mockResolvedValue({
-      encodedFileId: "file-1",
-      caseFileNumber: "TA069/autre",
-    } as never);
+  it("looks the piece up within the requested case file and returns 404 when absent", async () => {
+    // `fetchAttachedFile` answers null (and records the miss) for a piece of
+    // another case file, an unknown piece or an out-of-scope one.
+    mockedFetchAttachedFile.mockResolvedValue(null);
 
     const response = await GET(new Request("https://dahlia.example/data"), routeContext());
 
     expect(response.status).toBe(404);
+    expect(mockedFetchAttachedFile).toHaveBeenCalledWith(
+      { jurisdictionCode: "TA069", caseFileNumber: CASE_FILE_NUMBER },
+      "file-1",
+    );
     expect(mockedFetchPieceContent).not.toHaveBeenCalled();
-    expect(mockLogCaseFileScopeMiss).toHaveBeenCalledWith({
-      resource: "attached_file",
-      encodedFileId: "file-1",
-      caseFileNumber: CASE_FILE_NUMBER,
-    });
   });
 
   it("returns 502 without the upstream diagnostic outside development", async () => {

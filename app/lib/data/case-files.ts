@@ -11,6 +11,7 @@ import {
   CASE_FILES_DASHBOARD_INCLUDE,
   type CaseFileDashboardRow,
 } from "@/app/lib/case-files-dashboard-columns";
+import type { CaseFileKey } from "@/app/lib/case-file-key";
 import { prisma } from "@/app/lib/prisma";
 import { caseFileScopeWhere, logCaseFileScopeMiss } from "@/app/lib/case-file-scope";
 import { normalizeForSearch, parseSearchQuery, type FacetKey } from "@/app/lib/case-file-search";
@@ -241,31 +242,49 @@ const CASE_FILE_DETAIL_INCLUDE = {
 // Memoized per request so `generateMetadata` and the page body share a single
 // query. `findFirst` rather than `findUnique`, because the permission scope adds
 // a non-unique condition: out of scope reads as "not found" (404).
-export const fetchCaseFileDetail = cache(async (caseFileNumber: string) => {
-  const caseFile = await prisma.caseFile.findFirst({
-    where: { caseFileNumber, ...(await caseFileScopeWhere()) },
-    include: CASE_FILE_DETAIL_INCLUDE,
-  });
-  if (!caseFile) {
-    await logCaseFileScopeMiss({ resource: "case_file", caseFileNumber });
-  }
-  return caseFile;
-});
+// `cache` compares arguments by identity, hence the two scalar parameters
+// rather than a CaseFileKey object.
+export const fetchCaseFileDetail = cache(
+  async (jurisdictionCode: string, caseFileNumber: string) => {
+    const caseFile = await prisma.caseFile.findFirst({
+      where: { jurisdictionCode, caseFileNumber, ...(await caseFileScopeWhere()) },
+      include: CASE_FILE_DETAIL_INCLUDE,
+    });
+    if (!caseFile) {
+      await logCaseFileScopeMiss({ resource: "case_file", jurisdictionCode, caseFileNumber });
+    }
+    return caseFile;
+  },
+);
 
 export type CaseFileDetail = Prisma.PromiseReturnType<typeof fetchCaseFileDetail>;
 
-export async function fetchCaseFileDebugSnapshot(caseFileNumber: string) {
+export async function fetchCaseFileDebugSnapshot(key: CaseFileKey) {
   const caseFile = await prisma.caseFile.findFirst({
-    where: { caseFileNumber, ...(await caseFileScopeWhere()) },
+    where: {
+      jurisdictionCode: key.jurisdictionCode,
+      caseFileNumber: key.caseFileNumber,
+      ...(await caseFileScopeWhere()),
+    },
     include: {
       ...CASE_FILE_DETAIL_INCLUDE,
       attachedFiles: { include: { fileFamilyType: true } },
     },
   });
   if (!caseFile) {
-    await logCaseFileScopeMiss({ resource: "case_file", caseFileNumber });
+    await logCaseFileScopeMiss({ resource: "case_file", ...key });
   }
   return caseFile;
+}
+
+// Accessible case files carrying `caseFileNumber`, whatever their court: used
+// to redirect the former /case_files/<caseFileNumber> URLs.
+export async function fetchCaseFileKeysByNumber(caseFileNumber: string): Promise<CaseFileKey[]> {
+  return prisma.caseFile.findMany({
+    where: { caseFileNumber, isDeleted: false, ...(await caseFileScopeWhere()) },
+    select: { jurisdictionCode: true, caseFileNumber: true },
+    take: 2,
+  });
 }
 
 export async function fetchAllCaseFilesForExport(

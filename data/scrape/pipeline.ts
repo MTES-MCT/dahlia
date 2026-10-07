@@ -22,6 +22,9 @@ export interface Args {
   // closed), or none (skip phases B and C).
   enrich: EnrichMode;
   updatePieceNumbers: boolean;
+  // Phases B/C — delete the events, attached files and related-case-file links
+  // stored for a case file but no longer returned by Telerecours.
+  force: boolean;
   // Phase D — deduce litigationType / rightType / summary from the scraped text.
   classify: boolean;
   // Phase D — also rewrite characteristics that already have a value.

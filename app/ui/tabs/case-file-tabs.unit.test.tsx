@@ -13,9 +13,12 @@ vi.mock("@/app/lib/data/attached-files", () => ({
   fetchCaseFilePiecesFiltered: vi.fn(),
 }));
 
-vi.mock("@/app/(protected)/case_files/[caseFileNumber]/pieces/[encodedFileId]/actions", () => ({
-  savePieceMetadataAction: vi.fn(),
-}));
+vi.mock(
+  "@/app/(protected)/case_files/[jurisdictionCode]/[caseFileNumber]/pieces/[encodedFileId]/actions",
+  () => ({
+    savePieceMetadataAction: vi.fn(),
+  }),
+);
 
 vi.mock("@/app/lib/data/case-file-events", () => ({
   fetchCaseFileEventsTableData: vi.fn(),
@@ -57,6 +60,7 @@ const pieces = [
 const historiqueTable = {
   rows: [
     {
+      jurisdictionCode: "TA069",
       id: 1,
       subEventId: 0,
       eventDate: new Date("2026-02-01T10:00:00"),

@@ -56,6 +56,7 @@ async function seedCaseFileWithPieces(): Promise<void> {
   });
   await testPrisma.actor.create({
     data: {
+      jurisdictionCode: "TA069",
       id: 1001,
       actorType: "NATURAL_PERSON",
       firstName: "Jean",
@@ -64,6 +65,7 @@ async function seedCaseFileWithPieces(): Promise<void> {
   });
   await testPrisma.caseFile.create({
     data: {
+      jurisdictionCode: "TA069",
       caseFileNumber: CASE_FILE_NUMBER,
       title: "Recours DALO",
       type: "DALO",
@@ -75,6 +77,7 @@ async function seedCaseFileWithPieces(): Promise<void> {
   });
   await testPrisma.caseFileActor.create({
     data: {
+      jurisdictionCode: "TA069",
       caseFileNumber: CASE_FILE_NUMBER,
       actorId: 1001,
       qualityCode: "R",
@@ -89,6 +92,7 @@ async function seedCaseFileWithPieces(): Promise<void> {
     data: {
       id: 90001,
       eventDate: new Date("2026-01-05T00:00:00Z"),
+      jurisdictionCode: "TA069",
       caseFileNumber: CASE_FILE_NUMBER,
       measureCode: "RECMEM",
     },
@@ -112,6 +116,7 @@ async function seedCaseFileWithPieces(): Promise<void> {
         fileTypeLabel: "Requête",
         fileFamilyTypeLabel: "Requête",
         eventCreationDate: new Date("2026-01-15T00:00:00Z"),
+        jurisdictionCode: "TA069",
         caseFileNumber: CASE_FILE_NUMBER,
         eventId: 90001,
         fileFamilyTypeCode: "REQ",
@@ -125,6 +130,7 @@ async function seedCaseFileWithPieces(): Promise<void> {
         fileTypeLabel: "Document annexe",
         fileFamilyTypeLabel: "Mémoire",
         eventCreationDate: new Date("2026-01-05T00:00:00Z"),
+        jurisdictionCode: "TA069",
         caseFileNumber: CASE_FILE_NUMBER,
         eventId: 90001,
         fileFamilyTypeCode: "MEM",
@@ -137,6 +143,7 @@ async function renderPiecesTab() {
   render(
     await CaseFileTabs({
       caseFile: {
+        jurisdictionCode: "TA069",
         caseFileNumber: CASE_FILE_NUMBER,
         updatedAt: new Date(),
       } as NonNullable<CaseFileDetail>,

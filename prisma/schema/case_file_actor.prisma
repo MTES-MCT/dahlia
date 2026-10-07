@@ -1,11 +1,14 @@
 // Participation of an actor in a case file. Role flags and quality are scoped
 // to this link (not duplicated on CaseFile or Actor).
 model CaseFileActor {
+  // Telerecours court code, part of every composite key (see CaseFile).
+  jurisdictionCode String
+
   caseFileNumber String
-  caseFile       CaseFile @relation(fields: [caseFileNumber], references: [caseFileNumber], onDelete: Cascade)
+  caseFile       CaseFile @relation(fields: [jurisdictionCode, caseFileNumber], references: [jurisdictionCode, caseFileNumber], onDelete: Cascade)
 
   actorId Int
-  actor   Actor @relation(fields: [actorId], references: [id])
+  actor   Actor @relation(fields: [jurisdictionCode, actorId], references: [jurisdictionCode, id])
 
   qualityCode String
   quality     Quality @relation(fields: [qualityCode], references: [code])
@@ -13,22 +16,25 @@ model CaseFileActor {
   isMainClaimant Boolean @default(false)
   isMainDefender Boolean @default(false)
 
-  @@id([caseFileNumber, actorId])
-  @@index([actorId])
+  @@id([jurisdictionCode, caseFileNumber, actorId])
+  @@index([jurisdictionCode, actorId])
   @@map("case_file_actors")
 }
 
 // Representation link within a case file (e.g. lawyer representing a claimant).
 model ActorRepresentation {
+  // Telerecours court code, part of every composite key (see CaseFile).
+  jurisdictionCode String
+
   caseFileNumber String
-  caseFile       CaseFile @relation(fields: [caseFileNumber], references: [caseFileNumber], onDelete: Cascade)
+  caseFile       CaseFile @relation(fields: [jurisdictionCode, caseFileNumber], references: [jurisdictionCode, caseFileNumber], onDelete: Cascade)
 
   representedActorId Int
-  representedActor   Actor @relation("RepresentedActor", fields: [representedActorId], references: [id])
+  representedActor   Actor @relation("RepresentedActor", fields: [jurisdictionCode, representedActorId], references: [jurisdictionCode, id])
 
   representativeActorId Int
-  representativeActor   Actor @relation("RepresentativeActor", fields: [representativeActorId], references: [id])
+  representativeActor   Actor @relation("RepresentativeActor", fields: [jurisdictionCode, representativeActorId], references: [jurisdictionCode, id])
 
-  @@id([caseFileNumber, representedActorId, representativeActorId])
+  @@id([jurisdictionCode, caseFileNumber, representedActorId, representativeActorId])
   @@map("actor_representations")
 }

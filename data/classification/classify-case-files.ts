@@ -11,6 +11,7 @@ import type {
 
 // The classification-relevant state of a case file, as read from the database.
 export interface CaseFileClassificationState {
+  jurisdictionCode: string;
   caseFileNumber: string;
   title: string | null;
   litigationType: LitigationType | null;
@@ -43,6 +44,7 @@ export interface ClassifyCaseFilesOptions {
 }
 
 export interface UnmatchedCaseFile {
+  jurisdictionCode: string;
   caseFileNumber: string;
   title: string | null;
   status: string | null;
@@ -114,6 +116,7 @@ export function fieldChangesOf(
     result.matches.find((match) => match.attributes.includes(field))?.ruleId ?? "unknown";
 
   return (Object.keys(update) as (keyof CaseFileClassificationUpdate)[]).map((field) => ({
+    jurisdictionCode: current.jurisdictionCode,
     caseFileNumber: current.caseFileNumber,
     field,
     previousValue: current[field],
@@ -149,6 +152,7 @@ export async function classifyCaseFiles(
   const caseFiles = await prisma.caseFile.findMany({
     where: caseFilesWhere(options),
     select: {
+      jurisdictionCode: true,
       caseFileNumber: true,
       title: true,
       litigationType: true,
@@ -157,7 +161,7 @@ export async function classifyCaseFiles(
       lastStatus: { select: { label: true } },
       lastDecisionReading: { select: { nature: true, operativePart: true } },
     },
-    orderBy: { caseFileNumber: "asc" },
+    orderBy: [{ caseFileNumber: "asc" }, { jurisdictionCode: "asc" }],
   });
 
   const stats: ClassifyCaseFilesStats = {
@@ -174,6 +178,7 @@ export async function classifyCaseFiles(
 
     if (!hasClassification(result)) {
       stats.unmatched.push({
+        jurisdictionCode: caseFile.jurisdictionCode,
         caseFileNumber: caseFile.caseFileNumber,
         title: caseFile.title,
         status: caseFile.lastStatus?.label ?? null,
@@ -190,6 +195,7 @@ export async function classifyCaseFiles(
     for (const field of changed) stats.fields[field]++;
     const ruleIds = result.matches.map((match) => match.ruleId);
     stats.changes.push({
+      jurisdictionCode: caseFile.jurisdictionCode,
       caseFileNumber: caseFile.caseFileNumber,
       title: caseFile.title,
       status: caseFile.lastStatus?.label ?? null,
@@ -201,7 +207,7 @@ export async function classifyCaseFiles(
       const changes = changed.map((field) => `${field}=${String(update[field])}`).join(", ");
       const title = caseFile.title ? `${caseFile.title}, ` : "";
       console.log(
-        `  ${options.dryRun ? "[dry-run] " : ""}${caseFile.caseFileNumber}: ${title}${changes} (${ruleIds.join(" + ")})`,
+        `  ${options.dryRun ? "[dry-run] " : ""}${caseFile.jurisdictionCode} ${caseFile.caseFileNumber}: ${title}${changes} (${ruleIds.join(" + ")})`,
       );
     }
 
@@ -209,7 +215,12 @@ export async function classifyCaseFiles(
       // The case file and its history are written together, or not at all.
       await prisma.$transaction([
         prisma.caseFile.update({
-          where: { caseFileNumber: caseFile.caseFileNumber },
+          where: {
+            jurisdictionCode_caseFileNumber: {
+              jurisdictionCode: caseFile.jurisdictionCode,
+              caseFileNumber: caseFile.caseFileNumber,
+            },
+          },
           data: update,
         }),
         prisma.classificationFieldChange.createMany({
@@ -227,8 +238,11 @@ export function logClassificationStats(stats: ClassifyCaseFilesStats, dryRun = f
     console.log(
       `→ ${stats.unmatched.length} dossiers non reconnus, exemples (max ${UNMATCHED_SAMPLE_SIZE}) :`,
     );
-    for (const { caseFileNumber, title } of stats.unmatched.slice(0, UNMATCHED_SAMPLE_SIZE)) {
-      console.log(`  - ${caseFileNumber}: ${JSON.stringify(title)}`);
+    for (const { jurisdictionCode, caseFileNumber, title } of stats.unmatched.slice(
+      0,
+      UNMATCHED_SAMPLE_SIZE,
+    )) {
+      console.log(`  - ${jurisdictionCode} ${caseFileNumber}: ${JSON.stringify(title)}`);
     }
   }
   console.log(

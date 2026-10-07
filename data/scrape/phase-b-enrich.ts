@@ -40,6 +40,7 @@ export async function phaseB(
         args.jurisdiction,
         args.anonymize,
         args.updatePieceNumbers,
+        args.force,
       );
       enriched++;
     } catch (error) {

@@ -5,6 +5,7 @@ type ActorFixture = Prisma.ActorGetPayload<object>;
 
 export function actorFixture(overrides: Partial<ActorFixture> = {}): ActorFixture {
   return {
+    jurisdictionCode: "TA069",
     id: 1,
     firstName: "Jean",
     lastName: "Dupont",
@@ -27,6 +28,7 @@ export function caseFileActorFixture(
   const caseFileNumber = overrides.caseFileNumber ?? "TA069-2026-001";
 
   return {
+    jurisdictionCode: "TA069",
     caseFileNumber,
     actorId,
     qualityCode: "R",
@@ -106,6 +108,7 @@ export function mainClaimantCaseFileActors(
 type CaseFileActorFixtureOptions = Parameters<typeof caseFileActorsFixture>[0];
 
 export type CaseFileWithActorFixture = {
+  jurisdictionCode: string;
   caseFileNumber: string;
   title: string | null;
   litigationType: LitigationType | null;
@@ -120,6 +123,7 @@ export function caseFileWithActor(
   const { caseFileActors, ...rest } = overrides;
 
   return {
+    jurisdictionCode: "TA069",
     caseFileNumber: "TA069-2026-001",
     title: "Requête DALO",
     litigationType: "INJONCTION",

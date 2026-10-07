@@ -1,6 +1,6 @@
 import { zipSync } from "fflate";
 import { getCaseFileDisplayName } from "@/app/lib/case-file-format";
-import { logCaseFileScopeMiss } from "@/app/lib/case-file-scope";
+import { caseFileKeyFromParams } from "@/app/lib/case-file-key";
 import { fetchAttachedFile } from "@/app/lib/data/attached-files";
 import { fetchCaseFileDetail } from "@/app/lib/data/case-files";
 import { clientErrorMessage } from "@/app/lib/client-error";
@@ -12,7 +12,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 type RouteContext = {
-  params: Promise<{ caseFileNumber: string }>;
+  params: Promise<{ jurisdictionCode: string; caseFileNumber: string }>;
 };
 
 // Ensure every entry has a unique name inside the archive: append " (2)", " (3)"…
@@ -40,8 +40,7 @@ export function uniqueName(name: string, used: Set<string>): string {
 // file is fetched through the backend (token stays server-side) and verified to
 // belong to the requested case file before being included.
 export async function GET(request: Request, { params }: RouteContext) {
-  const { caseFileNumber } = await params;
-  const decodedCaseFileNumber = decodeURIComponent(caseFileNumber);
+  const key = caseFileKeyFromParams(await params);
 
   const encodedFileIds = new URL(request.url).searchParams.getAll("id");
 
@@ -49,7 +48,7 @@ export async function GET(request: Request, { params }: RouteContext) {
     return new Response("Aucune pièce sélectionnée", { status: 400 });
   }
 
-  const caseFile = await fetchCaseFileDetail(decodedCaseFileNumber);
+  const caseFile = await fetchCaseFileDetail(key.jurisdictionCode, key.caseFileNumber);
   if (!caseFile) {
     return new Response("Dossier introuvable", { status: 404 });
   }
@@ -59,17 +58,10 @@ export async function GET(request: Request, { params }: RouteContext) {
     const entries: Record<string, Uint8Array> = {};
 
     for (const encodedFileId of encodedFileIds) {
-      const file = await fetchAttachedFile(encodedFileId);
-      if (!file || file.caseFileNumber !== decodedCaseFileNumber) {
-        // A null file is already recorded by `fetchAttachedFile`. A file that
-        // exists in scope but was requested under another case file number is not.
-        if (file) {
-          await logCaseFileScopeMiss({
-            resource: "attached_file",
-            encodedFileId,
-            caseFileNumber: decodedCaseFileNumber,
-          });
-        }
+      // Null (and recorded by `fetchAttachedFile`) when unknown, attached to
+      // another case file or out of the caller's scope.
+      const file = await fetchAttachedFile(key, encodedFileId);
+      if (!file) {
         return new Response(`Pièce introuvable : ${encodedFileId}`, { status: 404 });
       }
       const { data, downloadName } = await fetchPieceContent(file);

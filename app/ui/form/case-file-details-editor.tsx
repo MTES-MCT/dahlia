@@ -29,7 +29,7 @@ import { type CaseFileTagView } from "@/app/lib/case-file-tags";
 import { CaseFileIdentity } from "@/app/ui/case-file/case-file-identity";
 import { CaseFileTelerecoursSync } from "@/app/ui/case-file/case-file-telerecours-sync";
 import { TagPicker } from "@/app/ui/form/tag-picker";
-import { updateCaseFileDetailsFormAction } from "@/app/(protected)/case_files/[caseFileNumber]/actions";
+import { updateCaseFileDetailsFormAction } from "@/app/(protected)/case_files/[jurisdictionCode]/[caseFileNumber]/actions";
 
 const caseFileDetailsModal = createModal({
   isOpenedByDefault: false,
@@ -37,6 +37,7 @@ const caseFileDetailsModal = createModal({
 });
 
 export type CaseFileDetailsEditorProps = {
+  jurisdictionCode: string;
   caseFileNumber: string;
   title: string | null;
   statusLabel: string;
@@ -139,6 +140,7 @@ export function CaseFileDetailsHeader({
   title,
   statusLabel,
   tags,
+  jurisdictionCode,
   caseFileNumber,
   telerecoursSyncAt,
 }: {
@@ -146,6 +148,7 @@ export function CaseFileDetailsHeader({
   title: string | null;
   statusLabel: string;
   tags: CaseFileTagView[];
+  jurisdictionCode: string;
   caseFileNumber: string;
   telerecoursSyncAt: Date | null;
 }) {
@@ -171,6 +174,7 @@ export function CaseFileDetailsHeader({
             Détails du dossier
           </Button>
           <CaseFileTelerecoursSync
+            jurisdictionCode={jurisdictionCode}
             caseFileNumber={caseFileNumber}
             telerecoursSyncAt={telerecoursSyncAt}
           />
@@ -183,6 +187,7 @@ export function CaseFileDetailsHeader({
 // Modal editor for user-managed classification fields. Saving goes through a server
 // action that revalidates the page so the card reflects the change.
 export function CaseFileDetailsModal({
+  jurisdictionCode,
   caseFileNumber,
   statusLabel,
   litigationType,
@@ -240,6 +245,7 @@ export function CaseFileDetailsModal({
       size="large"
     >
       <form key={formKey} action={formAction} className={fr.cx("fr-mb-3w")}>
+        <input type="hidden" name="jurisdictionCode" value={jurisdictionCode} />
         <input type="hidden" name="caseFileNumber" value={caseFileNumber} />
 
         <div className={fr.cx("fr-grid-row", "fr-grid-row--gutters")}>

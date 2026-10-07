@@ -79,14 +79,14 @@ describe("buildCaseFileBreadcrumbSegment", () => {
     const segment = buildCaseFileBreadcrumbSegment(caseFile, {});
 
     expect(segment.label).toBe("TA069/2024/001 - Dupont Jean - Référé - DAHO");
-    expect(segment.linkProps.href).toBe("/case_files/TA069%2F2024%2F001#case-file-details");
+    expect(segment.linkProps.href).toBe("/case_files/TA069/TA069%2F2024%2F001#case-file-details");
   });
 
   it("preserves carried search params in the case file link", () => {
     const segment = buildCaseFileBreadcrumbSegment(caseFile, { tab: "pieces", pcSort: "date" });
 
     expect(segment.linkProps.href).toBe(
-      "/case_files/TA069%2F2024%2F001?tab=pieces&pcSort=date#case-file-details",
+      "/case_files/TA069/TA069%2F2024%2F001?tab=pieces&pcSort=date#case-file-details",
     );
   });
 });

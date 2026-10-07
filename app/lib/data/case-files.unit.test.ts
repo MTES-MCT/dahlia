@@ -35,6 +35,7 @@ vi.mock("@/app/lib/case-file-scope", () => ({
 }));
 
 const actorBase = {
+  jurisdictionCode: "TA069",
   id: 1,
   lastFirstName: null,
   firstLastName: null,
@@ -217,11 +218,11 @@ describe("case-files", () => {
     it("charge le dossier par son numéro avec ses relations", async () => {
       vi.mocked(prisma.caseFile.findFirst).mockResolvedValue(mockCaseFile as never);
 
-      const result = await fetchCaseFileDetail("CF-2024-001");
+      const result = await fetchCaseFileDetail("TA069", "CF-2024-001");
 
       expect(result).toBe(mockCaseFile);
       expect(vi.mocked(prisma.caseFile.findFirst)).toHaveBeenCalledWith({
-        where: { caseFileNumber: "CF-2024-001" },
+        where: { jurisdictionCode: "TA069", caseFileNumber: "CF-2024-001" },
         include: expect.objectContaining({ caseFileActors: expect.anything() }),
       });
       expect(mockLogCaseFileScopeMiss).not.toHaveBeenCalled();
@@ -230,9 +231,10 @@ describe("case-files", () => {
     it("renvoie null quand le dossier n'existe pas", async () => {
       vi.mocked(prisma.caseFile.findFirst).mockResolvedValue(null);
 
-      expect(await fetchCaseFileDetail("CF-INCONNU")).toBeNull();
+      expect(await fetchCaseFileDetail("TA069", "CF-INCONNU")).toBeNull();
       expect(mockLogCaseFileScopeMiss).toHaveBeenCalledWith({
         resource: "case_file",
+        jurisdictionCode: "TA069",
         caseFileNumber: "CF-INCONNU",
       });
     });
@@ -243,13 +245,18 @@ describe("case-files", () => {
 
       // Out of scope reads exactly like an unknown case file, so the detail page
       // renders its 404 without leaking the existence of the dossier.
-      expect(await fetchCaseFileDetail("CF-HORS-PERIMETRE")).toBeNull();
+      expect(await fetchCaseFileDetail("TA069", "CF-HORS-PERIMETRE")).toBeNull();
       expect(vi.mocked(prisma.caseFile.findFirst)).toHaveBeenCalledWith({
-        where: { caseFileNumber: "CF-HORS-PERIMETRE", jurisdictionId: { in: [7] } },
+        where: {
+          jurisdictionCode: "TA069",
+          caseFileNumber: "CF-HORS-PERIMETRE",
+          jurisdictionId: { in: [7] },
+        },
         include: expect.anything(),
       });
       expect(mockLogCaseFileScopeMiss).toHaveBeenCalledWith({
         resource: "case_file",
+        jurisdictionCode: "TA069",
         caseFileNumber: "CF-HORS-PERIMETRE",
       });
     });

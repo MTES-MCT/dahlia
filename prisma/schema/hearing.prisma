@@ -2,19 +2,25 @@
 // Telerecours nests hearings under /api/case-file/<id>/hearings, but the same
 // hearingId can appear on several case files (shared session).
 model CaseFileHearing {
+  // Telerecours court code, part of every composite key (see CaseFile).
+  jurisdictionCode String
+
   caseFileNumber String
-  caseFile       CaseFile @relation(fields: [caseFileNumber], references: [caseFileNumber], onDelete: Cascade)
+  caseFile       CaseFile @relation(fields: [jurisdictionCode, caseFileNumber], references: [jurisdictionCode, caseFileNumber], onDelete: Cascade)
 
   hearingId String
-  hearing   Hearing @relation(fields: [hearingId], references: [hearingId], onDelete: Cascade)
+  hearing   Hearing @relation(fields: [jurisdictionCode, hearingId], references: [jurisdictionCode, hearingId], onDelete: Cascade)
 
-  @@id([caseFileNumber, hearingId])
-  @@index([hearingId])
+  @@id([jurisdictionCode, caseFileNumber, hearingId])
+  @@index([jurisdictionCode, hearingId])
   @@map("case_file_hearings")
 }
 
+// Hearing ids are only unique within a court: the primary key is
+// (jurisdictionCode, hearingId).
 model Hearing {
-  hearingId         String     @id
+  jurisdictionCode  String
+  hearingId         String
   convocationDate   DateTime
   room              String?
   creationDate      DateTime?
@@ -23,7 +29,7 @@ model Hearing {
   // "Current" conclusion for this hearing (mirrors CaseFile.lastHearing).
   // Composite FK: conclusion ids are only unique within a hearing.
   lastConclusionId Int?
-  lastConclusion   Conclusion? @relation("HearingLastConclusion", fields: [hearingId, lastConclusionId], references: [hearingId, id], onDelete: SetNull)
+  lastConclusion   Conclusion? @relation("HearingLastConclusion", fields: [jurisdictionCode, hearingId, lastConclusionId], references: [jurisdictionCode, hearingId, id], onDelete: SetNull)
 
   // All conclusions observed for this hearing (mirrors CaseFile ↔ hearings list).
   conclusions Conclusion[] @relation("HearingConclusions")
@@ -33,6 +39,7 @@ model Hearing {
   // Case files that have this hearing as `lastHearing`.
   caseFilesAsLast CaseFile[] @relation("CaseFileLastHearing")
 
-  @@unique([hearingId, lastConclusionId])
+  @@id([jurisdictionCode, hearingId])
+  @@unique([jurisdictionCode, hearingId, lastConclusionId])
   @@map("hearings")
 }

@@ -16,6 +16,7 @@ export interface ComedNameSource {
 }
 
 export interface ComedDecision {
+  jurisdictionCode: string;
   caseFileNumber: string;
   caseFileTitle: string | null;
   encodedFileId: string;
@@ -27,6 +28,7 @@ export interface ComedDecision {
 
 export interface AttachedFileComedSource extends ComedNameSource {
   encodedFileId: string;
+  jurisdictionCode: string;
   caseFileNumber: string;
   fileName: string;
   fileTypeLabel: string;
@@ -165,6 +167,7 @@ export function selectComedDecisions(files: readonly AttachedFileComedSource[]):
     const verdict = classifyComedDecision(file);
     if (!verdict) continue;
     decisions.push({
+      jurisdictionCode: file.jurisdictionCode,
       caseFileNumber: file.caseFileNumber,
       caseFileTitle: file.caseFile.title,
       encodedFileId: file.encodedFileId,
@@ -177,6 +180,11 @@ export function selectComedDecisions(files: readonly AttachedFileComedSource[]):
   return decisions;
 }
 
-export function countComedDossiers(decisions: readonly { caseFileNumber: string }[]): number {
-  return new Set(decisions.map((decision) => decision.caseFileNumber)).size;
+// A case-file number is only unique within a court: count (court, number) pairs.
+export function countComedDossiers(
+  decisions: readonly { jurisdictionCode: string; caseFileNumber: string }[],
+): number {
+  return new Set(
+    decisions.map((decision) => `${decision.jurisdictionCode}/${decision.caseFileNumber}`),
+  ).size;
 }

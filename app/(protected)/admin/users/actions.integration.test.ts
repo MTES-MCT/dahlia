@@ -52,10 +52,14 @@ function buildFormData(
 
 async function seedJurisdictions(): Promise<{ lyon: number; paris: number }> {
   const lyon = await testPrisma.jurisdiction.create({
-    data: { name: "Tribunal administratif de Lyon", shortName: "TA069" },
+    data: { name: "Tribunal administratif de Lyon", shortName: "TA069", jurisdictionCode: "TA069" },
   });
   const paris = await testPrisma.jurisdiction.create({
-    data: { name: "Tribunal administratif de Paris", shortName: "TA075" },
+    data: {
+      name: "Tribunal administratif de Paris",
+      shortName: "TA075",
+      jurisdictionCode: "TA075",
+    },
   });
   return { lyon: lyon.id, paris: paris.id };
 }

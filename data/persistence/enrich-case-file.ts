@@ -8,6 +8,7 @@ import {
   Hearing,
   LastDecisionReading,
 } from "../telerecours/types";
+import type { CaseFileKey } from "./case-file-key";
 import { computeContentHash } from "./content-hash";
 import { paginate } from "./paginate";
 import { upsertCaseFileActorsFromApi } from "./upsert-case-file-actors";
@@ -37,6 +38,10 @@ function normalizeLabel(value: string): string {
     .toLowerCase();
 }
 
+function sanitizeForLog(value: unknown): string {
+  return String(value ?? "").replace(/[\r\n]+/g, " ");
+}
+
 // The "last producer" is the actor of the most recent event whose measure label
 // starts with "reception" (case- and accent-insensitive). Returns its actorId,
 // or null when no such event exists.
@@ -57,25 +62,25 @@ export function findLastProducerId(events: CaseFileEvent[]): number | null {
 
 async function upsertLastDecisionReading(
   prisma: PrismaClient,
-  caseFileNumber: string,
+  key: CaseFileKey,
   lastDecisionReading: LastDecisionReading | null | undefined,
 ): Promise<void> {
   if (!lastDecisionReading) {
-    await prisma.lastDecisionReading.deleteMany({ where: { caseFileNumber } });
+    await prisma.lastDecisionReading.deleteMany({ where: key });
     return;
   }
 
   const readingDate = parseDate(lastDecisionReading.readingDate);
   if (!readingDate) {
     console.warn(
-      `⚠ Skipping lastDecisionReading for ${caseFileNumber}: invalid readingDate "${lastDecisionReading.readingDate}"`,
+      `⚠ Skipping lastDecisionReading for ${sanitizeForLog(key.caseFileNumber)}: invalid readingDate "${sanitizeForLog(lastDecisionReading.readingDate)}"`,
     );
-    await prisma.lastDecisionReading.deleteMany({ where: { caseFileNumber } });
+    await prisma.lastDecisionReading.deleteMany({ where: key });
     return;
   }
 
   await prisma.lastDecisionReading.upsert({
-    where: { caseFileNumber },
+    where: { jurisdictionCode_caseFileNumber: key },
     update: {
       readingDate,
       notificationDate: parseDate(lastDecisionReading.notificationDate),
@@ -83,7 +88,7 @@ async function upsertLastDecisionReading(
       operativePart: lastDecisionReading.operativePart ?? null,
     },
     create: {
-      caseFileNumber,
+      ...key,
       readingDate,
       notificationDate: parseDate(lastDecisionReading.notificationDate),
       nature: lastDecisionReading.nature ?? null,
@@ -92,17 +97,22 @@ async function upsertLastDecisionReading(
   });
 }
 
-async function upsertCaseFileDetail(prisma: PrismaClient, detail: CaseFileDetail): Promise<void> {
+async function upsertCaseFileDetail(
+  prisma: PrismaClient,
+  key: CaseFileKey,
+  detail: CaseFileDetail,
+): Promise<void> {
+  const { jurisdictionCode } = key;
   if (detail.chamber) {
     await prisma.chamber.upsert({
-      where: { id: detail.chamber.id },
+      where: { jurisdictionCode_id: { jurisdictionCode, id: detail.chamber.id } },
       update: { name: detail.chamber.name },
-      create: { id: detail.chamber.id, name: detail.chamber.name },
+      create: { jurisdictionCode, id: detail.chamber.id, name: detail.chamber.name },
     });
   }
 
   await prisma.caseFile.update({
-    where: { caseFileNumber: detail.caseFileNumber },
+    where: { jurisdictionCode_caseFileNumber: key },
     data: {
       title: detail.title ?? null,
       creationDate: parseDate(detail.creationDate),
@@ -120,20 +130,20 @@ async function upsertCaseFileDetail(prisma: PrismaClient, detail: CaseFileDetail
     },
   });
 
-  await upsertLastDecisionReading(prisma, detail.caseFileNumber, detail.lastDecisionReading);
+  await upsertLastDecisionReading(prisma, key, detail.lastDecisionReading);
 }
 
 async function upsertHearingForCaseFile(
   prisma: PrismaClient,
-  caseFileNumber: string,
+  key: CaseFileKey,
   hearing: Hearing,
 ): Promise<void> {
-  await upsertHearingWithConclusion(prisma, hearing, caseFileNumber);
+  await upsertHearingWithConclusion(prisma, key.jurisdictionCode, hearing, key.caseFileNumber);
 }
 
 async function upsertCaseFileEvent(
   prisma: PrismaClient,
-  caseFileNumber: string,
+  key: CaseFileKey,
   event: CaseFileEvent,
   anonymize: boolean,
 ): Promise<void> {
@@ -155,7 +165,7 @@ async function upsertCaseFileEvent(
   });
 
   if (event.actor) {
-    await upsertActor(prisma, event.actor, anonymize);
+    await upsertActor(prisma, key.jurisdictionCode, event.actor, anonymize);
   }
 
   const data = {
@@ -170,25 +180,29 @@ async function upsertCaseFileEvent(
     nbEventFile: event.nbEventFile,
     piecesNonDownloadable: event.piecesNonDownloadable,
     relatedEventCount: event.relatedEventCount,
-    caseFileNumber,
+    caseFileNumber: key.caseFileNumber,
     measureCode: event.measure.id,
     actorId: event.actor?.id ?? null,
   };
+  const { jurisdictionCode } = key;
   await prisma.caseFileEvent.upsert({
-    where: { id: event.id },
+    where: { jurisdictionCode_id: { jurisdictionCode, id: event.id } },
     update: data,
-    create: { id: event.id, ...data },
+    create: { jurisdictionCode, id: event.id, ...data },
   });
 }
 
 async function upsertAttachedFile(
   prisma: PrismaClient,
-  caseFileNumber: string,
+  key: CaseFileKey,
   file: AttachedFile,
   updatePieceNumbers: boolean,
 ): Promise<{ upserted: boolean; reason?: string }> {
+  const { jurisdictionCode } = key;
   // The corresponding event must already have been created by phase B/measures.
-  const event = await prisma.caseFileEvent.findUnique({ where: { id: file.eventId } });
+  const event = await prisma.caseFileEvent.findUnique({
+    where: { jurisdictionCode_id: { jurisdictionCode, id: file.eventId } },
+  });
   if (!event) {
     return { upserted: false, reason: `event ${file.eventId} not found` };
   }
@@ -223,18 +237,21 @@ async function upsertAttachedFile(
     fileTypeLabel: file.fileTypeLabel,
     fileFamilyTypeLabel: familyType.label,
     eventCreationDate: new Date(file.eventCreationDate),
-    caseFileNumber,
+    caseFileNumber: key.caseFileNumber,
     eventId: file.eventId,
     fileFamilyTypeCode: file.fileFamilyType,
   };
   const pieceNumber = leadingNumber(file.fileName);
   await prisma.attachedFile.upsert({
-    where: { encodedFileId: file.encodedFileId },
+    where: {
+      jurisdictionCode_encodedFileId: { jurisdictionCode, encodedFileId: file.encodedFileId },
+    },
     // `update` leaves user-editable fields (dahliaName, number, comment)
     // untouched so manual edits survive a re-scrape, unless --update-piece-numbers
     // was passed. The number derived from the file name is always seeded on create.
     update: updatePieceNumbers ? { ...data, number: pieceNumber } : data,
     create: {
+      jurisdictionCode,
       encodedFileId: file.encodedFileId,
       ...data,
       number: pieceNumber,
@@ -243,9 +260,40 @@ async function upsertAttachedFile(
   return { upserted: true };
 }
 
+// --force: delete the attached files and events stored for the case file but
+// no longer returned by Telerecours (e.g. rows of another court's case file
+// merged under this number before ids were scoped by court). Attached files go
+// first: an event still referenced by a kept attached file is kept too (FK).
+// Deleted attached files lose their Dahlia metadata (name, number, comment).
+async function deleteStaleEventsAndFiles(
+  prisma: PrismaClient,
+  key: CaseFileKey,
+  events: CaseFileEvent[],
+  files: AttachedFile[],
+): Promise<void> {
+  const deletedFiles = await prisma.attachedFile.deleteMany({
+    where: { ...key, encodedFileId: { notIn: files.map((file) => file.encodedFileId) } },
+  });
+  const deletedEvents = await prisma.caseFileEvent.deleteMany({
+    where: {
+      ...key,
+      id: { notIn: events.map((event) => event.id) },
+      attachedFiles: { none: {} },
+    },
+  });
+  if (deletedFiles.count > 0 || deletedEvents.count > 0) {
+    console.log(
+      `  ⚑ ${key.caseFileNumber.replace(/[\r\n]/g, "")}: ${deletedEvents.count} événement(s) et ` +
+        `${deletedFiles.count} pièce(s) absents de Télérecours supprimés (--force)`,
+    );
+  }
+}
+
 // Fetch the enriched detail, all hearings, all events (measures) and all
-// attached files for a single case file, and upsert them. The case file must
-// already exist in DB (created by phase A).
+// attached files for a single case file, and upsert them. `jurisdiction` is the
+// Dahlia instance (e.g. "TA069bis"): it selects the credentials and resolves the
+// court code that scopes every id. The case file is (re)created from the detail
+// when it has the required fields, otherwise it must already exist (phase A).
 export async function enrichCaseFile(
   prisma: PrismaClient,
   client: TelerecoursClient,
@@ -253,18 +301,24 @@ export async function enrichCaseFile(
   jurisdiction: string,
   anonymize: boolean,
   updatePieceNumbers: boolean = false,
+  force: boolean = false,
 ): Promise<void> {
+  // Tag the case file with the jurisdiction this enrichment was fetched from.
+  // Also covers the webapp's single-case-file refresh, which never runs phase A.
+  const resolvedJurisdiction = await upsertJurisdiction(prisma, jurisdiction);
+  const key: CaseFileKey = {
+    jurisdictionCode: resolvedJurisdiction.jurisdictionCode,
+    caseFileNumber,
+  };
+
   // 1. Enriched detail
   const detail = await client.getCaseFileDetail(caseFileNumber, jurisdiction);
   // Re-upsert the base CaseFile (in case the detail brings fields missing from
   // the list view) then fill the detail columns.
   if (detail.lastStatus && detail.mainClaimant) {
-    // Tag the case file with the jurisdiction this enrichment was fetched from.
-    // Also covers the webapp's single-case-file refresh, which never runs phase A.
-    const jurisdictionId = await upsertJurisdiction(prisma, jurisdiction);
-    await upsertCaseFile(prisma, detail, anonymize, jurisdictionId);
+    await upsertCaseFile(prisma, detail, anonymize, resolvedJurisdiction);
   }
-  await upsertCaseFileDetail(prisma, detail);
+  await upsertCaseFileDetail(prisma, key, detail);
 
   // 2. All actors (parties, lawyers, etc.)
   const actors: CaseFileActorDto[] = [];
@@ -273,7 +327,7 @@ export async function enrichCaseFile(
   )) {
     actors.push(actor);
   }
-  await upsertCaseFileActorsFromApi(prisma, caseFileNumber, actors, anonymize);
+  await upsertCaseFileActorsFromApi(prisma, key, actors, anonymize);
   const actorsCount = actors.length;
 
   // 3. All hearings
@@ -281,13 +335,13 @@ export async function enrichCaseFile(
   for await (const hearing of paginate<Hearing>((page) =>
     client.getCaseFileHearings(caseFileNumber, jurisdiction, page),
   )) {
-    await upsertHearingForCaseFile(prisma, caseFileNumber, hearing);
+    await upsertHearingForCaseFile(prisma, key, hearing);
     hearings.push(hearing);
   }
   const hearingIds = hearings.map((h) => h.hearingId);
   await prisma.caseFileHearing.deleteMany({
     where: {
-      caseFileNumber,
+      ...key,
       ...(hearingIds.length > 0 ? { hearingId: { notIn: hearingIds } } : {}),
     },
   });
@@ -298,7 +352,7 @@ export async function enrichCaseFile(
   for await (const event of paginate<CaseFileEvent>((page) =>
     client.getCaseFileMeasures(caseFileNumber, jurisdiction, page),
   )) {
-    await upsertCaseFileEvent(prisma, caseFileNumber, event, anonymize);
+    await upsertCaseFileEvent(prisma, key, event, anonymize);
     events.push(event);
   }
   const eventsCount = events.length;
@@ -310,7 +364,7 @@ export async function enrichCaseFile(
   for await (const file of paginate<AttachedFile>((page) =>
     client.getCaseFileAttachedFiles(caseFileNumber, jurisdiction, page),
   )) {
-    const result = await upsertAttachedFile(prisma, caseFileNumber, file, updatePieceNumbers);
+    const result = await upsertAttachedFile(prisma, key, file, updatePieceNumbers);
     files.push(file);
     if (result.upserted) {
       filesCount++;
@@ -318,6 +372,10 @@ export async function enrichCaseFile(
       filesSkipped++;
       console.warn(`  ⚠ Attached file ${file.encodedFileId} skipped: ${result.reason}`);
     }
+  }
+
+  if (force) {
+    await deleteStaleEventsAndFiles(prisma, key, events, files);
   }
 
   // Fingerprint the whole scraped payload (detail + linked elements) so we can
@@ -331,7 +389,7 @@ export async function enrichCaseFile(
     files: [...files].sort((a, b) => a.encodedFileId.localeCompare(b.encodedFileId)),
   });
   const existing = await prisma.caseFile.findUnique({
-    where: { caseFileNumber },
+    where: { jurisdictionCode_caseFileNumber: key },
     select: { telerecoursContentHash: true },
   });
   const hasChanged = existing?.telerecoursContentHash !== contentHash;
@@ -343,7 +401,7 @@ export async function enrichCaseFile(
   //   - telerecoursUpdatedAt (and the stored hash) only move when the payload
   //     actually changed. `updatedAt` is left to Prisma and never touched here.
   await prisma.caseFile.update({
-    where: { caseFileNumber },
+    where: { jurisdictionCode_caseFileNumber: key },
     data: {
       lastProducerId: findLastProducerId(events),
       telerecoursSyncAt: now,

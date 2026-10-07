@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import type { CaseFileKey } from "@/app/lib/case-file-key";
 import { prisma } from "@/app/lib/prisma";
 import { caseFileRelationScopeWhere } from "@/app/lib/case-file-scope";
 import { normalizeForSearch, parseSearchQuery } from "@/app/lib/case-file-search";
@@ -48,11 +49,10 @@ function buildEventsOrderBy(
   }
 }
 
-function buildEventsWhere(
-  caseFileNumber: string,
-  query: string | null,
-): Prisma.CaseFileEventWhereInput {
-  const conditions: Prisma.CaseFileEventWhereInput[] = [{ caseFileNumber }];
+function buildEventsWhere(key: CaseFileKey, query: string | null): Prisma.CaseFileEventWhereInput {
+  const conditions: Prisma.CaseFileEventWhereInput[] = [
+    { jurisdictionCode: key.jurisdictionCode, caseFileNumber: key.caseFileNumber },
+  ];
 
   if (query) {
     const { freeText, facets } = parseSearchQuery(query, HISTORIQUE_FACET_KEYS);
@@ -111,10 +111,10 @@ function buildEventsWhere(
 // Search filter narrowed to the current user's permission scope, shared by the
 // page query and its count.
 async function buildScopedEventsWhere(
-  caseFileNumber: string,
+  key: CaseFileKey,
   query: string | null,
 ): Promise<Prisma.CaseFileEventWhereInput> {
-  return { ...buildEventsWhere(caseFileNumber, query), ...(await caseFileRelationScopeWhere()) };
+  return { ...buildEventsWhere(key, query), ...(await caseFileRelationScopeWhere()) };
 }
 
 export type CaseFileEventListRow = CaseFileEventRow;
@@ -122,7 +122,7 @@ export type CaseFileEventListRow = CaseFileEventRow;
 export type CaseFileEventsTableData = PaginatedTableData<CaseFileEventRow>;
 
 async function fetchCaseFileEventsPage(
-  caseFileNumber: string,
+  key: CaseFileKey,
   page: number,
   pageSize: number,
   sortBy: string,
@@ -130,7 +130,7 @@ async function fetchCaseFileEventsPage(
   query: string | null,
 ): Promise<CaseFileEventRow[]> {
   return prisma.caseFileEvent.findMany({
-    where: await buildScopedEventsWhere(caseFileNumber, query),
+    where: await buildScopedEventsWhere(key, query),
     include: EVENT_LIST_INCLUDE,
     orderBy: buildEventsOrderBy(sortBy, toSortOrder(sortOrder)),
     skip: (page - 1) * pageSize,
@@ -138,15 +138,12 @@ async function fetchCaseFileEventsPage(
   });
 }
 
-async function fetchCaseFileEventsCount(
-  caseFileNumber: string,
-  query: string | null,
-): Promise<number> {
-  return prisma.caseFileEvent.count({ where: await buildScopedEventsWhere(caseFileNumber, query) });
+async function fetchCaseFileEventsCount(key: CaseFileKey, query: string | null): Promise<number> {
+  return prisma.caseFileEvent.count({ where: await buildScopedEventsWhere(key, query) });
 }
 
 export async function fetchCaseFileEventsTableData(
-  caseFileNumber: string,
+  key: CaseFileKey,
   searchParams: Record<string, string | string[] | undefined>,
 ): Promise<CaseFileEventsTableData> {
   const { page, sortBy, sortOrder, query } = parseTableQueryState(searchParams, HISTORIQUE_PARAMS, {
@@ -158,8 +155,7 @@ export async function fetchCaseFileEventsTableData(
   return fetchPaginatedTableData({
     page,
     pageSize,
-    fetchPage: () =>
-      fetchCaseFileEventsPage(caseFileNumber, page, pageSize, sortBy, sortOrder, query),
-    fetchCount: () => fetchCaseFileEventsCount(caseFileNumber, query),
+    fetchPage: () => fetchCaseFileEventsPage(key, page, pageSize, sortBy, sortOrder, query),
+    fetchCount: () => fetchCaseFileEventsCount(key, query),
   });
 }

@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import {
   refreshCaseFile,
   type RefreshCaseFileResult,
-} from "@/app/(protected)/case_files/[caseFileNumber]/actions";
+} from "@/app/(protected)/case_files/[jurisdictionCode]/[caseFileNumber]/actions";
 import type { CaseFileDetail } from "@/app/lib/data/case-files";
 import { formatDateFr, formatDateTimeFr } from "@/app/lib/case-file-format";
 
@@ -27,7 +27,10 @@ export function RefreshCaseFileButton({ caseFile }: Props) {
   function handleRefresh() {
     setResult(null);
     startTransition(async () => {
-      const res = await refreshCaseFile(caseFile.caseFileNumber);
+      const res = await refreshCaseFile({
+        jurisdictionCode: caseFile.jurisdictionCode,
+        caseFileNumber: caseFile.caseFileNumber,
+      });
       setResult(res);
       // On success, refresh the server component so the new data is displayed.
       if (res.ok) {

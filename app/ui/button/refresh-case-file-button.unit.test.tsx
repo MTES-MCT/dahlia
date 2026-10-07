@@ -8,7 +8,7 @@ import { RefreshCaseFileButton } from "./refresh-case-file-button";
 const mockRefreshCaseFile = vi.fn();
 const mockRouterRefresh = vi.fn();
 
-vi.mock("@/app/(protected)/case_files/[caseFileNumber]/actions", () => ({
+vi.mock("@/app/(protected)/case_files/[jurisdictionCode]/[caseFileNumber]/actions", () => ({
   refreshCaseFile: (...args: unknown[]) => mockRefreshCaseFile(...args),
 }));
 
@@ -18,6 +18,7 @@ vi.mock("next/navigation", () => ({
 
 describe("RefreshCaseFileButton", () => {
   const mockCaseFile = {
+    jurisdictionCode: "TA069",
     caseFileNumber: "TA069-2026-001",
     updatedAt: new Date("2024-06-01"),
     telerecoursSyncAt: new Date("2024-07-15T10:30:00Z"),
@@ -52,14 +53,17 @@ describe("RefreshCaseFileButton", () => {
     expect(screen.getByText("Aucune synchronisation Télérecours")).toBeTruthy();
   });
 
-  it("appelle l'action avec le numéro de dossier et rafraîchit le router en cas de succès", async () => {
+  it("appelle l'action avec la clé du dossier et rafraîchit le router en cas de succès", async () => {
     mockRefreshCaseFile.mockResolvedValue({ ok: true });
     render(<RefreshCaseFileButton caseFile={mockCaseFile} />);
 
     fireEvent.click(screen.getByRole("button"));
 
     await waitFor(() => {
-      expect(mockRefreshCaseFile).toHaveBeenCalledWith("TA069-2026-001");
+      expect(mockRefreshCaseFile).toHaveBeenCalledWith({
+        jurisdictionCode: "TA069",
+        caseFileNumber: "TA069-2026-001",
+      });
     });
     expect(mockRouterRefresh).toHaveBeenCalledTimes(1);
     expect(screen.getByText(/Dossier rafraîchi avec succès/)).toBeTruthy();

@@ -17,8 +17,8 @@ export async function phaseA(
   console.log(`\n══ Phase A — scrape liste /api/case-file (${args.jurisdiction}) ══`);
 
   // Resolved once for the whole run: every case file upserted below is tagged
-  // with the jurisdiction the scrape was run against.
-  const jurisdictionId = await upsertJurisdiction(prisma, args.jurisdiction);
+  // with the jurisdiction the scrape was run against, and keyed by its court.
+  const jurisdiction = await upsertJurisdiction(prisma, args.jurisdiction);
 
   const statusGroupIds = args.all
     ? undefined
@@ -80,7 +80,7 @@ export async function phaseA(
       seen.add(item.caseFileNumber);
 
       try {
-        const upserted = await upsertCaseFile(prisma, item, args.anonymize, jurisdictionId);
+        const upserted = await upsertCaseFile(prisma, item, args.anonymize, jurisdiction);
         if (upserted) upsertCount++;
         else skippedCaseFileNumbers.push(item.caseFileNumber);
       } catch (error) {

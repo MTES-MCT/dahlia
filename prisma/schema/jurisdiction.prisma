@@ -7,9 +7,13 @@
 // Unlike LegalEntityDivision, the id is not provided by Télérecours:
 // Postgres generates it.
 model Jurisdiction {
-  id        Int    @id @default(autoincrement())
-  name      String @default("")
-  shortName String @unique
+  id               Int    @id @default(autoincrement())
+  name             String @default("")
+  shortName        String @unique
+  // Telerecours court this instance belongs to (the X-Jurisdiction-Code header,
+  // e.g. "TA069" for both TA069 and TA069bis). Not unique: several instances
+  // may share a court. Copied onto every court-scoped row as `jurisdictionCode`.
+  jurisdictionCode String
 
   caseFiles  CaseFile[]
   userScopes UserJurisdictionScope[]

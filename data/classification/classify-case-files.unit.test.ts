@@ -13,6 +13,7 @@ import type { ClassificationResult } from "./types";
 const caseFile = (
   overrides: Partial<CaseFileClassificationState> = {},
 ): CaseFileClassificationState => ({
+  jurisdictionCode: "TA069",
   caseFileNumber: "TA069-001",
   title: "DALO_Liquidation d'astreinte",
   litigationType: null,
@@ -141,7 +142,9 @@ describe("classifyCaseFiles", () => {
     const stats = await classifyCaseFiles(prisma, { overwrite: false });
 
     expect(prisma.caseFile.update).toHaveBeenCalledExactlyOnceWith({
-      where: { caseFileNumber: "TA069-001" },
+      where: {
+        jurisdictionCode_caseFileNumber: { jurisdictionCode: "TA069", caseFileNumber: "TA069-001" },
+      },
       data: {
         litigationType: "LIQUIDATION_ASTREINTE",
         rightType: "DALO",
@@ -167,7 +170,9 @@ describe("classifyCaseFiles", () => {
     const stats = await classifyCaseFiles(prisma, { overwrite: false });
 
     expect(prisma.caseFile.update).toHaveBeenCalledExactlyOnceWith({
-      where: { caseFileNumber: "TA069-001" },
+      where: {
+        jurisdictionCode_caseFileNumber: { jurisdictionCode: "TA069", caseFileNumber: "TA069-001" },
+      },
       data: { rightType: "DALO" },
     });
     expect(stats.fields).toEqual({ litigationType: 0, rightType: 1, summary: 0 });
@@ -182,7 +187,9 @@ describe("classifyCaseFiles", () => {
     await classifyCaseFiles(prisma, { overwrite: true });
 
     expect(prisma.caseFile.update).toHaveBeenCalledExactlyOnceWith({
-      where: { caseFileNumber: "TA069-001" },
+      where: {
+        jurisdictionCode_caseFileNumber: { jurisdictionCode: "TA069", caseFileNumber: "TA069-001" },
+      },
       data: {
         litigationType: "LIQUIDATION_ASTREINTE",
         rightType: "DALO",
@@ -226,6 +233,7 @@ describe("fieldChangesOf", () => {
 
     expect(changes).toEqual([
       {
+        jurisdictionCode: "TA069",
         caseFileNumber: "TA069-001",
         field: "rightType",
         previousValue: null,
@@ -233,6 +241,7 @@ describe("fieldChangesOf", () => {
         ruleId: "right-type-dalo-explicit",
       },
       {
+        jurisdictionCode: "TA069",
         caseFileNumber: "TA069-001",
         field: "summary",
         previousValue: "Saisi à la main",
@@ -263,6 +272,7 @@ describe("classifyCaseFiles history", () => {
     expect(prisma.classificationFieldChange.createMany).toHaveBeenCalledExactlyOnceWith({
       data: [
         {
+          jurisdictionCode: "TA069",
           caseFileNumber: "TA069-001",
           field: "rightType",
           previousValue: null,
@@ -270,6 +280,7 @@ describe("classifyCaseFiles history", () => {
           ruleId: "right-type-dalo-explicit",
         },
         {
+          jurisdictionCode: "TA069",
           caseFileNumber: "TA069-001",
           field: "summary",
           previousValue: null,

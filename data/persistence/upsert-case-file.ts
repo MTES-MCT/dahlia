@@ -4,6 +4,7 @@ import { anonymizeActor } from "../anonymize";
 import { upsertCaseFileActorLink } from "./upsert-case-file-actors";
 import { upsertHearingWithConclusion } from "./upsert-hearing";
 import { upsertLegalEntityDivision } from "./upsert-legal-entity-division";
+import type { ResolvedJurisdiction } from "./upsert-jurisdiction";
 
 // The Prisma client is passed in so that this module can be reused both by the
 // standalone scraping script (its own `new PrismaClient`) and by the webapp
@@ -11,6 +12,7 @@ import { upsertLegalEntityDivision } from "./upsert-legal-entity-division";
 
 export async function upsertActor(
   prisma: PrismaClient,
+  jurisdictionCode: string,
   actor: Actor,
   anonymize: boolean = false,
 ): Promise<void> {
@@ -28,23 +30,26 @@ export async function upsertActor(
     actorType: actor.actorType as "LEGAL_PERSON" | "NATURAL_PERSON",
   };
   await prisma.actor.upsert({
-    where: { id: actor.id },
+    where: { jurisdictionCode_id: { jurisdictionCode, id: actor.id } },
     update: data,
-    create: { id: actor.id, ...data },
+    create: { jurisdictionCode, id: actor.id, ...data },
   });
 }
 
 // Upsert the base CaseFile and its directly-referenced entities (qualities,
 // division, urgency, status, last hearing/conclusion, case-file actors) from a
 // list-view payload. Returns false (and skips) when a required field is absent.
-// `jurisdictionId` is the Jurisdiction the scrape ran against (see
-// upsertJurisdiction); when omitted the column is left untouched.
+// `jurisdiction` is the Jurisdiction the scrape ran against (see
+// upsertJurisdiction): its court code is part of the case-file key, its id tags
+// the case file.
 export async function upsertCaseFile(
   prisma: PrismaClient,
   caseFile: CaseFile,
-  anonymize: boolean = false,
-  jurisdictionId?: number,
+  anonymize: boolean,
+  jurisdiction: ResolvedJurisdiction,
 ): Promise<boolean> {
+  const { jurisdictionCode, id: jurisdictionId } = jurisdiction;
+  const key = { jurisdictionCode, caseFileNumber: caseFile.caseFileNumber };
   const missingFields: string[] = [];
   if (!caseFile.lastStatus) missingFields.push("lastStatus");
   if (!caseFile.mainClaimant) missingFields.push("mainClaimant");
@@ -94,26 +99,24 @@ export async function upsertCaseFile(
   });
 
   if (caseFile.lastHearing) {
-    await upsertHearingWithConclusion(prisma, caseFile.lastHearing);
+    await upsertHearingWithConclusion(prisma, jurisdictionCode, caseFile.lastHearing);
   }
 
-  // A case file number is global. Two Dahlia instances of the same court
-  // (TA069 and TA069bis) can therefore rewrite each other's jurisdictionId.
-  // Warn when an already-tagged row is about to move, and keep going.
-  if (jurisdictionId !== undefined) {
-    const existing = await prisma.caseFile.findUnique({
-      where: { caseFileNumber: caseFile.caseFileNumber },
-      select: { jurisdictionId: true },
-    });
-    if (existing?.jurisdictionId != null && existing.jurisdictionId !== jurisdictionId) {
-      console.warn(
-        `⚠ Case file ${caseFile.caseFileNumber}: jurisdictionId changed from ${existing.jurisdictionId} to ${jurisdictionId}`,
-      );
-    }
+  // A case file number is unique within a court. Two Dahlia instances of the
+  // same court (TA069 and TA069bis) can therefore rewrite each other's
+  // jurisdictionId. Warn when an already-tagged row is about to move, and keep going.
+  const existing = await prisma.caseFile.findUnique({
+    where: { jurisdictionCode_caseFileNumber: key },
+    select: { jurisdictionId: true },
+  });
+  if (existing?.jurisdictionId != null && existing.jurisdictionId !== jurisdictionId) {
+    console.warn(
+      `⚠ Case file ${caseFile.caseFileNumber}: jurisdictionId changed from ${existing.jurisdictionId} to ${jurisdictionId}`,
+    );
   }
 
   await prisma.caseFile.upsert({
-    where: { caseFileNumber: caseFile.caseFileNumber },
+    where: { jurisdictionCode_caseFileNumber: key },
     update: {
       // The case file was returned by Telerecours, so it is not deleted: clear
       // any previous soft-delete flag (a case file that reappears comes back).
@@ -121,7 +124,6 @@ export async function upsertCaseFile(
       deletedAt: null,
       procedureState: caseFile.procedureState,
       assignedToLegalEntityDivisionId,
-      // `undefined` leaves the column as-is rather than clearing it.
       jurisdictionId,
       urgencyId: caseFile.urgency?.id,
       lastStatusId: caseFile.lastStatus.id,
@@ -132,7 +134,7 @@ export async function upsertCaseFile(
         : null,
     },
     create: {
-      caseFileNumber: caseFile.caseFileNumber,
+      ...key,
       procedureState: caseFile.procedureState,
       assignedToLegalEntityDivisionId,
       jurisdictionId,
@@ -149,14 +151,14 @@ export async function upsertCaseFile(
   if (caseFile.lastHearing) {
     await prisma.caseFileHearing.upsert({
       where: {
-        caseFileNumber_hearingId: {
-          caseFileNumber: caseFile.caseFileNumber,
+        jurisdictionCode_caseFileNumber_hearingId: {
+          ...key,
           hearingId: caseFile.lastHearing.hearingId,
         },
       },
       update: {},
       create: {
-        caseFileNumber: caseFile.caseFileNumber,
+        ...key,
         hearingId: caseFile.lastHearing.hearingId,
       },
     });
@@ -164,7 +166,7 @@ export async function upsertCaseFile(
 
   await upsertCaseFileActorLink(
     prisma,
-    caseFile.caseFileNumber,
+    key,
     caseFile.mainClaimant,
     { isMainClaimant: true, isMainDefender: false },
     anonymize,
@@ -172,7 +174,7 @@ export async function upsertCaseFile(
   if (caseFile.mainDefender) {
     await upsertCaseFileActorLink(
       prisma,
-      caseFile.caseFileNumber,
+      key,
       caseFile.mainDefender,
       { isMainClaimant: false, isMainDefender: true },
       anonymize,

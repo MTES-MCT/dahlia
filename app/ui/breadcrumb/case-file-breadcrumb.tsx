@@ -3,8 +3,10 @@ import { Breadcrumb } from "@codegouvfr/react-dsfr/Breadcrumb";
 import { getCaseFileDisplayName, type CaseFileDisplayNameSource } from "@/app/lib/case-file-format";
 import { type CaseFileWithActors } from "@/app/lib/case-file-actors";
 import { buildBackParams, type CarriedSearchParams } from "@/app/lib/carried-search-params";
+import { caseFileHref } from "@/app/lib/case-file-key";
 
-export type CaseFileForBreadcrumb = CaseFileDisplayNameSource & CaseFileWithActors;
+export type CaseFileForBreadcrumb = CaseFileDisplayNameSource &
+  CaseFileWithActors & { jurisdictionCode: string };
 
 type BreadcrumbSegment = {
   label: React.ReactNode;
@@ -49,7 +51,7 @@ export function buildCaseFileBreadcrumbSegment(
   return {
     label: caseFileLabel(caseFile),
     linkProps: {
-      href: `/case_files/${encodeURIComponent(caseFile.caseFileNumber)}${suffix}#case-file-details`,
+      href: caseFileHref(caseFile, `${suffix}#case-file-details`),
     },
   };
 }

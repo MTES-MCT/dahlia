@@ -15,6 +15,7 @@ const baseArgs: Args = {
   anonymize: true,
   enrich: "none",
   updatePieceNumbers: false,
+  force: false,
   classify: false,
   classifyOverwrite: false,
 };
@@ -24,7 +25,12 @@ describe("runScrape", () => {
 
   beforeEach(() => {
     prisma = mockDeep<PrismaClient>();
-    prisma.jurisdiction.upsert.mockResolvedValue({ id: 1, name: "", shortName: "TA069" });
+    prisma.jurisdiction.upsert.mockResolvedValue({
+      id: 1,
+      name: "",
+      shortName: "TA069",
+      jurisdictionCode: "TA069",
+    });
     prisma.caseFile.updateMany.mockResolvedValue({ count: 0 });
     vi.spyOn(console, "log").mockImplementation(() => {});
     vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -74,6 +80,7 @@ describe("runScrape", () => {
     });
     prisma.caseFile.findMany.mockResolvedValue([
       {
+        jurisdictionCode: "TA069",
         caseFileNumber: "TA069-001",
         title: "DALO_Liquidation d'astreinte",
         litigationType: null,
@@ -97,7 +104,9 @@ describe("runScrape", () => {
       }),
     );
     expect(prisma.caseFile.update).toHaveBeenCalledWith({
-      where: { caseFileNumber: "TA069-001" },
+      where: {
+        jurisdictionCode_caseFileNumber: { jurisdictionCode: "TA069", caseFileNumber: "TA069-001" },
+      },
       data: {
         litigationType: "LIQUIDATION_ASTREINTE",
         rightType: "DALO",

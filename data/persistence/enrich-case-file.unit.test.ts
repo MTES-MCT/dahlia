@@ -62,7 +62,12 @@ describe("enrichCaseFile", () => {
 
   beforeEach(() => {
     prisma = mockDeep<PrismaClient>();
-    prisma.jurisdiction.upsert.mockResolvedValue({ id: 1, name: "", shortName: "TA069" });
+    prisma.jurisdiction.upsert.mockResolvedValue({
+      id: 1,
+      name: "",
+      shortName: "TA069",
+      jurisdictionCode: "TA069",
+    });
     vi.spyOn(console, "log").mockImplementation(() => {});
     vi.spyOn(console, "warn").mockImplementation(() => {});
   });
@@ -163,5 +168,117 @@ describe("enrichCaseFile", () => {
     await enrichCaseFile(prisma, client, "TA069-001", "TA069", true);
 
     expect(prisma.attachedFile.upsert).not.toHaveBeenCalled();
+  });
+
+  it("keys every row by the court of the Dahlia instance (TA069bis → TA069)", async () => {
+    process.env.TA069bis_TELERECOURS_JURISDICTION = "TA069";
+    prisma.jurisdiction.upsert.mockResolvedValue({
+      id: 2,
+      name: "",
+      shortName: "TA069bis",
+      jurisdictionCode: "TA069",
+    });
+    prisma.caseFileEvent.findUnique.mockResolvedValue({ id: 90001 } as never);
+    prisma.fileFamilyType.upsert.mockResolvedValue({ code: "REQ", label: "Requête" } as never);
+
+    const client = fakeTelerecoursClient({
+      getCaseFileDetail: vi.fn().mockResolvedValue(caseFileDetailFixture()),
+      getCaseFileMeasures: vi.fn().mockResolvedValue(page([eventFixture({ id: 90001 })])),
+      getCaseFileAttachedFiles: vi.fn().mockResolvedValue(page([attachedFileFixture()])),
+    });
+
+    try {
+      await enrichCaseFile(prisma, client, "TA069-001", "TA069bis", true);
+    } finally {
+      delete process.env.TA069bis_TELERECOURS_JURISDICTION;
+    }
+
+    expect(prisma.caseFileEvent.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { jurisdictionCode_id: { jurisdictionCode: "TA069", id: 90001 } },
+      }),
+    );
+    expect(prisma.attachedFile.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({ jurisdictionCode: "TA069", caseFileNumber: "TA069-001" }),
+      }),
+    );
+    expect(prisma.caseFile.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          jurisdictionCode_caseFileNumber: {
+            jurisdictionCode: "TA069",
+            caseFileNumber: "TA069-001",
+          },
+        },
+      }),
+    );
+  });
+
+  describe("--force", () => {
+    function clientReturning(eventIds: number[], fileIds: string[]) {
+      return fakeTelerecoursClient({
+        getCaseFileDetail: vi.fn().mockResolvedValue(caseFileDetailFixture()),
+        getCaseFileMeasures: vi
+          .fn()
+          .mockResolvedValue(page(eventIds.map((id) => eventFixture({ id })))),
+        getCaseFileAttachedFiles: vi
+          .fn()
+          .mockResolvedValue(
+            page(fileIds.map((encodedFileId) => attachedFileFixture({ encodedFileId }))),
+          ),
+      });
+    }
+
+    beforeEach(() => {
+      prisma.caseFileEvent.findUnique.mockResolvedValue({ id: 90001 } as never);
+      prisma.fileFamilyType.upsert.mockResolvedValue({ code: "REQ", label: "Requête" } as never);
+      prisma.attachedFile.deleteMany.mockResolvedValue({ count: 0 });
+      prisma.caseFileEvent.deleteMany.mockResolvedValue({ count: 0 });
+    });
+
+    it("ne supprime rien sans --force", async () => {
+      await enrichCaseFile(prisma, clientReturning([90001], ["ENC-1"]), "TA069-001", "TA069", true);
+
+      expect(prisma.attachedFile.deleteMany).not.toHaveBeenCalled();
+      expect(prisma.caseFileEvent.deleteMany).not.toHaveBeenCalled();
+    });
+
+    it("supprime les pièces puis les événements du dossier absents de Télérecours", async () => {
+      await enrichCaseFile(
+        prisma,
+        clientReturning([90001], ["ENC-1"]),
+        "TA069-001",
+        "TA069",
+        true,
+        false,
+        true,
+      );
+
+      const key = { jurisdictionCode: "TA069", caseFileNumber: "TA069-001" };
+      expect(prisma.attachedFile.deleteMany).toHaveBeenCalledWith({
+        where: { ...key, encodedFileId: { notIn: ["ENC-1"] } },
+      });
+      // An event still referenced by a kept attached file is kept (FK).
+      expect(prisma.caseFileEvent.deleteMany).toHaveBeenCalledWith({
+        where: { ...key, id: { notIn: [90001] }, attachedFiles: { none: {} } },
+      });
+      expect(prisma.attachedFile.deleteMany.mock.invocationCallOrder[0]).toBeLessThan(
+        prisma.caseFileEvent.deleteMany.mock.invocationCallOrder[0],
+      );
+    });
+
+    it("ne supprime pas quand la récupération Télérecours échoue", async () => {
+      const client = fakeTelerecoursClient({
+        getCaseFileDetail: vi.fn().mockResolvedValue(caseFileDetailFixture()),
+        getCaseFileAttachedFiles: vi.fn().mockRejectedValue(new Error("502")),
+      });
+
+      await expect(
+        enrichCaseFile(prisma, client, "TA069-001", "TA069", true, false, true),
+      ).rejects.toThrow("502");
+      expect(prisma.attachedFile.deleteMany).not.toHaveBeenCalled();
+      expect(prisma.caseFileEvent.deleteMany).not.toHaveBeenCalled();
+    });
   });
 });

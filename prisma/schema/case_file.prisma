@@ -21,7 +21,11 @@ enum ProductionDeadlineType {
 }
 
 model CaseFile {
-  caseFileNumber String @id
+  // Telerecours court code (e.g. "TA069", shared by the TA069 and TA069bis
+  // instances, see Jurisdiction.jurisdictionCode). Case-file numbers are only
+  // unique within a court, so the primary key is (jurisdictionCode, caseFileNumber).
+  jurisdictionCode String
+  caseFileNumber   String
 
   // Champs renseignés par l'endpoint /api/case-file (liste) et enrichis
   // par /api/case-file/<id> (detail) pour les dossiers au statut cible.
@@ -56,7 +60,7 @@ model CaseFile {
   lastStatusDate DateTime
 
   lastHearingId String?
-  lastHearing   Hearing? @relation("CaseFileLastHearing", fields: [lastHearingId], references: [hearingId])
+  lastHearing   Hearing? @relation("CaseFileLastHearing", fields: [jurisdictionCode, lastHearingId], references: [jurisdictionCode, hearingId])
 
   // Full list of hearings for this case file (M2M via case_file_hearings,
   // fed by /api/case-file/<id>/hearings — scrape phase B).
@@ -95,7 +99,7 @@ model CaseFile {
   deletedAt DateTime?
 
   chamberId Int?
-  chamber   Chamber? @relation(fields: [chamberId], references: [id])
+  chamber   Chamber? @relation(fields: [jurisdictionCode, chamberId], references: [jurisdictionCode, id])
 
   // All actors participating in the case file (scraped from /api/case-file/<id>/actors).
   // Main claimant/defender are identified by isMainClaimant / isMainDefender on the link.
@@ -105,7 +109,7 @@ model CaseFile {
   // Actor of the most recent "reception…" event (see findLastProducerId in the
   // scraper, computed during the enrichment phase).
   lastProducerId Int?
-  lastProducer   Actor? @relation("CaseFileLastProducer", fields: [lastProducerId], references: [id])
+  lastProducer   Actor? @relation("CaseFileLastProducer", fields: [jurisdictionCode, lastProducerId], references: [jurisdictionCode, id])
 
   lastDecisionReading LastDecisionReading?
 
@@ -130,5 +134,7 @@ model CaseFile {
   telerecoursUpdatedAt   DateTime?
   telerecoursContentHash String?
 
+  @@id([jurisdictionCode, caseFileNumber])
+  @@index([caseFileNumber])
   @@map("case_files")
 }

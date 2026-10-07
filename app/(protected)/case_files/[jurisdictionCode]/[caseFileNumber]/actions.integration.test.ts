@@ -32,6 +32,9 @@ import {
 } from "@/data/test-support/integration-db";
 
 const CASE_FILE_NUMBER = "TA069-001";
+const CASE_FILE_WHERE = {
+  jurisdictionCode_caseFileNumber: { jurisdictionCode: "TA069", caseFileNumber: CASE_FILE_NUMBER },
+};
 
 function buildFormData(fields: Record<string, string>): FormData {
   const formData = new FormData();
@@ -57,6 +60,7 @@ async function seedCaseFile(overrides?: {
   });
   await testPrisma.actor.create({
     data: {
+      jurisdictionCode: "TA069",
       id: 1001,
       actorType: "NATURAL_PERSON",
       firstName: "Jean",
@@ -65,6 +69,7 @@ async function seedCaseFile(overrides?: {
   });
   await testPrisma.caseFile.create({
     data: {
+      jurisdictionCode: "TA069",
       caseFileNumber: CASE_FILE_NUMBER,
       title: "Recours DALO",
       type: "DALO",
@@ -81,6 +86,7 @@ async function seedCaseFile(overrides?: {
   });
   await testPrisma.caseFileActor.create({
     data: {
+      jurisdictionCode: "TA069",
       caseFileNumber: CASE_FILE_NUMBER,
       actorId: 1001,
       qualityCode: "R",
@@ -115,6 +121,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
     const result = await updateCaseFileDetailsFormAction(
       null,
       buildFormData({
+        jurisdictionCode: "TA069",
         caseFileNumber: CASE_FILE_NUMBER,
         litigationType: "REFERE",
         rightType: "DALO",
@@ -124,16 +131,16 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
     expect(result).toEqual({ ok: true });
 
     const updated = await testPrisma.caseFile.findUniqueOrThrow({
-      where: { caseFileNumber: CASE_FILE_NUMBER },
+      where: CASE_FILE_WHERE,
     });
     expect(updated.litigationType).toBe("REFERE");
     expect(updated.rightType).toBe("DALO");
-    expect(revalidatePath).toHaveBeenCalledWith(`/case_files/${CASE_FILE_NUMBER}`);
+    expect(revalidatePath).toHaveBeenCalledWith(`/case_files/TA069/${CASE_FILE_NUMBER}`);
   });
 
   it("efface les champs optionnels lorsque le formulaire les laisse vides", async () => {
     await testPrisma.caseFile.update({
-      where: { caseFileNumber: CASE_FILE_NUMBER },
+      where: CASE_FILE_WHERE,
       data: {
         litigationType: "INJONCTION",
         rightType: "DAHO",
@@ -144,6 +151,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
     const result = await updateCaseFileDetailsFormAction(
       null,
       buildFormData({
+        jurisdictionCode: "TA069",
         caseFileNumber: CASE_FILE_NUMBER,
         litigationType: "",
         rightType: "",
@@ -153,7 +161,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
     expect(result).toEqual({ ok: true });
 
     const updated = await testPrisma.caseFile.findUniqueOrThrow({
-      where: { caseFileNumber: CASE_FILE_NUMBER },
+      where: CASE_FILE_WHERE,
     });
     expect(updated.litigationType).toBeNull();
     expect(updated.rightType).toBeNull();
@@ -163,13 +171,14 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
 
   it("ne touche pas au summary existant, même si le formulaire en envoie un", async () => {
     await testPrisma.caseFile.update({
-      where: { caseFileNumber: CASE_FILE_NUMBER },
+      where: CASE_FILE_WHERE,
       data: { summary: "Ancienne raison" },
     });
 
     const result = await updateCaseFileDetailsFormAction(
       null,
       buildFormData({
+        jurisdictionCode: "TA069",
         caseFileNumber: CASE_FILE_NUMBER,
         litigationType: "REFERE",
         rightType: "DALO",
@@ -180,7 +189,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
     expect(result).toEqual({ ok: true });
 
     const updated = await testPrisma.caseFile.findUniqueOrThrow({
-      where: { caseFileNumber: CASE_FILE_NUMBER },
+      where: CASE_FILE_WHERE,
     });
     expect(updated.summary).toBe("Ancienne raison");
   });
@@ -189,6 +198,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
     const result = await updateCaseFileDetailsFormAction(
       null,
       buildFormData({
+        jurisdictionCode: "TA069",
         caseFileNumber: CASE_FILE_NUMBER,
         litigationType: "INDEMNITAIRE",
         rightType: "DALO",
@@ -201,7 +211,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
     expect(result).toEqual({ ok: true });
 
     const updated = await testPrisma.caseFile.findUniqueOrThrow({
-      where: { caseFileNumber: CASE_FILE_NUMBER },
+      where: CASE_FILE_WHERE,
     });
     expect(updated.productionDeadlineType).toBe("MISE_EN_DEMEURE_DE_PRODUIRE");
     expect(updated.productionDeadlineDate).toEqual(new Date("2026-03-15T00:00:00.000Z"));
@@ -209,7 +219,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
 
   it("efface l'échéance à produire lorsque le type est laissé vide", async () => {
     await testPrisma.caseFile.update({
-      where: { caseFileNumber: CASE_FILE_NUMBER },
+      where: CASE_FILE_WHERE,
       data: {
         productionDeadlineType: "CLOTURE_INSTRUCTION",
         productionDeadlineDate: new Date("2026-02-01T00:00:00Z"),
@@ -219,6 +229,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
     const result = await updateCaseFileDetailsFormAction(
       null,
       buildFormData({
+        jurisdictionCode: "TA069",
         caseFileNumber: CASE_FILE_NUMBER,
         litigationType: "",
         rightType: "",
@@ -231,7 +242,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
     expect(result).toEqual({ ok: true });
 
     const updated = await testPrisma.caseFile.findUniqueOrThrow({
-      where: { caseFileNumber: CASE_FILE_NUMBER },
+      where: CASE_FILE_WHERE,
     });
     expect(updated.productionDeadlineType).toBeNull();
     expect(updated.productionDeadlineDate).toBeNull();
@@ -239,7 +250,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
 
   it("ne modifie pas l'échéance à produire lorsque les champs dédiés sont absents", async () => {
     await testPrisma.caseFile.update({
-      where: { caseFileNumber: CASE_FILE_NUMBER },
+      where: CASE_FILE_WHERE,
       data: {
         productionDeadlineType: "CLOTURE_INSTRUCTION",
         productionDeadlineDate: new Date("2026-02-01T00:00:00Z"),
@@ -249,6 +260,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
     const result = await updateCaseFileDetailsFormAction(
       null,
       buildFormData({
+        jurisdictionCode: "TA069",
         caseFileNumber: CASE_FILE_NUMBER,
         litigationType: "REFERE",
         rightType: "DALO",
@@ -258,7 +270,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
     expect(result).toEqual({ ok: true });
 
     const updated = await testPrisma.caseFile.findUniqueOrThrow({
-      where: { caseFileNumber: CASE_FILE_NUMBER },
+      where: CASE_FILE_WHERE,
     });
     expect(updated.litigationType).toBe("REFERE");
     expect(updated.productionDeadlineType).toBe("CLOTURE_INSTRUCTION");
@@ -282,6 +294,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
     const result = await updateCaseFileDetailsFormAction(
       null,
       buildFormData({
+        jurisdictionCode: "TA069",
         caseFileNumber: CASE_FILE_NUMBER,
         litigationType: "INVALID",
         rightType: "DALO",
@@ -291,7 +304,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
     expect(result).toEqual({ ok: false, error: "Type de contentieux invalide." });
 
     const unchanged = await testPrisma.caseFile.findUniqueOrThrow({
-      where: { caseFileNumber: CASE_FILE_NUMBER },
+      where: CASE_FILE_WHERE,
     });
     expect(unchanged.litigationType).toBeNull();
   });
@@ -300,6 +313,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
     const result = await updateCaseFileDetailsFormAction(
       null,
       buildFormData({
+        jurisdictionCode: "TA069",
         caseFileNumber: CASE_FILE_NUMBER,
         litigationType: "",
         rightType: "",
@@ -340,6 +354,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
     // `buildFormData` uses `set`; tag ids are repeated fields, so they append.
     function buildTagsFormData(tagIds: number[], extra: Record<string, string> = {}): FormData {
       const formData = buildFormData({
+        jurisdictionCode: "TA069",
         caseFileNumber: CASE_FILE_NUMBER,
         hasTagsField: "true",
         ...extra,
@@ -352,7 +367,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
 
     async function currentTagIds(): Promise<number[]> {
       const rows = await testPrisma.caseFileTag.findMany({
-        where: { caseFileNumber: CASE_FILE_NUMBER },
+        where: { jurisdictionCode: "TA069", caseFileNumber: CASE_FILE_NUMBER },
         select: { tagId: true },
         orderBy: { tagId: "asc" },
       });
@@ -418,6 +433,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
 
     it("refuse un identifiant de tag non numérique", async () => {
       const formData = buildFormData({
+        jurisdictionCode: "TA069",
         caseFileNumber: CASE_FILE_NUMBER,
         hasTagsField: "true",
       });
@@ -456,7 +472,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
       const { urgent } = await seedTags();
       await updateCaseFileDetailsFormAction(null, buildTagsFormData([urgent]));
 
-      await testPrisma.caseFile.delete({ where: { caseFileNumber: CASE_FILE_NUMBER } });
+      await testPrisma.caseFile.delete({ where: CASE_FILE_WHERE });
 
       expect(await testPrisma.caseFileTag.count()).toBe(0);
       expect(await testPrisma.tag.count()).toBe(2);
@@ -471,17 +487,21 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
       scopedTo: string;
     }): Promise<void> {
       const scoped = await testPrisma.jurisdiction.create({
-        data: { name: "", shortName: options.scopedTo },
+        data: { name: "", shortName: options.scopedTo, jurisdictionCode: options.scopedTo },
       });
       if (options.caseFileJurisdiction) {
         const jurisdiction =
           options.caseFileJurisdiction === options.scopedTo
             ? scoped
             : await testPrisma.jurisdiction.create({
-                data: { name: "", shortName: options.caseFileJurisdiction },
+                data: {
+                  name: "",
+                  shortName: options.caseFileJurisdiction,
+                  jurisdictionCode: options.caseFileJurisdiction,
+                },
               });
         await testPrisma.caseFile.update({
-          where: { caseFileNumber: CASE_FILE_NUMBER },
+          where: CASE_FILE_WHERE,
           data: { jurisdictionId: jurisdiction.id },
         });
       }
@@ -506,6 +526,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
       return updateCaseFileDetailsFormAction(
         null,
         buildFormData({
+          jurisdictionCode: "TA069",
           caseFileNumber: CASE_FILE_NUMBER,
           litigationType: "REFERE",
           rightType: "DALO",
@@ -519,7 +540,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
       expect(await editDetails()).toEqual({ ok: true });
 
       const updated = await testPrisma.caseFile.findUniqueOrThrow({
-        where: { caseFileNumber: CASE_FILE_NUMBER },
+        where: CASE_FILE_WHERE,
       });
       expect(updated.litigationType).toBe("REFERE");
     });
@@ -530,7 +551,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
       expect(await editDetails()).toEqual({ ok: false, error: "Dossier introuvable." });
 
       const unchanged = await testPrisma.caseFile.findUniqueOrThrow({
-        where: { caseFileNumber: CASE_FILE_NUMBER },
+        where: CASE_FILE_WHERE,
       });
       expect(unchanged.litigationType).toBeNull();
       expect(revalidatePath).not.toHaveBeenCalled();
@@ -544,7 +565,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
       expect(await editDetails()).toEqual({ ok: false, error: "Dossier introuvable." });
 
       const unchanged = await testPrisma.caseFile.findUniqueOrThrow({
-        where: { caseFileNumber: CASE_FILE_NUMBER },
+        where: CASE_FILE_WHERE,
       });
       expect(unchanged.litigationType).toBeNull();
     });

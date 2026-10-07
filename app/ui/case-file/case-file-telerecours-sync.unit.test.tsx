@@ -38,6 +38,7 @@ describe("CaseFileTelerecoursSync", () => {
   it("affiche la date de dernière synchronisation Télérecours", () => {
     render(
       <CaseFileTelerecoursSync
+        jurisdictionCode="TA069"
         caseFileNumber="TA069-SYNC-DATE"
         telerecoursSyncAt={new Date("2024-07-15T10:30:00Z")}
       />,
@@ -47,7 +48,13 @@ describe("CaseFileTelerecoursSync", () => {
   });
 
   it("indique l'absence de synchronisation Télérecours lorsque la date est inconnue", () => {
-    render(<CaseFileTelerecoursSync caseFileNumber="TA069-SYNC-NULL" telerecoursSyncAt={null} />);
+    render(
+      <CaseFileTelerecoursSync
+        jurisdictionCode="TA069"
+        caseFileNumber="TA069-SYNC-NULL"
+        telerecoursSyncAt={null}
+      />,
+    );
 
     expect(screen.getByText("Aucune synchronisation Télérecours")).toBeTruthy();
   });
@@ -55,13 +62,14 @@ describe("CaseFileTelerecoursSync", () => {
   it("relance la synchronisation Télérecours à l'affichage et rafraîchit le router en cas de succès", async () => {
     render(
       <CaseFileTelerecoursSync
+        jurisdictionCode="TA069"
         caseFileNumber="TA069-SYNC-SUCCESS"
         telerecoursSyncAt={new Date("2024-07-15T10:30:00Z")}
       />,
     );
 
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith(telerecoursSyncPath("TA069-SYNC-SUCCESS"), {
+      expect(mockFetch).toHaveBeenCalledWith(telerecoursSyncPath("TA069", "TA069-SYNC-SUCCESS"), {
         method: "POST",
       });
     });
@@ -73,6 +81,7 @@ describe("CaseFileTelerecoursSync", () => {
 
     render(
       <CaseFileTelerecoursSync
+        jurisdictionCode="TA069"
         caseFileNumber="TA069-SYNC-ERROR"
         telerecoursSyncAt={new Date("2024-07-15T10:30:00Z")}
       />,
@@ -91,6 +100,7 @@ describe("CaseFileTelerecoursSync", () => {
 
     render(
       <CaseFileTelerecoursSync
+        jurisdictionCode="TA069"
         caseFileNumber="TA069-SYNC-NETWORK"
         telerecoursSyncAt={new Date("2024-07-15T10:30:00Z")}
       />,
@@ -111,6 +121,7 @@ describe("CaseFileTelerecoursSync", () => {
 
     render(
       <CaseFileTelerecoursSync
+        jurisdictionCode="TA069"
         caseFileNumber="TA069-SYNC-ERROR-PREFIX"
         telerecoursSyncAt={new Date("2024-07-15T10:30:00Z")}
       />,
@@ -138,6 +149,7 @@ describe("CaseFileTelerecoursSync", () => {
 
     render(
       <CaseFileTelerecoursSync
+        jurisdictionCode="TA069"
         caseFileNumber="TA069-SYNC-ERROR-DEV"
         telerecoursSyncAt={new Date("2024-07-15T10:30:00Z")}
       />,
@@ -153,6 +165,7 @@ describe("CaseFileTelerecoursSync", () => {
 
     render(
       <CaseFileTelerecoursSync
+        jurisdictionCode="TA069"
         caseFileNumber="TA069-SYNC-PENDING"
         telerecoursSyncAt={new Date("2024-07-15T10:30:00Z")}
       />,

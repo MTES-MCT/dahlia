@@ -11,8 +11,11 @@ model FileFamilyType {
 // Pièce jointe d'un dossier. `encodedFileId` est l'identifiant opaque
 // fourni par Télérecours (sert à télécharger le contenu via une autre API).
 // On ne stocke ici que les métadonnées, pas le contenu binaire.
+// `encodedFileId` is base64("/ATTACHMENT/<n>"), a per-court counter: the
+// primary key is (jurisdictionCode, encodedFileId).
 model AttachedFile {
-  encodedFileId             String   @id
+  jurisdictionCode          String
+  encodedFileId             String
   originalFileName          String
   fileName                  String
   mimeType                  String
@@ -40,15 +43,16 @@ model AttachedFile {
   comment    String?
 
   caseFileNumber String
-  caseFile       CaseFile @relation(fields: [caseFileNumber], references: [caseFileNumber], onDelete: Cascade)
+  caseFile       CaseFile @relation(fields: [jurisdictionCode, caseFileNumber], references: [jurisdictionCode, caseFileNumber], onDelete: Cascade)
 
   eventId Int
-  event   CaseFileEvent @relation(fields: [eventId], references: [id])
+  event   CaseFileEvent @relation(fields: [jurisdictionCode, eventId], references: [jurisdictionCode, id])
 
   fileFamilyTypeCode String
   fileFamilyType     FileFamilyType @relation(fields: [fileFamilyTypeCode], references: [code])
 
-  @@index([caseFileNumber])
-  @@index([eventId])
+  @@id([jurisdictionCode, encodedFileId])
+  @@index([jurisdictionCode, caseFileNumber])
+  @@index([jurisdictionCode, eventId])
   @@map("attached_files")
 }

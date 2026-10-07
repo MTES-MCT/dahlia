@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { describeError, sleep } from "../telerecours/http";
 import { TelerecoursClient } from "../telerecours/client.interface";
+import type { CaseFileKey } from "../persistence/case-file-key";
 import { scrapedPerimeterWhere } from "./where";
 import type { Args, ScrapeDeps } from "./pipeline";
 
@@ -8,13 +9,17 @@ const DEFAULT_RATE_LIMIT_MS = 100;
 
 // Create a RelatedCaseFile link for every accessible related case file already
 // present in DB. Related files absent from the DB are counted as "orphans" and
-// skipped (we only link to dossiers we actually scraped).
+// skipped (we only link to dossiers we actually scraped). The related report is
+// scoped to the court, so related case files share the source's jurisdictionCode.
+// With `force`, links stored for the source but absent from the report are deleted.
 export async function linkRelatedCaseFiles(
   prisma: PrismaClient,
   client: TelerecoursClient,
-  caseFileNumber: string,
+  key: CaseFileKey,
   jurisdiction: string,
+  force: boolean = false,
 ): Promise<{ linked: number; orphans: number }> {
+  const { jurisdictionCode, caseFileNumber } = key;
   const report = await client.getCaseFileRelatedReport(caseFileNumber, jurisdiction);
   const related = report.accessibleCaseFiles ?? [];
 
@@ -23,7 +28,9 @@ export async function linkRelatedCaseFiles(
   for (const item of related) {
     if (item.caseFileNumber === caseFileNumber) continue;
     const target = await prisma.caseFile.findUnique({
-      where: { caseFileNumber: item.caseFileNumber },
+      where: {
+        jurisdictionCode_caseFileNumber: { jurisdictionCode, caseFileNumber: item.caseFileNumber },
+      },
       select: { caseFileNumber: true },
     });
     if (!target) {
@@ -36,18 +43,28 @@ export async function linkRelatedCaseFiles(
     }
     await prisma.relatedCaseFile.upsert({
       where: {
-        caseFileNumber_relatedCaseFileNumber: {
-          caseFileNumber,
+        jurisdictionCode_caseFileNumber_relatedCaseFileNumber: {
+          ...key,
           relatedCaseFileNumber: item.caseFileNumber,
         },
       },
       update: {},
       create: {
-        caseFileNumber,
+        ...key,
         relatedCaseFileNumber: item.caseFileNumber,
       },
     });
     linked++;
+  }
+
+  if (force) {
+    const reported = related.map((item) => item.caseFileNumber);
+    const { count } = await prisma.relatedCaseFile.deleteMany({
+      where: { ...key, relatedCaseFileNumber: { notIn: reported } },
+    });
+    if (count > 0) {
+      console.log(`  ⚑ ${caseFileNumber}: ${count} lien(s) entre dossiers supprimé(s) (--force)`);
+    }
   }
   return { linked, orphans };
 }
@@ -64,18 +81,20 @@ export async function phaseC(
 
   const targets = await prisma.caseFile.findMany({
     where: scrapedPerimeterWhere(args, args.enrich !== "all"),
-    select: { caseFileNumber: true },
+    select: { jurisdictionCode: true, caseFileNumber: true },
   });
 
   let linkedTotal = 0;
   let orphansTotal = 0;
-  for (const { caseFileNumber } of targets) {
+  for (const key of targets) {
+    const { caseFileNumber } = key;
     try {
       const { linked, orphans } = await linkRelatedCaseFiles(
         prisma,
         client,
-        caseFileNumber,
+        key,
         args.jurisdiction,
+        args.force,
       );
       linkedTotal += linked;
       orphansTotal += orphans;
