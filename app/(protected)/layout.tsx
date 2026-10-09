@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { clientIpFrom, logSecurityDenial } from "@/app/lib/audit-log";
 import { auth } from "@/app/lib/auth";
+import { AskDahliaTeamButton } from "@/app/ui/button/ask-dahlia-team-button";
 import { PendingValidation } from "@/app/ui/pending-validation";
 
 // Access control for connected pages:
@@ -25,8 +26,18 @@ export default async function ProtectedLayout({
       reason: "not_validated",
       ip: clientIpFrom(requestHeaders),
     });
-    return <PendingValidation />;
+    return (
+      <>
+        <PendingValidation />
+        <AskDahliaTeamButton />
+      </>
+    );
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      <AskDahliaTeamButton />
+    </>
+  );
 }
