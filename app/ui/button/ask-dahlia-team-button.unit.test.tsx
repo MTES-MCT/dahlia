@@ -1,9 +1,6 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
-import {
-  AskDahliaTeamButton,
-  ASK_DAHLIA_TEAM_FORM_URL,
-} from "./ask-dahlia-team-button";
+import { AskDahliaTeamButton, ASK_DAHLIA_TEAM_FORM_URL } from "./ask-dahlia-team-button";
 
 describe("AskDahliaTeamButton", () => {
   afterEach(() => {
@@ -14,7 +11,7 @@ describe("AskDahliaTeamButton", () => {
     render(<AskDahliaTeamButton />);
 
     const link = screen.getByRole("link", {
-      name: /demande à l'équipe DAHLIA \(nouvelle fenêtre\)/,
+      name: /Demander à l'équipe DAHLIA \(nouvelle fenêtre\)/,
     });
     expect(link.getAttribute("href")).toBe(ASK_DAHLIA_TEAM_FORM_URL);
     expect(link.getAttribute("target")).toBe("_blank");
