@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
+import { auth } from "@/app/lib/auth";
 import { fetchCaseFileDetail } from "@/app/lib/data/case-files";
 import { fetchTagOptions } from "@/app/lib/data/tags";
 import { getCaseFileDisplayName } from "@/app/lib/case-file-format";
@@ -28,7 +30,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function Page({ params, searchParams }: Props) {
   const { jurisdictionCode, caseFileNumber } = caseFileKeyFromParams(await params);
   const resolvedSearchParams = await searchParams;
-  const tab = parseCaseFileTab(resolvedSearchParams.tab, resolvedSearchParams);
+  const session = await auth.api.getSession({ headers: await headers() });
+  const isAdmin = session?.user?.isValidated === true && session.user.isAdmin === true;
+  const tab = parseCaseFileTab(resolvedSearchParams.tab, resolvedSearchParams, isAdmin);
 
   const [caseFile, availableTags] = await Promise.all([
     fetchCaseFileDetail(jurisdictionCode, caseFileNumber),
@@ -61,7 +65,12 @@ export default async function Page({ params, searchParams }: Props) {
       >
         <CaseFileDetailsCard caseFile={caseFile} availableTags={availableTags} />
 
-        <CaseFileTabs caseFile={caseFile} tab={tab} searchParams={resolvedSearchParams} />
+        <CaseFileTabs
+          caseFile={caseFile}
+          tab={tab}
+          searchParams={resolvedSearchParams}
+          isAdmin={isAdmin}
+        />
       </div>
     </>
   );

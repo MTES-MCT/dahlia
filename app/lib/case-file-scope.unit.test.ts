@@ -31,6 +31,7 @@ import {
   canAccessCaseFile,
   caseFileRelationScopeWhere,
   caseFileScopeWhere,
+  currentUserIsAdmin,
   getCurrentCaseFileScope,
 } from "./case-file-scope";
 
@@ -53,6 +54,26 @@ describe("case-file-scope", () => {
 
   afterEach(() => {
     info.mockClear();
+  });
+
+  describe("currentUserIsAdmin", () => {
+    it("accepte un administrateur validé", async () => {
+      mockSession({ id: "admin-1", isValidated: true, isAdmin: true });
+
+      expect(await currentUserIsAdmin()).toBe(true);
+    });
+
+    it("refuse un utilisateur validé qui n'est pas administrateur", async () => {
+      mockSession({ id: "u1", isValidated: true, isAdmin: false });
+
+      expect(await currentUserIsAdmin()).toBe(false);
+    });
+
+    it("refuse un administrateur non validé", async () => {
+      mockSession({ id: "admin-1", isValidated: false, isAdmin: true });
+
+      expect(await currentUserIsAdmin()).toBe(false);
+    });
   });
 
   describe("getCurrentCaseFileScope", () => {

@@ -20,22 +20,36 @@ export type CaseFileScope = { unrestricted: boolean; jurisdictionIds: number[] }
 
 const NO_ACCESS: CaseFileScope = { unrestricted: false, jurisdictionIds: [] };
 
-// Memoized per request so the session and the scope are read once, however many
-// data functions ask for them during a single render.
-export const getCurrentCaseFileScope = cache(async (): Promise<CaseFileScope> => {
+// Memoized per request so the session is read once, however many data functions
+// ask for the user during a single render.
+const getSessionUser = cache(async () => {
   const session = await auth.api.getSession({ headers: await headers() });
+  return session?.user ?? null;
+});
 
-  if (!session?.user?.isValidated) {
+// Validated administrator. An unvalidated admin is not an admin for this check,
+// matching the protected layout and `requireAdmin`.
+export const currentUserIsAdmin = cache(async (): Promise<boolean> => {
+  const user = await getSessionUser();
+  return user?.isValidated === true && user.isAdmin === true;
+});
+
+// Memoized per request so the scope is read once, however many data functions
+// ask for it during a single render.
+export const getCurrentCaseFileScope = cache(async (): Promise<CaseFileScope> => {
+  const user = await getSessionUser();
+
+  if (!user?.isValidated) {
     return NO_ACCESS;
   }
 
   const scopes = await prisma.userJurisdictionScope.findMany({
-    where: { userId: session.user.id },
+    where: { userId: user.id },
     select: { jurisdictionId: true },
   });
   const jurisdictionIds = scopes.map((scope) => scope.jurisdictionId);
 
-  if (session.user.isAdmin && jurisdictionIds.length === 0) {
+  if (user.isAdmin && jurisdictionIds.length === 0) {
     return { unrestricted: true, jurisdictionIds: [] };
   }
 

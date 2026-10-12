@@ -13,7 +13,11 @@ import {
 } from "@/app/lib/case-files-dashboard-columns";
 import type { CaseFileKey } from "@/app/lib/case-file-key";
 import { prisma } from "@/app/lib/prisma";
-import { caseFileScopeWhere, logCaseFileScopeMiss } from "@/app/lib/case-file-scope";
+import {
+  caseFileScopeWhere,
+  currentUserIsAdmin,
+  logCaseFileScopeMiss,
+} from "@/app/lib/case-file-scope";
 import { normalizeForSearch, parseSearchQuery, type FacetKey } from "@/app/lib/case-file-search";
 import { buildWordAndFilter, combineAnd, facetSearchWords } from "@/app/lib/search-where";
 
@@ -260,6 +264,12 @@ export const fetchCaseFileDetail = cache(
 export type CaseFileDetail = Prisma.PromiseReturnType<typeof fetchCaseFileDetail>;
 
 export async function fetchCaseFileDebugSnapshot(key: CaseFileKey) {
+  // The dump includes actors, events, pièces and internal ids. Jurisdiction
+  // scope is not enough: only a validated administrator may read it.
+  if (!(await currentUserIsAdmin())) {
+    return null;
+  }
+
   const caseFile = await prisma.caseFile.findFirst({
     where: {
       jurisdictionCode: key.jurisdictionCode,
