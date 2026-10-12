@@ -113,7 +113,7 @@ const baseProps = {
 };
 
 async function renderCaseFileTabs(
-  props: typeof baseProps & { tab: "pieces" | "historique" | "debug" },
+  props: typeof baseProps & { tab: "pieces" | "historique" | "debug"; isAdmin?: boolean },
 ) {
   render(await CaseFileTabs(props));
 }
@@ -171,10 +171,29 @@ describe("CaseFileTabs", () => {
     expect(screen.getByText("Commentaire de test")).toBeTruthy();
   });
 
-  it("affiche le JSON brut quand tab=debug et le paramètre debug est présent", async () => {
-    await renderCaseFileTabs({ ...baseProps, tab: "debug", searchParams: { debug: "1" } });
+  it("affiche le JSON brut pour un administrateur quand tab=debug et le paramètre debug est présent", async () => {
+    await renderCaseFileTabs({
+      ...baseProps,
+      tab: "debug",
+      searchParams: { debug: "1" },
+      isAdmin: true,
+    });
 
     expect(screen.getByText(/"caseFileNumber": "TA069-2026-001"/)).toBeTruthy();
+    expect(fetchCaseFileDebugSnapshot).toHaveBeenCalledTimes(1);
+  });
+
+  it("ne charge pas le dump debug pour un non-administrateur", async () => {
+    await renderCaseFileTabs({
+      ...baseProps,
+      tab: "debug",
+      searchParams: { debug: "1" },
+      isAdmin: false,
+    });
+
+    expect(screen.queryByText(/"caseFileNumber": "TA069-2026-001"/)).toBeNull();
+    expect(screen.queryByRole("tab", { name: "Debug" })).toBeNull();
+    expect(fetchCaseFileDebugSnapshot).not.toHaveBeenCalled();
   });
 
   it("n'affiche pas l'onglet Debug sans le paramètre debug dans l'URL", async () => {

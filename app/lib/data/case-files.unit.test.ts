@@ -7,6 +7,7 @@ import {
 } from "@/app/lib/case-files-dashboard-columns";
 import {
   fetchAllCaseFilesForExport,
+  fetchCaseFileDebugSnapshot,
   fetchCaseFileDetail,
   fetchCaseFilesTableData,
 } from "./case-files";
@@ -24,14 +25,18 @@ vi.mock("@/app/lib/prisma", () => ({
 
 // Permission scope: an empty fragment (administrator) by default, so the tests
 // below assert the search filter alone. The scoped cases set their own value.
-const { mockCaseFileScopeWhere, mockLogCaseFileScopeMiss } = vi.hoisted(() => ({
-  mockCaseFileScopeWhere: vi.fn(async () => ({}) as Prisma.CaseFileWhereInput),
-  mockLogCaseFileScopeMiss: vi.fn(async () => {}),
-}));
+const { mockCaseFileScopeWhere, mockLogCaseFileScopeMiss, mockCurrentUserIsAdmin } = vi.hoisted(
+  () => ({
+    mockCaseFileScopeWhere: vi.fn(async () => ({}) as Prisma.CaseFileWhereInput),
+    mockLogCaseFileScopeMiss: vi.fn(async () => {}),
+    mockCurrentUserIsAdmin: vi.fn(async () => false),
+  }),
+);
 
 vi.mock("@/app/lib/case-file-scope", () => ({
   caseFileScopeWhere: () => mockCaseFileScopeWhere(),
   logCaseFileScopeMiss: mockLogCaseFileScopeMiss,
+  currentUserIsAdmin: () => mockCurrentUserIsAdmin(),
 }));
 
 const actorBase = {
@@ -145,6 +150,7 @@ describe("case-files", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockCaseFileScopeWhere.mockResolvedValue({});
+    mockCurrentUserIsAdmin.mockResolvedValue(false);
   });
 
   describe("getActorDisplayName", () => {
@@ -258,6 +264,38 @@ describe("case-files", () => {
         resource: "case_file",
         jurisdictionCode: "TA069",
         caseFileNumber: "CF-HORS-PERIMETRE",
+      });
+    });
+  });
+
+  describe("fetchCaseFileDebugSnapshot", () => {
+    it("ne charge pas le dump pour un utilisateur qui n'est pas administrateur", async () => {
+      mockCurrentUserIsAdmin.mockResolvedValue(false);
+
+      expect(
+        await fetchCaseFileDebugSnapshot({
+          jurisdictionCode: "TA069",
+          caseFileNumber: "CF-2024-001",
+        }),
+      ).toBeNull();
+      expect(vi.mocked(prisma.caseFile.findFirst)).not.toHaveBeenCalled();
+    });
+
+    it("charge le dump pour un administrateur validé", async () => {
+      mockCurrentUserIsAdmin.mockResolvedValue(true);
+      vi.mocked(prisma.caseFile.findFirst).mockResolvedValue(mockCaseFile as never);
+
+      const result = await fetchCaseFileDebugSnapshot({
+        jurisdictionCode: "TA069",
+        caseFileNumber: "CF-2024-001",
+      });
+
+      expect(result).toBe(mockCaseFile);
+      expect(vi.mocked(prisma.caseFile.findFirst)).toHaveBeenCalledWith({
+        where: { jurisdictionCode: "TA069", caseFileNumber: "CF-2024-001" },
+        include: expect.objectContaining({
+          attachedFiles: { include: { fileFamilyType: true } },
+        }),
       });
     });
   });
