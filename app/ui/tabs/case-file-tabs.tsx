@@ -20,6 +20,7 @@ type Props = {
   caseFile: NonNullable<CaseFileDetail>;
   tab: CaseFileTabId;
   searchParams: CarriedSearchParams;
+  isAdmin?: boolean;
 };
 
 const HISTORIQUE_COLUMNS: DataTableColumn<CaseFileEventListRow>[] = [
@@ -60,19 +61,19 @@ const HISTORIQUE_COLUMNS: DataTableColumn<CaseFileEventListRow>[] = [
   },
 ];
 
-export async function CaseFileTabs({ caseFile, tab, searchParams }: Props) {
+export async function CaseFileTabs({ caseFile, tab, searchParams, isAdmin = false }: Props) {
   const caseFileKey = {
     jurisdictionCode: caseFile.jurisdictionCode,
     caseFileNumber: caseFile.caseFileNumber,
   };
-  const showDebugTab = isDebugTabEnabled(searchParams);
+  const showDebugTab = isDebugTabEnabled(searchParams, isAdmin);
 
   const [pieces, historiqueTable, debugSnapshot] = await Promise.all([
     tab === "pieces"
       ? fetchCaseFilePiecesFiltered(caseFileKey, PIECES_DEFAULT_SORT_BY, PIECES_DEFAULT_ORDER, null)
       : null,
     tab === "historique" ? fetchCaseFileEventsTableData(caseFileKey, searchParams) : null,
-    tab === "debug" ? fetchCaseFileDebugSnapshot(caseFileKey) : null,
+    tab === "debug" && showDebugTab ? fetchCaseFileDebugSnapshot(caseFileKey) : null,
   ]);
 
   const caseFilePath = caseFileHref(caseFileKey);
@@ -128,7 +129,7 @@ export async function CaseFileTabs({ caseFile, tab, searchParams }: Props) {
           />
         )}
 
-        {tab === "debug" && debugSnapshot && (
+        {showDebugTab && tab === "debug" && debugSnapshot && (
           <>
             <RefreshCaseFileButton caseFile={caseFile} />
             <pre
