@@ -5,6 +5,7 @@ import {
   formatTelerecoursSyncError,
   telerecoursSyncPath,
 } from "./case-file-telerecours-sync";
+import { TELERECOURS_SYNC_RATE_LIMIT_MESSAGE } from "@/app/lib/telerecours-sync-rate-limit-message";
 
 const mockRouterRefresh = vi.fn();
 const mockFetch = vi.fn();
@@ -92,6 +93,31 @@ describe("CaseFileTelerecoursSync", () => {
     });
     expect(screen.queryByText(/Timeout Télérecours/)).toBeNull();
     expect(mockRouterRefresh).not.toHaveBeenCalled();
+  });
+
+  it("affiche le refus de débit renvoyé en 429", async () => {
+    mockFetch.mockResolvedValue(
+      jsonResponse({ ok: false, error: TELERECOURS_SYNC_RATE_LIMIT_MESSAGE }, false, 429),
+    );
+
+    render(
+      <CaseFileTelerecoursSync
+        jurisdictionCode="TA069"
+        caseFileNumber="TA069-SYNC-RATE-LIMIT"
+        telerecoursSyncAt={new Date("2024-07-15T10:30:00Z")}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(TELERECOURS_SYNC_RATE_LIMIT_MESSAGE)).toBeTruthy();
+    });
+    expect(mockRouterRefresh).not.toHaveBeenCalled();
+  });
+
+  it("laisse visible le message de débit en dehors du développement", () => {
+    expect(formatTelerecoursSyncError(TELERECOURS_SYNC_RATE_LIMIT_MESSAGE)).toBe(
+      TELERECOURS_SYNC_RATE_LIMIT_MESSAGE,
+    );
   });
 
   it("masque le texte d'une exception réseau", async () => {

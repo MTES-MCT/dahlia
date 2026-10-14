@@ -277,7 +277,7 @@ sauf si `<JURIDICTION>_TELERECOURS_JURISDICTION` la surcharge :
 | `--jurisdiction <code>`          | `TA069`                   | Juridiction Dahlia : préfixe des variables `<code>_TELERECOURS_*` et valeur stockée en base. L'en-tête API reprend ce code, sauf si `<code>_TELERECOURS_JURISDICTION` le surcharge.                                                                                                          |
 | `--page <n>`                     | `0`                       | Page de départ (0-based) pour la liste des dossiers (Phase A). Le script continue ensuite jusqu'à la dernière page.                                                                                                                                                                          |
 | `--size <n>`                     | `30`                      | Nombre de dossiers par page lors de l'appel à `/api/case-file`.                                                                                                                                                                                                                              |
-| `--sort <champ>`                 | _(aucun)_                 | Critère de tri transmis tel quel à l'API (paramètre `sort`).                                                                                                                                                                                                                                 |
+| `--sort <champ>`                 | `STATUS_DATE,desc`        | Critère de tri transmis tel quel à l'API (paramètre `sort`) sur chaque page de la liste.                                                                                                                                                                                                     |
 | `--all`                          | `false`                   | Récupère **tous** les dossiers sans filtre de statut. Sans ce flag, seuls les dossiers « en cours » sont demandés (groupes INPROGRESS de l'API Télérecours, hors « Terminé »).                                                                                                               |
 | `--legalEntityDivisionIds <ids>` | env `…_DIVISIONS`         | Liste d'IDs de divisions à filtrer, séparés par des virgules (ex. `2488,1234`). Surcharge la variable d'env. Sert aussi à cibler les dossiers à enrichir (Phases B/C).                                                                                                                       |
 | `--anonymize`                    | `true` sauf si `ENV=prod` | Anonymise les acteurs (requérants/défendeurs) avant insertion en base. Le défaut dépend de la variable d'env `ENV` : anonymisation activée en dev/preprod, désactivée en prod.                                                                                                               |
@@ -409,7 +409,10 @@ Trois principes guident cette organisation :
 La webapp réutilise une partie de ce code : `enrichCaseFile`
 (`data/persistence/enrich-case-file.ts`), `getTelerecoursCaseFileClient` et
 `describeError` (`data/telerecours/`) servent au rafraîchissement d'un dossier et
-au téléchargement de pièces depuis l'UI.
+au téléchargement de pièces depuis l'UI. Le rafraîchissement manuel est plafonné
+à 20 appels par utilisateur et par minute (`telerecours_sync_rate_limits`,
+`rate-limiter-flexible`) : au-delà, la route répond `429` avec `Retry-After`
+et Télérecours n'est pas appelé.
 
 ### Tests
 
@@ -780,6 +783,12 @@ erDiagram
         string userId PK,FK
         int jurisdictionId PK,FK
         DateTime createdAt
+    }
+
+    TelerecoursSyncRateLimit {
+        string key PK "user id préfixé"
+        int points
+        bigint expire "nullable, epoch ms"
     }
 
     LegalEntityDivision ||--o{ CaseFile : "assignedTo"

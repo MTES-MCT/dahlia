@@ -27,6 +27,14 @@ const getSessionUser = cache(async () => {
   return session?.user ?? null;
 });
 
+// Validated user id for the current request, or null when there is no session
+// or the account is not allowed into the app yet.
+export const getCurrentUserId = cache(async (): Promise<string | null> => {
+  const user = await getSessionUser();
+  if (!user?.isValidated) return null;
+  return user.id;
+});
+
 // Validated administrator. An unvalidated admin is not an admin for this check,
 // matching the protected layout and `requireAdmin`.
 export const currentUserIsAdmin = cache(async (): Promise<boolean> => {

@@ -11,7 +11,7 @@ const DEFAULT_RATE_LIMIT_MS = 100;
 export async function phaseA(
   args: Args,
   deps: ScrapeDeps,
-): Promise<{ processed: number; upserted: number; seen: string[] }> {
+): Promise<{ processed: number; upserted: number; seen: string[]; failedPages: number[] }> {
   const { prisma, client } = deps;
   const rateLimitMs = deps.rateLimitMs ?? DEFAULT_RATE_LIMIT_MS;
   console.log(`\n══ Phase A — scrape liste /api/case-file (${args.jurisdiction}) ══`);
@@ -31,6 +31,10 @@ export async function phaseA(
   let upsertCount = 0;
   const skippedCaseFileNumbers: string[] = [];
   const failedCaseFileNumbers: string[] = [];
+  // API page indexes (0-based, same as the `page=` query param) whose list
+  // request still failed after the HTTP retry budget. The run continues so a
+  // single bad page does not hide whether later pages fail too.
+  const failedPages: number[] = [];
   // Every case file number returned by the list, regardless of upsert outcome:
   // these still exist in Telerecours and must NOT be marked deleted (phase A.5).
   const seen = new Set<string>();
@@ -41,14 +45,39 @@ export async function phaseA(
         `page=${pageIndex}, size=${args.size})…`,
     );
 
-    const response = await client.getCaseFiles(
-      args.jurisdiction,
-      pageIndex,
-      args.size,
-      args.sort,
-      statusGroupIds,
-      args.legalEntityDivisionIds,
-    );
+    let response;
+    try {
+      response = await client.getCaseFiles(
+        args.jurisdiction,
+        pageIndex,
+        args.size,
+        args.sort,
+        statusGroupIds,
+        args.legalEntityDivisionIds,
+      );
+    } catch (error) {
+      if (!isExhaustedListPageRetry(error)) throw error;
+
+      failedPages.push(pageIndex);
+
+      // Without a known page count (failure on the first response), there is
+      // no safe bound for the rest of the walk.
+      if (totalPages === null) {
+        console.error(
+          `✗ Page ${pageIndex} still failing after retries, and the total page count is unknown — aborting.\n` +
+            describeError(error),
+        );
+        throw error;
+      }
+
+      console.error(
+        `✗ Page ${pageIndex} still failing after retries — skipping this page.\n` +
+          describeError(error),
+      );
+      if (pageIndex + 1 >= totalPages) break;
+      pageIndex += 1;
+      continue;
+    }
 
     const content = response.content;
     if (!Array.isArray(content)) {
@@ -99,9 +128,23 @@ export async function phaseA(
 
   console.log(
     `✓ Phase A : ${upsertCount}/${totalProcessed} dossiers upsertés ` +
-      `(${skippedCaseFileNumbers.length} skipped, ${failedCaseFileNumbers.length} failed).`,
+      `(${skippedCaseFileNumbers.length} skipped, ${failedCaseFileNumbers.length} failed, ` +
+      `${failedPages.length} page(s) en erreur).`,
   );
-  return { processed: totalProcessed, upserted: upsertCount, seen: [...seen] };
+  return {
+    processed: totalProcessed,
+    upserted: upsertCount,
+    seen: [...seen],
+    failedPages,
+  };
+}
+
+// True when fetchWithRetry already spent its budget on a transient list-page
+// failure (5xx or network). Other errors (auth, 4xx) must still abort the run.
+function isExhaustedListPageRetry(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  if (/→\s*5\d\d\b/.test(message)) return true;
+  return message.includes("failed after") && message.includes("attempts");
 }
 
 // ───── Phase A.5: reconciliation (soft delete) ─────

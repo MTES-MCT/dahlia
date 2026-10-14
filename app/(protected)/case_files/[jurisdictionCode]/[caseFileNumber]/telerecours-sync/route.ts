@@ -13,5 +13,15 @@ type RouteContext = {
 
 export async function POST(_request: Request, { params }: RouteContext) {
   const result = await refreshCaseFile(caseFileKeyFromParams(await params));
+  if (!result.ok && result.retryAfterSeconds !== undefined) {
+    const { retryAfterSeconds, ...body } = result;
+    return Response.json(body, {
+      status: 429,
+      headers: {
+        "Retry-After": String(retryAfterSeconds),
+        "Cache-Control": "no-store",
+      },
+    });
+  }
   return Response.json(result);
 }

@@ -19,7 +19,8 @@ export type SecurityAuditAction =
   | "auth.login.failed"
   | "auth.access.denied"
   | "auth.admin.denied"
-  | "auth.scope.denied";
+  | "auth.scope.denied"
+  | "telerecours.sync.rate_limited";
 
 export type AdminAuditEvent = {
   actorId: string;
