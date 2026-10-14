@@ -43,17 +43,28 @@ export interface ScrapeDeps {
 
 // Orchestrate the full scrape: A.0 (status catalogue) → A (list) → A.5
 // (reconcile) → B (enrich) → C (related links) → D (classification, opt-in).
-// Returns a process exit code (0 ok, 2 when nothing scraped).
+// Returns a process exit code (0 ok, 1 when some list pages failed, 2 when
+// nothing was scraped).
 export async function runScrape(args: Args, deps: ScrapeDeps): Promise<number> {
   await phaseA0(args, deps);
 
   const a = await phaseA(args, deps);
   if (a.processed === 0) {
     console.error("⚠ No case files retrieved.");
-    return 2;
+    logFailedPages(a.failedPages);
+    return a.failedPages.length > 0 ? 1 : 2;
   }
 
-  await reconcileDeleted(args, a.seen, deps);
+  // A skipped list page is absent from `seen`. Reconciling anyway would
+  // soft-delete dossiers that still exist in Telerecours.
+  if (a.failedPages.length > 0) {
+    console.error(
+      `⚠ Phase A.5 ignorée : la liste est incomplète ` +
+        `(${a.failedPages.length} page(s) en erreur).`,
+    );
+  } else {
+    await reconcileDeleted(args, a.seen, deps);
+  }
 
   if (args.enrich !== "none") {
     await phaseB(args, deps);
@@ -66,5 +77,14 @@ export async function runScrape(args: Args, deps: ScrapeDeps): Promise<number> {
     await phaseD(args, deps);
   }
 
-  return 0;
+  logFailedPages(a.failedPages);
+  return a.failedPages.length > 0 ? 1 : 0;
+}
+
+function logFailedPages(failedPages: number[]): void {
+  if (failedPages.length === 0) return;
+  console.error(
+    `⚠ Bilan : ${failedPages.length} page(s) en erreur (index API, 0-based) : ` +
+      failedPages.join(", "),
+  );
 }
