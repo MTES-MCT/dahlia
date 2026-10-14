@@ -33,6 +33,7 @@ import {
   caseFileScopeWhere,
   currentUserIsAdmin,
   getCurrentCaseFileScope,
+  getCurrentUserId,
 } from "./case-file-scope";
 
 function mockSession(user: { id: string; isValidated: boolean; isAdmin: boolean } | null) {
@@ -73,6 +74,26 @@ describe("case-file-scope", () => {
       mockSession({ id: "admin-1", isValidated: false, isAdmin: true });
 
       expect(await currentUserIsAdmin()).toBe(false);
+    });
+  });
+
+  describe("getCurrentUserId", () => {
+    it("renvoie l'identifiant d'un utilisateur validé", async () => {
+      mockSession({ id: "u1", isValidated: true, isAdmin: false });
+
+      expect(await getCurrentUserId()).toBe("u1");
+    });
+
+    it("renvoie null sans session", async () => {
+      mockSession(null);
+
+      expect(await getCurrentUserId()).toBeNull();
+    });
+
+    it("renvoie null tant que le compte n'est pas validé", async () => {
+      mockSession({ id: "u2", isValidated: false, isAdmin: false });
+
+      expect(await getCurrentUserId()).toBeNull();
     });
   });
 

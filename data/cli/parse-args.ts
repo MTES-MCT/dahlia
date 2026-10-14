@@ -25,7 +25,8 @@ export const SCRAPE_USAGE = `Usage: pnpm scrape:telerecours -- [options]
                                    <code>_TELERECOURS_JURISDICTION le surcharge.
   --page <n>                       Page de départ (0-based) de la liste des dossiers (défaut 0).
   --size <n>                       Nombre de dossiers par page (défaut 30).
-  --sort <champ>                   Critère de tri transmis tel quel à l'API.
+  --sort <champ>                   Critère de tri transmis tel quel à l'API
+                                   (défaut STATUS_DATE,desc).
   --all                            Récupère tous les dossiers, sans filtre de statut.
   --legalEntityDivisionIds <ids>   Filtre de divisions, séparées par des virgules (ex. 2488,1234).
                                    Défaut : <JURIDICTION>_TELERECOURS_DIVISIONS.
@@ -48,6 +49,18 @@ export interface ScrapeCliArgs extends Args {
   help: boolean;
 }
 
+// Flags that take a following value. Reaching one of these without that value
+// means the option is known but incomplete, which is a different error from an
+// unknown option.
+const VALUE_FLAGS = new Set([
+  "--jurisdiction",
+  "--page",
+  "--size",
+  "--sort",
+  "--legalEntityDivisionIds",
+  "--enrich",
+]);
+
 export function parseEnrichMode(value: string): EnrichMode {
   for (const mode of ENRICH_MODES) {
     if (mode === value) return mode;
@@ -63,7 +76,7 @@ export function parseArgs(argv: string[] = process.argv): ScrapeCliArgs {
     jurisdiction: "TA069",
     page: 0,
     size: 30,
-    sort: undefined,
+    sort: "STATUS_DATE,desc",
     all: false,
     legalEntityDivisionIds: [],
     // Default: anonymize unless running against the prod environment.
@@ -114,6 +127,13 @@ export function parseArgs(argv: string[] = process.argv): ScrapeCliArgs {
       args.classifyOverwrite = true;
     } else if (arg === "--help" || arg === "-h") {
       args.help = true;
+    } else if (arg === "--") {
+      // pnpm consumes this separator before the script sees it, but a direct
+      // invocation can still forward it. It is not an option.
+    } else if (VALUE_FLAGS.has(arg)) {
+      throw new Error(`Missing value for ${arg}.`);
+    } else {
+      throw new Error(`Unknown argument: ${arg}. Run with --help to list the available options.`);
     }
   }
 

@@ -1,0 +1,11 @@
+// Fixed-window counter for the per-user Télérecours sync limit.
+// rate-limiter-flexible (RateLimiterPostgres) writes this table with raw SQL,
+// so the column names must stay `key`, `points` and `expire`. One row per user.
+model TelerecoursSyncRateLimit {
+  key    String  @id @db.VarChar(255)
+  points Int     @default(0)
+  expire BigInt?
+
+  @@index([expire])
+  @@map("telerecours_sync_rate_limits")
+}

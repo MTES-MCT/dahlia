@@ -8,6 +8,7 @@ import { type RefreshCaseFileResult } from "@/app/(protected)/case_files/[jurisd
 import { formatDateTimeFr } from "@/app/lib/case-file-format";
 import { caseFileHref } from "@/app/lib/case-file-key";
 import { withDevelopmentDetail } from "@/app/lib/development-detail";
+import { TELERECOURS_SYNC_RATE_LIMIT_MESSAGE } from "@/app/lib/telerecours-sync-rate-limit-message";
 
 type Props = {
   jurisdictionCode: string;
@@ -22,6 +23,9 @@ const SYNC_FAILURE = "Échec de la synchronisation";
 // prefixed here. Outside development every message collapses to SYNC_FAILURE,
 // even if a caller forgot to strip the upstream detail.
 export function formatTelerecoursSyncError(error: string): string {
+  if (error === TELERECOURS_SYNC_RATE_LIMIT_MESSAGE) {
+    return error;
+  }
   if (error === SYNC_FAILURE || error.startsWith(`${SYNC_FAILURE} : `)) {
     return process.env.NODE_ENV === "development" ? error : SYNC_FAILURE;
   }
@@ -39,16 +43,32 @@ export function telerecoursSyncPath(jurisdictionCode: string, caseFileNumber: st
 // opening the dossier again later starts a new sync.
 const refreshInFlight = new Map<string, Promise<RefreshCaseFileResult>>();
 
+function isRefreshCaseFileResult(body: unknown): body is RefreshCaseFileResult {
+  if (!body || typeof body !== "object" || !("ok" in body)) return false;
+  if (body.ok === true) return true;
+  return body.ok === false && "error" in body && typeof body.error === "string";
+}
+
 async function requestTelerecoursSync(syncPath: string): Promise<RefreshCaseFileResult> {
   try {
     const response = await fetch(syncPath, { method: "POST" });
+    // A 429 still carries the public refusal in JSON. Read it before treating
+    // the HTTP status as an opaque failure.
+    try {
+      const body: unknown = await response.json();
+      if (isRefreshCaseFileResult(body)) {
+        return body.ok ? { ok: true } : { ok: false, error: body.error };
+      }
+    } catch {
+      // Non-JSON body: fall through to the status code.
+    }
     if (!response.ok) {
       return { ok: false, error: `Erreur HTTP ${response.status}` };
     }
-    return (await response.json()) as RefreshCaseFileResult;
+    return { ok: false, error: "Connexion impossible." };
   } catch (error) {
-    // Network and JSON failures stay in the browser console. The message shown
-    // in the page must not carry the exception text.
+    // Network failures stay in the browser console. The message shown in the
+    // page must not carry the exception text. A non-JSON body is handled above.
     console.error(error);
     return { ok: false, error: "Connexion impossible." };
   }

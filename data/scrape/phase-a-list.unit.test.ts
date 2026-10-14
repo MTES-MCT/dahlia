@@ -117,6 +117,48 @@ describe("phaseA", () => {
     expect(res.seen.sort()).toEqual(["A", "B"]);
   });
 
+  it("skips a list page that still fails after retries and continues", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const getCaseFiles = vi
+      .fn()
+      .mockResolvedValueOnce(page([caseFileFixture({ caseFileNumber: "A" })], 3, 0))
+      .mockRejectedValueOnce(
+        new Error(
+          "GET https://administrations.telerecours.fr/api/case-file?page=1&size=30 → 500 Internal Server Error",
+        ),
+      )
+      .mockResolvedValueOnce(page([caseFileFixture({ caseFileNumber: "C" })], 3, 2));
+    const client = fakeTelerecoursClient({ getCaseFiles });
+
+    const res = await phaseA(baseArgs, makeDeps(prisma, client));
+
+    expect(getCaseFiles).toHaveBeenCalledTimes(3);
+    expect(getCaseFiles).toHaveBeenNthCalledWith(2, "TA069", 1, 30, undefined, expect.anything(), [
+      2488,
+    ]);
+    expect(getCaseFiles).toHaveBeenNthCalledWith(3, "TA069", 2, 30, undefined, expect.anything(), [
+      2488,
+    ]);
+    expect(res.failedPages).toEqual([1]);
+    expect(res.seen.sort()).toEqual(["A", "C"]);
+    expect(res.processed).toBe(2);
+  });
+
+  it("still aborts the run on a non-retriable list error", async () => {
+    const getCaseFiles = vi
+      .fn()
+      .mockResolvedValueOnce(page([caseFileFixture({ caseFileNumber: "A" })], 3, 0))
+      .mockRejectedValueOnce(
+        new Error(
+          "GET https://administrations.telerecours.fr/api/case-file?page=1&size=30 failed: 400 Bad Request",
+        ),
+      );
+    const client = fakeTelerecoursClient({ getCaseFiles });
+
+    await expect(phaseA(baseArgs, makeDeps(prisma, client))).rejects.toThrow(/400 Bad Request/);
+    expect(getCaseFiles).toHaveBeenCalledTimes(2);
+  });
+
   it("passes --all by skipping the INPROGRESS status filter", async () => {
     const client = fakeTelerecoursClient({
       getCaseFiles: vi.fn().mockResolvedValue(page([caseFileFixture()])),

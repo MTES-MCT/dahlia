@@ -24,6 +24,7 @@ describe("parseArgs", () => {
       jurisdiction: "TA069",
       page: 0,
       size: 30,
+      sort: "STATUS_DATE,desc",
       all: false,
       enrich: "ongoing",
       updatePieceNumbers: false,
@@ -60,6 +61,10 @@ describe("parseArgs", () => {
     });
   });
 
+  it("lets --sort replace the default STATUS_DATE,desc order", () => {
+    expect(parseArgs(argv("--sort", "CASE_FILE_NUMBER,asc")).sort).toBe("CASE_FILE_NUMBER,asc");
+  });
+
   it("active --force (désactivé par défaut)", () => {
     expect(parseArgs(argv()).force).toBe(false);
     expect(parseArgs(argv("--force")).force).toBe(true);
@@ -78,6 +83,16 @@ describe("parseArgs", () => {
 
   it("rejects an invalid --enrich value", () => {
     expect(() => parseArgs(argv("--enrich", "yes"))).toThrow(/all \| ongoing \| none/);
+  });
+
+  it("rejects an unknown option", () => {
+    expect(() => parseArgs(argv("--jurisdiction", "TA093", "--skipEnrichment"))).toThrow(
+      /Unknown argument: --skipEnrichment/,
+    );
+  });
+
+  it("rejects a known option that is missing its value", () => {
+    expect(() => parseArgs(argv("--enrich"))).toThrow(/Missing value for --enrich/);
   });
 
   it("an explicit --legalEntityDivisionIds wins over the env default", () => {

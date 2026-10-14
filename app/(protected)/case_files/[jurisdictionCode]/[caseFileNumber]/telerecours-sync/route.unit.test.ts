@@ -53,4 +53,22 @@ describe("POST /case_files/[jurisdictionCode]/[caseFileNumber]/telerecours-sync"
       error: "Timeout Télérecours",
     });
   });
+
+  it("répond 429 avec Retry-After quand le budget utilisateur est épuisé", async () => {
+    mockedRefreshCaseFile.mockResolvedValue({
+      ok: false,
+      error: "Trop de synchronisations Télérecours. Réessayez dans une minute.",
+      retryAfterSeconds: 42,
+    });
+
+    const response = await POST(syncRequest(), routeContext());
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).toBe("42");
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    await expect(response.json()).resolves.toEqual({
+      ok: false,
+      error: "Trop de synchronisations Télérecours. Réessayez dans une minute.",
+    });
+  });
 });

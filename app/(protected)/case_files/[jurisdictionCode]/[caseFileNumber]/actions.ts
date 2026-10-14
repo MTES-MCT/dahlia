@@ -11,9 +11,11 @@ import { HAS_TAGS_FIELD_NAME, TAG_IDS_FIELD_NAME } from "@/app/lib/case-file-tag
 import { clientErrorMessage } from "@/app/lib/client-error";
 import { describePrismaError } from "@/app/lib/form-actions";
 import { getTelerecoursClientForCaseFile } from "@/app/lib/telerecours";
+import { consumeTelerecoursSyncRateLimit } from "@/app/lib/telerecours-sync-rate-limit";
 import { enrichCaseFile } from "@/data/persistence/enrich-case-file";
 
-export type RefreshCaseFileResult = { ok: true } | { ok: false; error: string };
+export type RefreshCaseFileResult =
+  { ok: true } | { ok: false; error: string; retryAfterSeconds?: number };
 
 function isSafeCaseFileKeyPart(value: unknown): value is string {
   return (
@@ -37,6 +39,15 @@ export async function refreshCaseFile(key: CaseFileKey): Promise<RefreshCaseFile
     !(await canAccessCaseFile(key))
   ) {
     return { ok: false, error: "Dossier introuvable." };
+  }
+
+  // Per-user budget, shared by this route and the refresh button. A refusal
+  // here does not call Télérecours and does not write the case file.
+  const rateLimit = await consumeTelerecoursSyncRateLimit(key);
+  if (!rateLimit.allowed) {
+    return rateLimit.limited
+      ? { ok: false, error: rateLimit.error, retryAfterSeconds: rateLimit.retryAfterSeconds }
+      : { ok: false, error: rateLimit.error };
   }
 
   try {

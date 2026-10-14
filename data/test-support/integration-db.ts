@@ -132,6 +132,7 @@ const TABLES = [
   "accounts",
   "verifications",
   "users",
+  "telerecours_sync_rate_limits",
 ];
 
 // Wipe all business tables so each test starts from a clean, known state.

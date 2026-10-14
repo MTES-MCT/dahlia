@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+const mockConsumeTelerecoursSyncRateLimit = vi.fn();
+
 vi.mock("@/app/lib/prisma", () => ({
   prisma: {},
 }));
@@ -14,6 +16,11 @@ vi.mock("@/app/lib/telerecours", () => ({
 
 vi.mock("@/data/persistence/enrich-case-file", () => ({
   enrichCaseFile: vi.fn(),
+}));
+
+vi.mock("@/app/lib/telerecours-sync-rate-limit", () => ({
+  consumeTelerecoursSyncRateLimit: (...args: unknown[]) =>
+    mockConsumeTelerecoursSyncRateLimit(...args),
 }));
 
 vi.mock("next/cache", () => ({
@@ -42,6 +49,7 @@ describe("refreshCaseFile", () => {
       client: {} as never,
       jurisdiction: "TA069",
     });
+    mockConsumeTelerecoursSyncRateLimit.mockResolvedValue({ allowed: true });
   });
 
   afterEach(() => {
@@ -89,6 +97,7 @@ describe("refreshCaseFile", () => {
     expect(await refreshCaseFile(key)).toEqual({ ok: true });
 
     expect(mockedCanAccessCaseFile).toHaveBeenCalledWith(key);
+    expect(mockConsumeTelerecoursSyncRateLimit).toHaveBeenCalledWith(key);
     expect(mockedGetTelerecoursClient).toHaveBeenCalledWith(key);
     expect(mockedEnrichCaseFile).toHaveBeenCalledWith({}, {}, "2401234", "TA069", true);
     expect(vi.mocked(revalidatePath)).toHaveBeenCalledWith("/case_files/TA034/2401234");
@@ -99,5 +108,45 @@ describe("refreshCaseFile", () => {
 
     expect(result).toEqual({ ok: false, error: "Dossier introuvable." });
     expect(mockedCanAccessCaseFile).not.toHaveBeenCalled();
+    expect(mockConsumeTelerecoursSyncRateLimit).not.toHaveBeenCalled();
+    expect(mockedEnrichCaseFile).not.toHaveBeenCalled();
+  });
+
+  it("refuse la synchronisation sans appeler Télérecours quand le budget utilisateur est épuisé", async () => {
+    mockConsumeTelerecoursSyncRateLimit.mockResolvedValue({
+      allowed: false,
+      limited: true,
+      retryAfterSeconds: 42,
+      error: "Trop de synchronisations Télérecours. Réessayez dans une minute.",
+    });
+
+    const result = await refreshCaseFile({
+      jurisdictionCode: "TA069",
+      caseFileNumber: "TA069/2024/001",
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      error: "Trop de synchronisations Télérecours. Réessayez dans une minute.",
+      retryAfterSeconds: 42,
+    });
+    expect(mockedGetTelerecoursClient).not.toHaveBeenCalled();
+    expect(mockedEnrichCaseFile).not.toHaveBeenCalled();
+  });
+
+  it("n'appelle pas Télérecours quand le limiteur est indisponible", async () => {
+    mockConsumeTelerecoursSyncRateLimit.mockResolvedValue({
+      allowed: false,
+      limited: false,
+      error: "Échec de la synchronisation",
+    });
+
+    const result = await refreshCaseFile({
+      jurisdictionCode: "TA069",
+      caseFileNumber: "TA069/2024/001",
+    });
+
+    expect(result).toEqual({ ok: false, error: "Échec de la synchronisation" });
+    expect(mockedEnrichCaseFile).not.toHaveBeenCalled();
   });
 });

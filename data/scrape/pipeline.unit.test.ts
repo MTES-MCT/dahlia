@@ -60,6 +60,27 @@ describe("runScrape", () => {
     expect(prisma.caseFile.upsert).toHaveBeenCalledOnce();
   });
 
+  it("skips reconciliation and reports failed list pages", async () => {
+    const client = fakeTelerecoursClient({
+      getCaseFiles: vi
+        .fn()
+        .mockResolvedValueOnce(page([caseFileFixture({ caseFileNumber: "A" })], 2, 0))
+        .mockRejectedValueOnce(
+          new Error(
+            "GET https://administrations.telerecours.fr/api/case-file?page=1&size=30 → 500 Internal Server Error",
+          ),
+        ),
+    });
+
+    const code = await runScrape(baseArgs, { prisma, client, rateLimitMs: 0 });
+
+    expect(code).toBe(1);
+    expect(prisma.caseFile.updateMany).not.toHaveBeenCalled();
+    expect(console.error).toHaveBeenCalledWith(
+      "⚠ Bilan : 1 page(s) en erreur (index API, 0-based) : 1",
+    );
+  });
+
   it("skips phase D unless --classify is passed", async () => {
     const client = fakeTelerecoursClient({
       getCaseFiles: vi
