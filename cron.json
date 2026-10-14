@@ -11,6 +11,10 @@
     {
       "command": "0 3 * * * pnpm scrape:telerecours -- --all --jurisdiction TA034",
       "size": "XL"
+    },
+    {
+      "command": "0 4 * * * pnpm scrape:telerecours -- --all --jurisdiction TA093",
+      "size": "XL"
     }
   ]
 }
