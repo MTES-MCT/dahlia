@@ -111,6 +111,7 @@ export const DEFAULT_RULES: readonly ClassificationRule[] = [
       "Demande d'exécution d'un jugement / d'une ordonnance (le type de contentieux reste à qualifier)",
     pattern:
       /\bexecution (du |de la |d une |d un )?(jugement|decision|ordonnance)\b|\bexe jugt\b|\bdemande d execution\b/,
+    litigationType: "INJONCTION",
     summary: "Exécution de jugement",
     examples: [
       "Exécution du jugement du 23/11/2020",
