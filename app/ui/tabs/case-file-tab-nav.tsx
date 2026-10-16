@@ -8,11 +8,19 @@ import { type CaseFileTabId } from "@/app/lib/case-file-tabs";
 
 type Props = {
   selectedTabId: CaseFileTabId;
+  eventCount: number;
+  pieceCount: number;
   showDebugTab?: boolean;
   children: React.ReactNode;
 };
 
-export function CaseFileTabNav({ selectedTabId, showDebugTab = false, children }: Props) {
+export function CaseFileTabNav({
+  selectedTabId,
+  eventCount,
+  pieceCount,
+  showDebugTab = false,
+  children,
+}: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -27,8 +35,13 @@ export function CaseFileTabNav({ selectedTabId, showDebugTab = false, children }
       selectedTabId={selectedTabId}
       onTabChange={handleTabChange}
       tabs={[
-        { tabId: "pieces", label: "Pièces" },
-        { tabId: "historique", label: "Historique" },
+        { tabId: "synthese", label: "Synthèse", iconId: "fr-icon-folder-2-line" },
+        {
+          tabId: "historique",
+          label: `Historique (${eventCount})`,
+          iconId: "fr-icon-time-line",
+        },
+        { tabId: "pieces", label: `Pièces (${pieceCount})`, iconId: "fr-icon-file-text-line" },
         ...(showDebugTab ? [{ tabId: "debug" as const, label: "Debug" }] : []),
       ]}
       className={fr.cx("fr-mb-1w")}
