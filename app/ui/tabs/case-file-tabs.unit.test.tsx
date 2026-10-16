@@ -6,6 +6,7 @@ import { fetchCaseFileEventsTableData } from "@/app/lib/data/case-file-events";
 import { fetchCaseFileDebugSnapshot, type CaseFileDetail } from "@/app/lib/data/case-files";
 import type { CaseFilePiece } from "@/app/lib/data/attached-files";
 import type { CaseFileEventsTableData } from "@/app/lib/data/case-file-events";
+import type { CaseFileTabId } from "@/app/lib/case-file-tabs";
 
 vi.mock("@/app/lib/prisma", () => ({ prisma: {} }));
 
@@ -105,6 +106,7 @@ const debugSnapshot = {
 const mockCaseFile = {
   caseFileNumber: "TA069-2026-001",
   updatedAt: new Date("2026-01-01T12:00:00"),
+  _count: { events: 4, attachedFiles: 2 },
 } as NonNullable<CaseFileDetail>;
 
 const baseProps = {
@@ -113,7 +115,7 @@ const baseProps = {
 };
 
 async function renderCaseFileTabs(
-  props: typeof baseProps & { tab: "pieces" | "historique" | "debug"; isAdmin?: boolean },
+  props: typeof baseProps & { tab: CaseFileTabId; isAdmin?: boolean },
 ) {
   render(await CaseFileTabs(props));
 }
@@ -155,7 +157,25 @@ describe("CaseFileTabs", () => {
     expect(screen.queryByText("Mémoire")).toBeNull();
   });
 
-  it("affiche l'onglet Pièces par défaut", async () => {
+  it("affiche les onglets dans l'ordre Synthèse, Historique, Pièces avec leurs compteurs", async () => {
+    await renderCaseFileTabs({ ...baseProps, tab: "synthese" });
+
+    const tabs = screen.getAllByRole("tab").map((tab) => tab.textContent);
+    expect(tabs).toEqual(["Synthèse", "Historique (4)", "Pièces (2)"]);
+    expect(screen.getByRole("tab", { name: "Synthèse" }).getAttribute("aria-selected")).toBe(
+      "true",
+    );
+  });
+
+  it("ne charge aucune donnée d'onglet sur la synthèse", async () => {
+    await renderCaseFileTabs({ ...baseProps, tab: "synthese" });
+
+    expect(fetchCaseFilePiecesFiltered).not.toHaveBeenCalled();
+    expect(fetchCaseFileEventsTableData).not.toHaveBeenCalled();
+    expect(fetchCaseFileDebugSnapshot).not.toHaveBeenCalled();
+  });
+
+  it("affiche les pièces quand tab=pieces", async () => {
     await renderCaseFileTabs({ ...baseProps, tab: "pieces" });
 
     // Le nom apparaît dans la sidebar et dans le panneau de détail.
