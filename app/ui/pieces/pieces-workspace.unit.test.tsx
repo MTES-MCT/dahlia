@@ -68,6 +68,28 @@ describe("PiecesWorkspace", () => {
     expect(screen.getByText("À vérifier")).toBeTruthy();
   });
 
+  it("affiche d'abord la pièce demandée par initialPieceId", () => {
+    render(
+      <PiecesWorkspace
+        caseFileKey={{ jurisdictionCode: "TA069", caseFileNumber: "TA069-2026-001" }}
+        pieces={pieces}
+        initialPieceId="f2"
+      />,
+    );
+    expect(screen.getByRole("heading", { name: "annexe.pdf" })).toBeTruthy();
+  });
+
+  it("revient à la première pièce quand initialPieceId est inconnu", () => {
+    render(
+      <PiecesWorkspace
+        caseFileKey={{ jurisdictionCode: "TA069", caseFileNumber: "TA069-2026-001" }}
+        pieces={pieces}
+        initialPieceId="inconnue"
+      />,
+    );
+    expect(screen.getByRole("heading", { name: "Requête introductive" })).toBeTruthy();
+  });
+
   it("sélectionne uniquement la pièce cliquée et l'affiche à droite", () => {
     renderWorkspace();
 

@@ -1,15 +1,20 @@
 import { fr } from "@codegouvfr/react-dsfr";
 import clsx from "clsx";
 import { caseFileHref } from "@/app/lib/case-file-key";
-import { formatDateFr, getActorDisplayName } from "@/app/lib/case-file-format";
+import { formatDateFr, formatDateTimeFr, getActorDisplayName } from "@/app/lib/case-file-format";
 import { type CaseFileEventListRow } from "@/app/lib/data/case-file-events";
 import { fetchCaseFileDebugSnapshot, type CaseFileDetail } from "@/app/lib/data/case-files";
 import { fetchCaseFileEventsTableData } from "@/app/lib/data/case-file-events";
-import { fetchCaseFilePiecesFiltered } from "@/app/lib/data/attached-files";
+import { fetchCaseFilePiecesFiltered, fetchCommentedPieces } from "@/app/lib/data/attached-files";
 import { fetchRelatedCaseFiles } from "@/app/lib/data/related-case-files";
 import { HISTORIQUE_FACET_KEYS, HISTORIQUE_PARAMS } from "@/app/lib/historique-table";
 import { PIECES_DEFAULT_ORDER, PIECES_DEFAULT_SORT_BY } from "@/app/lib/pieces-table";
-import { isDebugTabEnabled, type CaseFileTabId } from "@/app/lib/case-file-tabs";
+import {
+  isDebugTabEnabled,
+  PIECE_PARAM,
+  pieceTabSuffix,
+  type CaseFileTabId,
+} from "@/app/lib/case-file-tabs";
 import { type CarriedSearchParams } from "@/app/lib/carried-search-params";
 import { buildTableSearchContext } from "@/app/lib/table-search-context";
 import { CaseFileTabNav } from "@/app/ui/tabs/case-file-tab-nav";
@@ -17,11 +22,17 @@ import { RefreshCaseFileButton } from "@/app/ui/button/refresh-case-file-button"
 import { DataTable, type DataTableColumn } from "@/app/ui/table/data-table";
 import { PiecesWorkspace, type WorkspacePiece } from "@/app/ui/pieces/pieces-workspace";
 import { CaseFileInfoPanel } from "@/app/ui/case-file/case-file-info-panel";
+import { CaseFileCommentsPanel } from "@/app/ui/case-file/case-file-comments-panel";
+import { CaseFileQualificationPanel } from "@/app/ui/case-file/case-file-qualification-panel";
+import { getQualificationReviewState } from "@/app/lib/case-file-qualification";
+import { toCaseFileTagViews, type CaseFileTagView } from "@/app/lib/case-file-tags";
 
 type Props = {
   caseFile: NonNullable<CaseFileDetail>;
   tab: CaseFileTabId;
   searchParams: CarriedSearchParams;
+  // Full tag catalogue, for the qualification block of the synthèse tab.
+  availableTags?: CaseFileTagView[];
   isAdmin?: boolean;
 };
 
@@ -63,21 +74,34 @@ const HISTORIQUE_COLUMNS: DataTableColumn<CaseFileEventListRow>[] = [
   },
 ];
 
-export async function CaseFileTabs({ caseFile, tab, searchParams, isAdmin = false }: Props) {
+export async function CaseFileTabs({
+  caseFile,
+  tab,
+  searchParams,
+  availableTags = [],
+  isAdmin = false,
+}: Props) {
   const caseFileKey = {
     jurisdictionCode: caseFile.jurisdictionCode,
     caseFileNumber: caseFile.caseFileNumber,
   };
   const showDebugTab = isDebugTabEnabled(searchParams, isAdmin);
 
-  const [relatedCaseFiles, pieces, historiqueTable, debugSnapshot] = await Promise.all([
-    tab === "synthese" ? fetchRelatedCaseFiles(caseFileKey) : null,
-    tab === "pieces"
-      ? fetchCaseFilePiecesFiltered(caseFileKey, PIECES_DEFAULT_SORT_BY, PIECES_DEFAULT_ORDER, null)
-      : null,
-    tab === "historique" ? fetchCaseFileEventsTableData(caseFileKey, searchParams) : null,
-    tab === "debug" && showDebugTab ? fetchCaseFileDebugSnapshot(caseFileKey) : null,
-  ]);
+  const [relatedCaseFiles, commentedPieces, pieces, historiqueTable, debugSnapshot] =
+    await Promise.all([
+      tab === "synthese" ? fetchRelatedCaseFiles(caseFileKey) : null,
+      tab === "synthese" ? fetchCommentedPieces(caseFileKey) : null,
+      tab === "pieces"
+        ? fetchCaseFilePiecesFiltered(
+            caseFileKey,
+            PIECES_DEFAULT_SORT_BY,
+            PIECES_DEFAULT_ORDER,
+            null,
+          )
+        : null,
+      tab === "historique" ? fetchCaseFileEventsTableData(caseFileKey, searchParams) : null,
+      tab === "debug" && showDebugTab ? fetchCaseFileDebugSnapshot(caseFileKey) : null,
+    ]);
 
   const caseFilePath = caseFileHref(caseFileKey);
 
@@ -114,11 +138,48 @@ export async function CaseFileTabs({ caseFile, tab, searchParams, isAdmin = fals
         showDebugTab={showDebugTab}
       >
         {tab === "synthese" && relatedCaseFiles && (
-          <CaseFileInfoPanel caseFile={caseFile} relatedCaseFiles={relatedCaseFiles} />
+          <>
+            <CaseFileInfoPanel caseFile={caseFile} relatedCaseFiles={relatedCaseFiles} />
+            <CaseFileQualificationPanel
+              jurisdictionCode={caseFile.jurisdictionCode}
+              caseFileNumber={caseFile.caseFileNumber}
+              statusLabel={caseFile.lastStatus.label}
+              litigationType={caseFile.litigationType}
+              rightType={caseFile.rightType}
+              comDaloNumber={caseFile.comDaloNumber}
+              comedDecisionDate={caseFile.comedDecisionDate}
+              productionDeadlineType={caseFile.productionDeadlineType}
+              productionDeadlineDate={caseFile.productionDeadlineDate}
+              tags={toCaseFileTagViews(caseFile.caseFileTags)}
+              availableTags={availableTags}
+              reviewState={getQualificationReviewState(
+                caseFile.qualificationValidatedAt,
+                caseFile.classificationFieldChanges[0]?.changedAt ?? null,
+              )}
+              validatedAtLabel={formatDateTimeFr(caseFile.qualificationValidatedAt)}
+            />
+            <CaseFileCommentsPanel
+              jurisdictionCode={caseFile.jurisdictionCode}
+              caseFileNumber={caseFile.caseFileNumber}
+              comment={caseFile.comment}
+              pieceComments={(commentedPieces ?? []).map((piece) => ({
+                encodedFileId: piece.encodedFileId,
+                name: piece.dahliaName ?? piece.fileName,
+                comment: piece.comment ?? "",
+                href: caseFileHref(caseFileKey, pieceTabSuffix(piece.encodedFileId)),
+              }))}
+            />
+          </>
         )}
 
         {tab === "pieces" && workspacePieces && (
-          <PiecesWorkspace caseFileKey={caseFileKey} pieces={workspacePieces} />
+          <PiecesWorkspace
+            caseFileKey={caseFileKey}
+            pieces={workspacePieces}
+            initialPieceId={
+              typeof searchParams[PIECE_PARAM] === "string" ? searchParams[PIECE_PARAM] : undefined
+            }
+          />
         )}
 
         {tab === "historique" && historiqueTable && (
