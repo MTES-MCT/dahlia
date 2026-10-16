@@ -6,6 +6,7 @@ import { type CaseFileEventListRow } from "@/app/lib/data/case-file-events";
 import { fetchCaseFileDebugSnapshot, type CaseFileDetail } from "@/app/lib/data/case-files";
 import { fetchCaseFileEventsTableData } from "@/app/lib/data/case-file-events";
 import { fetchCaseFilePiecesFiltered } from "@/app/lib/data/attached-files";
+import { fetchRelatedCaseFiles } from "@/app/lib/data/related-case-files";
 import { HISTORIQUE_FACET_KEYS, HISTORIQUE_PARAMS } from "@/app/lib/historique-table";
 import { PIECES_DEFAULT_ORDER, PIECES_DEFAULT_SORT_BY } from "@/app/lib/pieces-table";
 import { isDebugTabEnabled, type CaseFileTabId } from "@/app/lib/case-file-tabs";
@@ -15,6 +16,7 @@ import { CaseFileTabNav } from "@/app/ui/tabs/case-file-tab-nav";
 import { RefreshCaseFileButton } from "@/app/ui/button/refresh-case-file-button";
 import { DataTable, type DataTableColumn } from "@/app/ui/table/data-table";
 import { PiecesWorkspace, type WorkspacePiece } from "@/app/ui/pieces/pieces-workspace";
+import { CaseFileInfoPanel } from "@/app/ui/case-file/case-file-info-panel";
 
 type Props = {
   caseFile: NonNullable<CaseFileDetail>;
@@ -68,7 +70,8 @@ export async function CaseFileTabs({ caseFile, tab, searchParams, isAdmin = fals
   };
   const showDebugTab = isDebugTabEnabled(searchParams, isAdmin);
 
-  const [pieces, historiqueTable, debugSnapshot] = await Promise.all([
+  const [relatedCaseFiles, pieces, historiqueTable, debugSnapshot] = await Promise.all([
+    tab === "synthese" ? fetchRelatedCaseFiles(caseFileKey) : null,
     tab === "pieces"
       ? fetchCaseFilePiecesFiltered(caseFileKey, PIECES_DEFAULT_SORT_BY, PIECES_DEFAULT_ORDER, null)
       : null,
@@ -110,6 +113,10 @@ export async function CaseFileTabs({ caseFile, tab, searchParams, isAdmin = fals
         pieceCount={caseFile._count.attachedFiles}
         showDebugTab={showDebugTab}
       >
+        {tab === "synthese" && relatedCaseFiles && (
+          <CaseFileInfoPanel caseFile={caseFile} relatedCaseFiles={relatedCaseFiles} />
+        )}
+
         {tab === "pieces" && workspacePieces && (
           <PiecesWorkspace caseFileKey={caseFileKey} pieces={workspacePieces} />
         )}
