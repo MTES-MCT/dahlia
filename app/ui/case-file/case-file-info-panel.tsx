@@ -28,7 +28,8 @@ function actorName(actor: Parameters<typeof getActorDisplayName>[0]): string {
   return name === "-" ? "" : name;
 }
 
-// Telerecours facts, in the order of the former "Détails du dossier" modal.
+// Telerecours facts, in the order of the former "Détails du dossier" modal
+// (since removed from the header).
 // Empty values are dropped rather than shown as "—".
 function buildFacts(caseFile: NonNullable<CaseFileDetail>): Fact[] {
   const facts: Fact[] = [
