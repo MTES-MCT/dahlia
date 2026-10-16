@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isDebugTabEnabled, parseCaseFileTab } from "./case-file-tabs";
+import { isDebugTabEnabled, parseCaseFileTab, pieceTabSuffix } from "./case-file-tabs";
 
 describe("isDebugTabEnabled", () => {
   it("returns true when a validated admin opts in with the debug param", () => {
@@ -43,5 +43,11 @@ describe("parseCaseFileTab", () => {
   it("falls back to synthese for tab=debug when the caller is not an admin", () => {
     expect(parseCaseFileTab("debug", { debug: "1" }, false)).toBe("synthese");
     expect(parseCaseFileTab("debug", { debug: "1" })).toBe("synthese");
+  });
+});
+
+describe("pieceTabSuffix", () => {
+  it("opens the pièces tab on the given pièce, URL-encoded", () => {
+    expect(pieceTabSuffix("L0FU/VE+FDS==")).toBe("?tab=pieces&piece=L0FU%2FVE%2BFDS%3D%3D");
   });
 });
