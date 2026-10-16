@@ -275,17 +275,6 @@ async function saveCaseFile(
   }
 }
 
-// Persist the user-managed classification fields of a case file (type de
-// contentieux, type de droit, tags) edited from the details card.
-export async function updateCaseFileDetailsFormAction(
-  _prevState: UpdateCaseFileDetailsResult | null,
-  formData: FormData,
-): Promise<UpdateCaseFileDetailsResult> {
-  const parsed = await parseCaseFileForm(formData, parseClassificationFields);
-  if (!parsed.ok) return { ok: false, error: parsed.error };
-  return saveCaseFile(parsed.key, parsed.data);
-}
-
 const COM_DALO_NUMBER_MAX_LENGTH = 64;
 
 // Classification fields plus the qualification-only ones (ComDalo, COMED).
