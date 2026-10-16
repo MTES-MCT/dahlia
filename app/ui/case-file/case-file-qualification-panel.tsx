@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useActionState, useId } from "react";
+import { Fragment, useActionState, useId, useState } from "react";
 import clsx from "clsx";
 import { fr } from "@codegouvfr/react-dsfr";
 import { Alert } from "@codegouvfr/react-dsfr/Alert";
@@ -23,7 +23,7 @@ import { type QualificationReviewState } from "@/app/lib/case-file-qualification
 import { type CaseFileTagView } from "@/app/lib/case-file-tags";
 import { CaseFileTagList } from "@/app/ui/case-file/case-file-identity";
 import { CollapsiblePanel } from "@/app/ui/panel/collapsible-panel";
-import { ProductionDeadlineFields } from "@/app/ui/form/case-file-details-editor";
+import { ProductionDeadlineFields } from "@/app/ui/form/production-deadline-fields";
 import { TagPicker } from "@/app/ui/form/tag-picker";
 import { validateCaseFileQualificationFormAction } from "@/app/(protected)/case_files/[jurisdictionCode]/[caseFileNumber]/actions";
 
@@ -132,6 +132,18 @@ export function CaseFileQualificationPanel(props: CaseFileQualificationPanelProp
   const formId = useId();
   const isToReview = reviewState === "toReview";
 
+  // The success notice is a feedback on the save the agent just made, not a
+  // persistent state: it only follows a save that settled a pending review, and
+  // a page reload drops it. Whether a review was pending is captured on submit,
+  // before the revalidated props report the case file as validated.
+  const [submittedWhileToReview, setSubmittedWhileToReview] = useState(false);
+  const [showValidated, setShowValidated] = useState(false);
+  const [handledResult, setHandledResult] = useState(result);
+  if (result !== handledResult) {
+    setHandledResult(result);
+    setShowValidated(Boolean(result?.ok) && submittedWhileToReview);
+  }
+
   // Remount the form when the saved values change, so uncontrolled fields show
   // what is now stored.
   const formKey = [
@@ -166,7 +178,7 @@ export function CaseFileQualificationPanel(props: CaseFileQualificationPanelProp
           </>
         }
       />
-    ) : reviewState === "validated" ? (
+    ) : showValidated && reviewState === "validated" ? (
       <Alert
         severity="success"
         small
@@ -182,7 +194,12 @@ export function CaseFileQualificationPanel(props: CaseFileQualificationPanelProp
       banner={banner}
       summary={<QualificationSummary {...props} />}
     >
-      <form key={formKey} id={formId} action={formAction}>
+      <form
+        key={formKey}
+        id={formId}
+        action={formAction}
+        onSubmit={() => setSubmittedWhileToReview(isToReview)}
+      >
         <input type="hidden" name="jurisdictionCode" value={jurisdictionCode} />
         <input type="hidden" name="caseFileNumber" value={caseFileNumber} />
 

@@ -129,8 +129,8 @@ export async function fetchTagsTableData(
   });
 }
 
-// Full tag catalogue (unpaginated), used to populate the picker in the case file
-// details modal. Sorted in French locale order so accented labels fall in place.
+// Full tag catalogue (unpaginated), used to populate the picker of the
+// "Qualification du dossier" block. Sorted in French locale order so accented labels fall in place.
 export async function fetchTagOptions(): Promise<CaseFileTagView[]> {
   const tags = await prisma.tag.findMany({ select: { id: true, label: true, color: true } });
   return tags.sort((a, b) => a.label.localeCompare(b.label, "fr"));

@@ -36,7 +36,7 @@ describe("CaseFileTelerecoursSync", () => {
     vi.unstubAllGlobals();
   });
 
-  it("affiche la date de dernière synchronisation Télérecours", () => {
+  it("affiche la date de dernière synchronisation Télérecours", async () => {
     render(
       <CaseFileTelerecoursSync
         jurisdictionCode="TA069"
@@ -45,10 +45,11 @@ describe("CaseFileTelerecoursSync", () => {
       />,
     );
 
-    expect(screen.getByText("Dernière synchronisation le 15/07/2024 à 12h30")).toBeTruthy();
+    // Shown once the on-mount sync is over (it replaces "Synchronisation…").
+    expect(await screen.findByText("Dernière synchronisation le 15/07/2024 à 12h30")).toBeTruthy();
   });
 
-  it("indique l'absence de synchronisation Télérecours lorsque la date est inconnue", () => {
+  it("indique l'absence de synchronisation Télérecours lorsque la date est inconnue", async () => {
     render(
       <CaseFileTelerecoursSync
         jurisdictionCode="TA069"
@@ -57,7 +58,7 @@ describe("CaseFileTelerecoursSync", () => {
       />,
     );
 
-    expect(screen.getByText("Aucune synchronisation Télérecours")).toBeTruthy();
+    expect(await screen.findByText("Aucune synchronisation Télérecours")).toBeTruthy();
   });
 
   it("relance la synchronisation Télérecours à l'affichage et rafraîchit le router en cas de succès", async () => {
@@ -186,7 +187,7 @@ describe("CaseFileTelerecoursSync", () => {
     });
   });
 
-  it("affiche l'état de synchronisation tant que l'action n'a pas répondu", async () => {
+  it("affiche l'état de synchronisation à la place de la date tant que l'action n'a pas répondu", async () => {
     mockFetch.mockReturnValue(new Promise(() => {}));
 
     render(
@@ -200,6 +201,6 @@ describe("CaseFileTelerecoursSync", () => {
     await waitFor(() => {
       expect(screen.getByText("Synchronisation…")).toBeTruthy();
     });
-    expect(screen.getByText("Dernière synchronisation le 15/07/2024 à 12h30")).toBeTruthy();
+    expect(screen.queryByText("Dernière synchronisation le 15/07/2024 à 12h30")).toBeNull();
   });
 });

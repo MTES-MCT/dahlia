@@ -27,18 +27,19 @@ export function CaseFileTagList({ tags }: { tags: CaseFileTagView[] }) {
 type CaseFileIdentityName =
   // Dashboard cell: the display name links to the case file.
   | { kind: "link"; href: string }
-  // Detail page: the display name is the page heading, next to a folder icon.
+  // Detail page: "Dossier <display name>" is the page heading.
   | { kind: "heading" };
 
 export type CaseFileIdentityProps = {
   displayName: string;
   title: string | null;
   statusLabel: string;
-  tags: CaseFileTagView[];
+  // Shown in the dashboard cell only; the detail page header has no tags.
+  tags?: CaseFileTagView[];
   name: CaseFileIdentityName;
-  // Trailing slot aligned to the right of the block, e.g. the "Détails du
-  // dossier" button on the detail page. Absent in the table cell.
-  actions?: React.ReactNode;
+  // Rendered to the right of the status badge, wrapping under it when space runs
+  // out, e.g. the Télérecours sync notice on the detail page. Absent in the table cell.
+  footer?: React.ReactNode;
 };
 
 // Single rendering of a case file's identity — display name, Télérecours title,
@@ -48,56 +49,35 @@ export function CaseFileIdentity({
   displayName,
   title,
   statusLabel,
-  tags,
+  tags = [],
   name,
-  actions,
+  footer,
 }: CaseFileIdentityProps) {
   const isHeading = name.kind === "heading";
 
-  const identity = (
+  return (
     <div>
       {isHeading ? (
-        <h1 className={fr.cx("fr-h4", "fr-mb-1v")}>{displayName}</h1>
+        <h1 className={fr.cx("fr-h3", "fr-mb-1v")}>Dossier {displayName}</h1>
       ) : (
         <Link href={name.href}>{displayName}</Link>
       )}
 
-      <CaseFileTelerecoursTitle title={title} displayName={displayName} />
+      <CaseFileTelerecoursTitle title={title} displayName={displayName} singleLine={isHeading} />
 
-      <div className={clsx(!isHeading && fr.cx("fr-mt-1v"))}>
+      <div
+        className={clsx(
+          isHeading ? fr.cx("fr-mt-2v") : fr.cx("fr-mt-1v"),
+          footer && clsx("flex", "flex-wrap", "items-center", "gap-x-4", "gap-y-1"),
+        )}
+      >
         <Badge as="span" noIcon className={fr.cx(statusBadgeAccentuationClassName(statusLabel))}>
           {statusLabel}
         </Badge>
+        {footer}
       </div>
 
       <CaseFileTagList tags={tags} />
-    </div>
-  );
-
-  if (!isHeading && !actions) {
-    return identity;
-  }
-
-  return (
-    <div
-      className={clsx(
-        "flex flex-col items-start gap-4 lg:flex-row lg:items-start lg:justify-between",
-      )}
-    >
-      <div className="flex items-start gap-3">
-        {isHeading ? (
-          <span
-            className={clsx(
-              fr.cx("fr-icon-folder-2-line", "fr-mt-1v"),
-              "text-(--text-action-high-blue-france)",
-            )}
-            aria-hidden="true"
-          />
-        ) : null}
-        {identity}
-      </div>
-
-      {actions}
     </div>
   );
 }
