@@ -34,6 +34,7 @@ import {
   currentUserIsAdmin,
   getCurrentCaseFileScope,
   getCurrentUserId,
+  isJurisdictionInScope,
 } from "./case-file-scope";
 
 function mockSession(user: { id: string; isValidated: boolean; isAdmin: boolean } | null) {
@@ -251,5 +252,20 @@ describe("case-file-scope", () => {
         }),
       );
     });
+  });
+});
+
+describe("isJurisdictionInScope", () => {
+  it("accepts any jurisdiction, even none, for an unrestricted scope", () => {
+    const scope = { unrestricted: true, jurisdictionIds: [] };
+    expect(isJurisdictionInScope(scope, 7)).toBe(true);
+    expect(isJurisdictionInScope(scope, null)).toBe(true);
+  });
+
+  it("only accepts the scope's jurisdictions otherwise", () => {
+    const scope = { unrestricted: false, jurisdictionIds: [1, 2] };
+    expect(isJurisdictionInScope(scope, 2)).toBe(true);
+    expect(isJurisdictionInScope(scope, 3)).toBe(false);
+    expect(isJurisdictionInScope(scope, null)).toBe(false);
   });
 });

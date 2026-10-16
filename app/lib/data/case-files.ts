@@ -239,8 +239,6 @@ const CASE_FILE_DETAIL_INCLUDE = {
     include: { measure: true, actor: true, attachedFiles: true },
     orderBy: { eventDate: "desc" as const },
   },
-  relatedSources: { include: { relatedCaseFile: true } },
-  relatedTargets: { include: { caseFile: true } },
   // Tab counters. Events and pièces are only filtered by case file, so these
   // totals match the unfiltered historique and pièces tabs.
   _count: { select: { events: true, attachedFiles: true } },
@@ -282,6 +280,10 @@ export async function fetchCaseFileDebugSnapshot(key: CaseFileKey) {
     include: {
       ...CASE_FILE_DETAIL_INCLUDE,
       attachedFiles: { include: { fileFamilyType: true } },
+      // Unscoped on purpose: admin-only dump. The page goes through
+      // `fetchRelatedCaseFiles`, which hides out-of-scope titles.
+      relatedSources: { include: { relatedCaseFile: true } },
+      relatedTargets: { include: { caseFile: true } },
     },
   });
   if (!caseFile) {
