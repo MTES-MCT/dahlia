@@ -24,7 +24,11 @@ vi.mock("next/headers", () => ({
 }));
 
 import { revalidatePath } from "next/cache";
-import { updateCaseFileDetailsFormAction } from "./actions";
+import {
+  updateCaseFileCommentFormAction,
+  updateCaseFileDetailsFormAction,
+  validateCaseFileQualificationFormAction,
+} from "./actions";
 import {
   setupTestDatabase,
   resetTestDatabase,
@@ -569,5 +573,229 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
       });
       expect(unchanged.litigationType).toBeNull();
     });
+  });
+});
+
+describe("validateCaseFileQualificationFormAction (integration)", () => {
+  beforeAll(async () => {
+    await setupTestDatabase();
+  });
+
+  afterAll(async () => {
+    await testPrisma.$disconnect();
+  });
+
+  beforeEach(async () => {
+    vi.mocked(revalidatePath).mockClear();
+    mockGetSession.mockReset();
+    mockGetSession.mockResolvedValue({
+      user: { id: "admin-integration", isValidated: true, isAdmin: true },
+    });
+    await resetTestDatabase();
+    await seedCaseFile();
+  });
+
+  function qualificationForm(fields: Record<string, string> = {}): FormData {
+    return buildFormData({
+      jurisdictionCode: "TA069",
+      caseFileNumber: CASE_FILE_NUMBER,
+      litigationType: "INJONCTION",
+      rightType: "DALO",
+      comDaloNumber: " 69-2026-0042 ",
+      comedDecisionDate: "2026-03-12",
+      ...fields,
+    });
+  }
+
+  async function seedClassifierChange(changedAt: Date): Promise<void> {
+    await testPrisma.classificationFieldChange.create({
+      data: {
+        jurisdictionCode: "TA069",
+        caseFileNumber: CASE_FILE_NUMBER,
+        field: "litigationType",
+        newValue: "INJONCTION",
+        ruleId: "test",
+        changedAt,
+      },
+    });
+  }
+
+  it("persiste la qualification et horodate la validation quand une revue est en attente", async () => {
+    await seedClassifierChange(new Date("2026-10-01T10:00:00Z"));
+    const before = new Date();
+
+    const result = await validateCaseFileQualificationFormAction(null, qualificationForm());
+
+    expect(result).toEqual({ ok: true });
+    const updated = await testPrisma.caseFile.findUniqueOrThrow({ where: CASE_FILE_WHERE });
+    expect(updated.litigationType).toBe("INJONCTION");
+    expect(updated.rightType).toBe("DALO");
+    expect(updated.comDaloNumber).toBe("69-2026-0042");
+    expect(updated.comedDecisionDate?.toISOString()).toBe("2026-03-12T00:00:00.000Z");
+    expect(updated.qualificationValidatedAt!.getTime()).toBeGreaterThanOrEqual(
+      before.getTime() - 1000,
+    );
+    expect(revalidatePath).toHaveBeenCalledWith(`/case_files/TA069/${CASE_FILE_NUMBER}`);
+  });
+
+  it("n'horodate pas la validation d'un dossier jamais classifié", async () => {
+    const result = await validateCaseFileQualificationFormAction(null, qualificationForm());
+
+    expect(result).toEqual({ ok: true });
+    const updated = await testPrisma.caseFile.findUniqueOrThrow({ where: CASE_FILE_WHERE });
+    expect(updated.litigationType).toBe("INJONCTION");
+    expect(updated.comDaloNumber).toBe("69-2026-0042");
+    expect(updated.qualificationValidatedAt).toBeNull();
+  });
+
+  it("garde la date de validation quand aucun passage du classifier ne l'a suivie", async () => {
+    const validatedAt = new Date("2026-10-05T08:00:00Z");
+    await seedClassifierChange(new Date("2026-10-01T10:00:00Z"));
+    await testPrisma.caseFile.update({
+      where: CASE_FILE_WHERE,
+      data: { qualificationValidatedAt: validatedAt },
+    });
+
+    const result = await validateCaseFileQualificationFormAction(
+      null,
+      qualificationForm({ rightType: "DAHO" }),
+    );
+
+    expect(result).toEqual({ ok: true });
+    const updated = await testPrisma.caseFile.findUniqueOrThrow({ where: CASE_FILE_WHERE });
+    expect(updated.rightType).toBe("DAHO");
+    expect(updated.qualificationValidatedAt).toEqual(validatedAt);
+  });
+
+  it("efface ComDalo et COMED lorsqu'ils sont laissés vides", async () => {
+    await validateCaseFileQualificationFormAction(null, qualificationForm());
+
+    const result = await validateCaseFileQualificationFormAction(
+      null,
+      qualificationForm({ comDaloNumber: "", comedDecisionDate: "" }),
+    );
+
+    expect(result).toEqual({ ok: true });
+    const updated = await testPrisma.caseFile.findUniqueOrThrow({ where: CASE_FILE_WHERE });
+    expect(updated.comDaloNumber).toBeNull();
+    expect(updated.comedDecisionDate).toBeNull();
+  });
+
+  it("refuse une date COMED invalide sans rien enregistrer", async () => {
+    const result = await validateCaseFileQualificationFormAction(
+      null,
+      qualificationForm({ comedDecisionDate: "2026-02-31" }),
+    );
+
+    expect(result).toEqual({ ok: false, error: "Date de la décision de la COMED invalide." });
+    const unchanged = await testPrisma.caseFile.findUniqueOrThrow({ where: CASE_FILE_WHERE });
+    expect(unchanged.qualificationValidatedAt).toBeNull();
+    expect(unchanged.litigationType).toBeNull();
+  });
+
+  it("refuse un numéro ComDalo trop long", async () => {
+    const result = await validateCaseFileQualificationFormAction(
+      null,
+      qualificationForm({ comDaloNumber: "x".repeat(65) }),
+    );
+
+    expect(result).toEqual({ ok: false, error: "Numéro ComDalo trop long." });
+  });
+
+  it("refuse un dossier hors périmètre", async () => {
+    mockGetSession.mockResolvedValue({
+      user: { id: "no-scope", isValidated: true, isAdmin: false },
+    });
+
+    const result = await validateCaseFileQualificationFormAction(null, qualificationForm());
+
+    expect(result).toEqual({ ok: false, error: "Dossier introuvable." });
+    const unchanged = await testPrisma.caseFile.findUniqueOrThrow({ where: CASE_FILE_WHERE });
+    expect(unchanged.qualificationValidatedAt).toBeNull();
+  });
+
+  it("n'horodate pas la validation depuis la modale Détails du dossier", async () => {
+    await updateCaseFileDetailsFormAction(
+      null,
+      buildFormData({
+        jurisdictionCode: "TA069",
+        caseFileNumber: CASE_FILE_NUMBER,
+        litigationType: "REFERE",
+        comDaloNumber: "ignored",
+      }),
+    );
+
+    const updated = await testPrisma.caseFile.findUniqueOrThrow({ where: CASE_FILE_WHERE });
+    expect(updated.litigationType).toBe("REFERE");
+    expect(updated.qualificationValidatedAt).toBeNull();
+    expect(updated.comDaloNumber).toBeNull();
+  });
+});
+
+describe("updateCaseFileCommentFormAction (integration)", () => {
+  beforeAll(async () => {
+    await setupTestDatabase();
+  });
+
+  afterAll(async () => {
+    await testPrisma.$disconnect();
+  });
+
+  beforeEach(async () => {
+    vi.mocked(revalidatePath).mockClear();
+    mockGetSession.mockReset();
+    mockGetSession.mockResolvedValue({
+      user: { id: "admin-integration", isValidated: true, isAdmin: true },
+    });
+    await resetTestDatabase();
+    await seedCaseFile();
+  });
+
+  function commentForm(comment: string): FormData {
+    return buildFormData({ jurisdictionCode: "TA069", caseFileNumber: CASE_FILE_NUMBER, comment });
+  }
+
+  it("enregistre le commentaire général sans espaces superflus", async () => {
+    const result = await updateCaseFileCommentFormAction(null, commentForm("  À relancer\n"));
+
+    expect(result).toEqual({ ok: true });
+    const updated = await testPrisma.caseFile.findUniqueOrThrow({ where: CASE_FILE_WHERE });
+    expect(updated.comment).toBe("À relancer");
+    expect(revalidatePath).toHaveBeenCalledWith(`/case_files/TA069/${CASE_FILE_NUMBER}`);
+  });
+
+  it("efface le commentaire lorsqu'il est vidé", async () => {
+    await updateCaseFileCommentFormAction(null, commentForm("À relancer"));
+
+    expect(await updateCaseFileCommentFormAction(null, commentForm("   "))).toEqual({ ok: true });
+
+    const updated = await testPrisma.caseFile.findUniqueOrThrow({ where: CASE_FILE_WHERE });
+    expect(updated.comment).toBeNull();
+  });
+
+  it("refuse un commentaire trop long", async () => {
+    const result = await updateCaseFileCommentFormAction(null, commentForm("x".repeat(10001)));
+
+    expect(result).toEqual({ ok: false, error: "Commentaire trop long." });
+  });
+
+  it("refuse un dossier hors périmètre", async () => {
+    mockGetSession.mockResolvedValue({
+      user: { id: "no-scope", isValidated: true, isAdmin: false },
+    });
+
+    const result = await updateCaseFileCommentFormAction(null, commentForm("À relancer"));
+
+    expect(result).toEqual({ ok: false, error: "Dossier introuvable." });
+    const unchanged = await testPrisma.caseFile.findUniqueOrThrow({ where: CASE_FILE_WHERE });
+    expect(unchanged.comment).toBeNull();
+  });
+
+  it("ne touche pas à la qualification", async () => {
+    await updateCaseFileCommentFormAction(null, commentForm("À relancer"));
+
+    const updated = await testPrisma.caseFile.findUniqueOrThrow({ where: CASE_FILE_WHERE });
+    expect(updated.qualificationValidatedAt).toBeNull();
+    expect(updated.litigationType).toBeNull();
   });
 });

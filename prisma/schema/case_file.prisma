@@ -81,6 +81,15 @@ model CaseFile {
   // Kept in the database; still filled by the classification engine.
   summary        String?
 
+  // Manually entered from the "Qualification du dossier" block.
+  comDaloNumber     String?
+  comedDecisionDate DateTime? @db.Date
+  // General comment on the case file, entered from the "Commentaires" block.
+  comment           String?
+  // Last time an agent reviewed and validated the qualification block. The
+  // block asks for a new review when the classifier changed a field after it.
+  qualificationValidatedAt DateTime?
+
   // Production deadline tracked for case files under instruction (null = none).
   productionDeadlineType ProductionDeadlineType?
   productionDeadlineDate DateTime?

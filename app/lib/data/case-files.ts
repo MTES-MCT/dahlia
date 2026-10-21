@@ -12,6 +12,7 @@ import {
   type CaseFileDashboardRow,
 } from "@/app/lib/case-files-dashboard-columns";
 import type { CaseFileKey } from "@/app/lib/case-file-key";
+import { CLASSIFIER_QUALIFICATION_FIELDS } from "@/app/lib/case-file-qualification";
 import { prisma } from "@/app/lib/prisma";
 import {
   caseFileScopeWhere,
@@ -238,6 +239,14 @@ const CASE_FILE_DETAIL_INCLUDE = {
   events: {
     include: { measure: true, actor: true, attachedFiles: true },
     orderBy: { eventDate: "desc" as const },
+  },
+  // Most recent classifier change of a qualification field: drives the review
+  // warning of the "Qualification du dossier" block.
+  classificationFieldChanges: {
+    where: { field: { in: CLASSIFIER_QUALIFICATION_FIELDS } },
+    orderBy: { changedAt: "desc" as const },
+    take: 1,
+    select: { changedAt: true },
   },
   // Tab counters. Events and pièces are only filtered by case file, so these
   // totals match the unfiltered historique and pièces tabs.
