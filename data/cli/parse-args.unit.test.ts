@@ -28,6 +28,7 @@ describe("parseArgs", () => {
       all: false,
       enrich: "ongoing",
       updatePieceNumbers: false,
+      updatePieceName: false,
       classify: false,
       classifyOverwrite: false,
     });
@@ -46,6 +47,7 @@ describe("parseArgs", () => {
         "--enrich",
         "all",
         "--update-piece-numbers",
+        "--update-piece-name",
         "--classify",
       ),
     );
@@ -56,6 +58,7 @@ describe("parseArgs", () => {
       all: true,
       enrich: "all",
       updatePieceNumbers: true,
+      updatePieceName: true,
       classify: true,
       classifyOverwrite: false,
     });

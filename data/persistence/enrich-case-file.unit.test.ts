@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { mockDeep, type DeepMockProxy } from "vitest-mock-extended";
 import type { PrismaClient } from "@prisma/client";
-import { enrichCaseFile, findLastProducerId, leadingNumber } from "./enrich-case-file";
+import {
+  enrichCaseFile,
+  findLastProducerId,
+  leadingNumber,
+  pieceNameFromFileName,
+} from "./enrich-case-file";
 import { fakeTelerecoursClient } from "../test-support/fake-client";
 import {
   attachedFileFixture,
@@ -54,6 +59,66 @@ describe("leadingNumber", () => {
   it("returns null when the file name does not start with a digit", () => {
     expect(leadingNumber("facture.pdf")).toBeNull();
     expect(leadingNumber("")).toBeNull();
+  });
+});
+
+describe("pieceNameFromFileName", () => {
+  it("zero-pads the leading number to 5 digits and replaces underscores", () => {
+    expect(pieceNameFromFileName("034_memoire_en_defense.pdf")).toBe("00034 memoire en defense");
+    expect(pieceNameFromFileName("34-_requete_introductive.PDF")).toBe(
+      "00034 requete introductive",
+    );
+    expect(pieceNameFromFileName("100034_piece.pdf")).toBe("100034 piece");
+  });
+
+  it("normalizes every leading number", () => {
+    expect(pieceNameFromFileName("20261021_34_requête.pdf")).toBe("20261021 00034 requête");
+  });
+
+  it("drops a P_ prefix before the number", () => {
+    expect(pieceNameFromFileName("P_34_requete.pdf")).toBe("00034 requete");
+    expect(pieceNameFromFileName("P_20261021_34_requete.pdf")).toBe("20261021 00034 requete");
+  });
+
+  it("keeps names without leading number, only replacing underscores", () => {
+    expect(pieceNameFromFileName("requete_introductive.pdf")).toBe("requete introductive");
+    expect(pieceNameFromFileName("note_annexe.odt")).toBe("note annexe.odt");
+  });
+
+  it("drops piece prefixes (PJ, P, Piece, piece n°) before the number", () => {
+    expect(pieceNameFromFileName("PJ5_Mail_OPAC_20180329.pdf")).toBe("00005 Mail OPAC 20180329");
+    expect(pieceNameFromFileName("1141718428_P12_-_COPIE_TITRE.pdf")).toBe(
+      "1141718428 00012 COPIE TITRE",
+    );
+    expect(pieceNameFromFileName("41818856_piece_n_4_Attestation.pdf")).toBe(
+      "41818856 00004 Attestation",
+    );
+    expect(pieceNameFromFileName("1118543015_Piece_33_Commandement.pdf")).toBe(
+      "1118543015 00033 Commandement",
+    );
+    expect(pieceNameFromFileName("Pièce n°3 bail.pdf")).toBe("00003 bail");
+    expect(pieceNameFromFileName("Pièce_3.pdf")).toBe("00003");
+  });
+
+  it("keeps leading dates as text", () => {
+    expect(pieceNameFromFileName("2025-01-17_Requete_DALO_1146530602.pdf")).toBe(
+      "2025-01-17 Requete DALO 1146530602",
+    );
+    expect(pieceNameFromFileName("100764654_18_05_18_memoire.pdf")).toBe(
+      "100764654 18 05 18 memoire",
+    );
+    expect(pieceNameFromFileName("001_21.01.2025_rejet.pdf")).toBe("00001 21.01.2025 rejet");
+  });
+
+  it("collapses repeated underscores into a single space", () => {
+    expect(pieceNameFromFileName("015_Moisissures__ds_les_sanitaires__1159052506.pdf")).toBe(
+      "00015 Moisissures ds les sanitaires 1159052506",
+    );
+  });
+
+  it("handles a number alone and empty names", () => {
+    expect(pieceNameFromFileName("034.pdf")).toBe("00034");
+    expect(pieceNameFromFileName(".pdf")).toBeNull();
   });
 });
 
@@ -213,6 +278,38 @@ describe("enrichCaseFile", () => {
         },
       }),
     );
+  });
+
+  describe("--update-piece-name", () => {
+    beforeEach(() => {
+      prisma.caseFileEvent.findUnique.mockResolvedValue({ id: 90001 } as never);
+      prisma.fileFamilyType.upsert.mockResolvedValue({ code: "REQ", label: "Requête" } as never);
+    });
+
+    const client = () =>
+      fakeTelerecoursClient({
+        getCaseFileDetail: vi.fn().mockResolvedValue(caseFileDetailFixture()),
+        getCaseFileAttachedFiles: vi
+          .fn()
+          .mockResolvedValue(page([attachedFileFixture({ fileName: "P_34_requete.pdf" })])),
+      });
+
+    it("ne touche pas dahliaName sans le flag", async () => {
+      await enrichCaseFile(prisma, client(), "TA069-001", "TA069", true);
+      expect(prisma.attachedFile.updateMany).not.toHaveBeenCalled();
+    });
+
+    it("renseigne dahliaName uniquement s'il est nul ou vide", async () => {
+      await enrichCaseFile(prisma, client(), "TA069-001", "TA069", true, false, false, true);
+      expect(prisma.attachedFile.updateMany).toHaveBeenCalledWith({
+        where: {
+          jurisdictionCode: "TA069",
+          encodedFileId: expect.any(String),
+          OR: [{ dahliaName: null }, { dahliaName: "" }],
+        },
+        data: { dahliaName: "00034 requete" },
+      });
+    });
   });
 
   describe("--force", () => {

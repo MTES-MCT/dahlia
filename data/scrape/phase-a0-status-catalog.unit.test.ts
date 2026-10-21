@@ -14,6 +14,7 @@ const baseArgs: Args = {
   anonymize: true,
   enrich: "ongoing",
   updatePieceNumbers: false,
+  updatePieceName: false,
   force: false,
   classify: false,
   classifyOverwrite: false,
