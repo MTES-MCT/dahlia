@@ -3,7 +3,12 @@ import type { CaseFileKey } from "@/app/lib/case-file-key";
 import { prisma } from "@/app/lib/prisma";
 import { caseFileRelationScopeWhere, logCaseFileScopeMiss } from "@/app/lib/case-file-scope";
 import { normalizeForSearch, parseSearchQuery } from "@/app/lib/case-file-search";
-import { PIECES_FACET_KEYS, type PiecesFacetKey } from "@/app/lib/pieces-table";
+import {
+  PIECES_DEFAULT_ORDER,
+  PIECES_DEFAULT_SORT_BY,
+  PIECES_FACET_KEYS,
+  type PiecesFacetKey,
+} from "@/app/lib/pieces-table";
 import { buildWordAndFilter, combineAnd, facetSearchWords } from "@/app/lib/search-where";
 import { type SortOrder } from "@/app/lib/table-sort";
 
@@ -120,6 +125,24 @@ export async function fetchCaseFilePiecesFiltered(
     orderBy: buildPiecesOrderBy(sortBy, toSortOrder(sortOrder)),
   });
 }
+
+// Pièces carrying a comment, for the "Commentaires" block of the synthèse tab.
+// Same order as the pièces workspace, so both lists read alike.
+export async function fetchCommentedPieces(key: CaseFileKey) {
+  return prisma.attachedFile.findMany({
+    where: {
+      jurisdictionCode: key.jurisdictionCode,
+      caseFileNumber: key.caseFileNumber,
+      comment: { not: null },
+      NOT: { comment: "" },
+      ...(await caseFileRelationScopeWhere()),
+    },
+    select: { encodedFileId: true, fileName: true, dahliaName: true, comment: true },
+    orderBy: buildPiecesOrderBy(PIECES_DEFAULT_SORT_BY, toSortOrder(PIECES_DEFAULT_ORDER)),
+  });
+}
+
+export type CommentedPiece = Awaited<ReturnType<typeof fetchCommentedPieces>>[number];
 
 // Fetch a single attached file (pièce) of a case file. `encodedFileId` is only
 // unique within a court, hence the case-file key. Returns null when unknown,

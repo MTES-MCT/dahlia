@@ -443,6 +443,12 @@ moteur de règles (`data/classification/`) permet de les **déduire du texte
 scrapé** : aujourd'hui le titre Télérecours, demain la décision (les deux champs
 sont déjà exposés au moteur).
 
+Chaque valeur posée par le moteur est tracée dans `classification_field_changes`.
+Le bloc « Qualification du dossier » (onglet Synthèse) demande une revue par un
+agent tant qu'un changement de `litigationType` ou `rightType` est plus récent
+que `case_files.qualificationValidatedAt`. Enregistrer le bloc ne met cette date
+à jour que si une revue était en attente : sinon, seuls les champs sont enregistrés.
+
 Le champ `summary` (anciennement la « Raison ») est **déprécié** : il n'apparaît
 plus dans les formulaires ni dans le nom d'affichage des dossiers. La colonne
 reste en base et le moteur de classification continue de la remplir.
@@ -581,6 +587,10 @@ erDiagram
         DateTime lastStatusDate
         string lastHearingId FK "nullable"
         string procedureState "nullable"
+        string comment "nullable"
+        string comDaloNumber "nullable"
+        DateTime comedDecisionDate "nullable, date"
+        DateTime qualificationValidatedAt "nullable"
         int chamberId FK "nullable"
         int mainClaimantId FK
         int mainDefenderId FK "nullable"

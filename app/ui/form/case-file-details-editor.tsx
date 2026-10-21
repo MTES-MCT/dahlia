@@ -77,7 +77,8 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
   );
 }
 
-function ProductionDeadlineFields({
+// Also used by the "Qualification du dossier" block of the synthèse tab.
+export function ProductionDeadlineFields({
   productionDeadlineType,
   productionDeadlineDate,
 }: Pick<CaseFileDetailsEditorProps, "productionDeadlineType" | "productionDeadlineDate">) {

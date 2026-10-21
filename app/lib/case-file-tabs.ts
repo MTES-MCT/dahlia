@@ -4,6 +4,14 @@ const CASE_FILE_TAB_IDS: CaseFileTabId[] = ["synthese", "historique", "pieces", 
 
 export const DEFAULT_CASE_FILE_TAB: CaseFileTabId = "synthese";
 
+// Query param selecting the pièce shown first in the pièces tab.
+export const PIECE_PARAM = "piece";
+
+// URL suffix opening the pièces tab on a given pièce.
+export function pieceTabSuffix(encodedFileId: string): string {
+  return `?${new URLSearchParams({ tab: "pieces", [PIECE_PARAM]: encodedFileId })}`;
+}
+
 export type CaseFileSearchParams = Record<string, string | string[] | undefined>;
 
 // Diagnostic dump of a case file. The query param only opts in; the caller must

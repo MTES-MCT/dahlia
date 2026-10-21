@@ -69,6 +69,7 @@ export default async function Page({ params, searchParams }: Props) {
           caseFile={caseFile}
           tab={tab}
           searchParams={resolvedSearchParams}
+          availableTags={availableTags}
           isAdmin={isAdmin}
         />
       </div>

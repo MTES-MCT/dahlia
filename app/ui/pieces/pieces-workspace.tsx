@@ -34,6 +34,9 @@ type Override = {
 type Props = {
   caseFileKey: CaseFileKey;
   pieces: WorkspacePiece[];
+  // Pièce shown first (e.g. from "Voir la pièce" on the synthèse tab); falls
+  // back to the first pièce when unknown.
+  initialPieceId?: string;
 };
 
 // Parse the RFC 6266 filename out of a Content-Disposition header, if any.
@@ -41,9 +44,12 @@ function filenameFromDisposition(header: string | null): string | undefined {
   return header?.match(/filename="([^"]+)"/)?.[1];
 }
 
-export function PiecesWorkspace({ caseFileKey, pieces }: Props) {
+export function PiecesWorkspace({ caseFileKey, pieces, initialPieceId }: Props) {
   const [overrides, setOverrides] = useState<Record<string, Override>>({});
-  const firstId = pieces[0]?.encodedFileId ?? null;
+  const firstId =
+    (initialPieceId && pieces.some((piece) => piece.encodedFileId === initialPieceId)
+      ? initialPieceId
+      : pieces[0]?.encodedFileId) ?? null;
   const [currentId, setCurrentId] = useState<string | null>(firstId);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(
     () => new Set(firstId ? [firstId] : []),

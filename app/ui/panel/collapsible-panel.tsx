@@ -4,11 +4,14 @@ import { useId, useState } from "react";
 import clsx from "clsx";
 import { fr } from "@codegouvfr/react-dsfr";
 import { Button } from "@codegouvfr/react-dsfr/Button";
+import { PANEL_FRAME_CLASSNAME } from "@/app/ui/panel/panel-frame";
 
 type Props = {
   title: React.ReactNode;
   // Secondary line under the title, always visible.
   hint?: React.ReactNode;
+  // Shown under the header whether the panel is open or not (e.g. a status alert).
+  banner?: React.ReactNode;
   // Shown only while the panel is collapsed.
   summary?: React.ReactNode;
   defaultOpen?: boolean;
@@ -19,6 +22,7 @@ type Props = {
 export function CollapsiblePanel({
   title,
   hint,
+  banner,
   summary,
   defaultOpen = false,
   openLabel = "Afficher",
@@ -33,10 +37,7 @@ export function CollapsiblePanel({
       aria-labelledby={titleId}
       className={clsx(
         fr.cx("fr-px-3w", "fr-mb-3w", isOpen ? "fr-py-3w" : "fr-py-2w"),
-        "border",
-        "border-solid",
-        "border-(--border-default-grey)",
-        "bg-(--background-default-grey)",
+        PANEL_FRAME_CLASSNAME,
       )}
     >
       <div
@@ -66,6 +67,8 @@ export function CollapsiblePanel({
           {isOpen ? "Replier" : openLabel}
         </Button>
       </div>
+
+      {banner && <div className={fr.cx("fr-mt-2w")}>{banner}</div>}
 
       {!isOpen && summary && (
         <div
