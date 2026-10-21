@@ -146,6 +146,7 @@ async function renderPiecesTab() {
         jurisdictionCode: "TA069",
         caseFileNumber: CASE_FILE_NUMBER,
         updatedAt: new Date(),
+        _count: { events: 1, attachedFiles: 2 },
       } as NonNullable<CaseFileDetail>,
       tab: "pieces",
       searchParams: {},

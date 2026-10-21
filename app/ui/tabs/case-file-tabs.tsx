@@ -104,7 +104,12 @@ export async function CaseFileTabs({ caseFile, tab, searchParams, isAdmin = fals
         tab === "pieces" && clsx("overflow-hidden", "pieces-fill"),
       )}
     >
-      <CaseFileTabNav selectedTabId={tab} showDebugTab={showDebugTab}>
+      <CaseFileTabNav
+        selectedTabId={tab}
+        eventCount={caseFile._count.events}
+        pieceCount={caseFile._count.attachedFiles}
+        showDebugTab={showDebugTab}
+      >
         {tab === "pieces" && workspacePieces && (
           <PiecesWorkspace caseFileKey={caseFileKey} pieces={workspacePieces} />
         )}

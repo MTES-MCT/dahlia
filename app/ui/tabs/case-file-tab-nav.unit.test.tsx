@@ -25,21 +25,22 @@ describe("CaseFileTabNav", () => {
     cleanup();
   });
 
-  it("affiche les onglets Pièces et Historique par défaut", () => {
+  it("affiche les onglets Synthèse, Historique et Pièces avec leurs compteurs", () => {
     render(
-      <CaseFileTabNav selectedTabId="pieces">
+      <CaseFileTabNav selectedTabId="pieces" eventCount={4} pieceCount={2}>
         <p>Contenu</p>
       </CaseFileTabNav>,
     );
 
-    expect(screen.getByRole("tab", { name: "Pièces" })).toBeTruthy();
-    expect(screen.getByRole("tab", { name: "Historique" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Synthèse" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Historique (4)" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Pièces (2)" })).toBeTruthy();
     expect(screen.queryByRole("tab", { name: "Debug" })).toBeNull();
   });
 
   it("affiche l'onglet Debug quand showDebugTab est activé", () => {
     render(
-      <CaseFileTabNav selectedTabId="pieces" showDebugTab>
+      <CaseFileTabNav selectedTabId="pieces" eventCount={4} pieceCount={2} showDebugTab>
         <p>Contenu</p>
       </CaseFileTabNav>,
     );
@@ -49,7 +50,7 @@ describe("CaseFileTabNav", () => {
 
   it("affiche le contenu des enfants", () => {
     render(
-      <CaseFileTabNav selectedTabId="pieces">
+      <CaseFileTabNav selectedTabId="pieces" eventCount={4} pieceCount={2}>
         <p>Contenu de l&apos;onglet</p>
       </CaseFileTabNav>,
     );
@@ -59,25 +60,27 @@ describe("CaseFileTabNav", () => {
 
   it("marque l'onglet sélectionné", () => {
     render(
-      <CaseFileTabNav selectedTabId="historique">
+      <CaseFileTabNav selectedTabId="historique" eventCount={4} pieceCount={2}>
         <p>Contenu</p>
       </CaseFileTabNav>,
     );
 
-    expect(screen.getByRole("tab", { name: "Historique" }).getAttribute("aria-selected")).toBe(
+    expect(screen.getByRole("tab", { name: "Historique (4)" }).getAttribute("aria-selected")).toBe(
       "true",
     );
-    expect(screen.getByRole("tab", { name: "Pièces" }).getAttribute("aria-selected")).toBe("false");
+    expect(screen.getByRole("tab", { name: "Pièces (2)" }).getAttribute("aria-selected")).toBe(
+      "false",
+    );
   });
 
   it("navigue vers l'onglet sélectionné en mettant à jour ?tab au clic", () => {
     render(
-      <CaseFileTabNav selectedTabId="pieces">
+      <CaseFileTabNav selectedTabId="pieces" eventCount={4} pieceCount={2}>
         <p>Contenu</p>
       </CaseFileTabNav>,
     );
 
-    fireEvent.click(screen.getByRole("tab", { name: "Historique" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Historique (4)" }));
 
     expect(mockPush).toHaveBeenCalledTimes(1);
     expect(mockPush).toHaveBeenCalledWith("?tab=historique", { scroll: false });
@@ -87,7 +90,7 @@ describe("CaseFileTabNav", () => {
     setSearchParams("pcSort=nom&hiq=audience&debug=1");
 
     render(
-      <CaseFileTabNav selectedTabId="pieces" showDebugTab>
+      <CaseFileTabNav selectedTabId="pieces" eventCount={4} pieceCount={2} showDebugTab>
         <p>Contenu</p>
       </CaseFileTabNav>,
     );

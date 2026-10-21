@@ -241,6 +241,9 @@ const CASE_FILE_DETAIL_INCLUDE = {
   },
   relatedSources: { include: { relatedCaseFile: true } },
   relatedTargets: { include: { caseFile: true } },
+  // Tab counters. Events and pièces are only filtered by case file, so these
+  // totals match the unfiltered historique and pièces tabs.
+  _count: { select: { events: true, attachedFiles: true } },
 } satisfies Prisma.CaseFileInclude;
 
 // Memoized per request so `generateMetadata` and the page body share a single
