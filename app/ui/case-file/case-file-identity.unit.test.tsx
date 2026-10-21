@@ -45,21 +45,24 @@ describe("CaseFileIdentity", () => {
   });
 
   describe("variante titre (fiche dossier)", () => {
-    it("rend le nom d'affichage en titre de niveau 1 et affiche le slot d'actions", () => {
+    it("rend « Dossier » suivi du nom d'affichage en titre de niveau 1, et le pied sous le statut", () => {
       render(
         <CaseFileIdentity
           displayName="TA069/12345"
           title={null}
           statusLabel="En cours d'instruction"
-          tags={[]}
           name={{ kind: "heading" }}
-          actions={<button type="button">Détails du dossier</button>}
+          footer={<p>Dernière synchronisation</p>}
         />,
       );
 
-      const heading = screen.getByRole("heading", { level: 1, name: "TA069/12345" });
-      expect(heading.className).toContain("fr-h4");
-      expect(screen.getByRole("button", { name: "Détails du dossier" })).toBeTruthy();
+      const heading = screen.getByRole("heading", { level: 1, name: "Dossier TA069/12345" });
+      expect(heading.className).toContain("fr-h3");
+      const status = screen.getByText("En cours d'instruction");
+      const footer = screen.getByText("Dernière synchronisation");
+      expect(
+        status.compareDocumentPosition(footer) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
       expect(screen.queryByRole("link")).toBeNull();
     });
   });
@@ -160,5 +163,53 @@ describe("CaseFileIdentity", () => {
     );
 
     expect(screen.getByText("Inconnu").className).toContain("fr-badge--blue-ecume");
+  });
+
+  it("affiche le titre Télérecours en petit, sur une ligne tronquée dans l'en-tête de page", () => {
+    render(
+      <CaseFileIdentity
+        displayName="TA069/12345"
+        title="Un très long titre Télérecours"
+        statusLabel="En cours d'instruction"
+        name={{ kind: "heading" }}
+      />,
+    );
+
+    const title = screen.getByText("Un très long titre Télérecours");
+    expect(title.className).toContain("fr-text--sm");
+    expect(title.className).toContain("truncate");
+    expect(title.getAttribute("title")).toBe("Un très long titre Télérecours");
+  });
+
+  it("laisse le titre Télérecours revenir à la ligne dans la cellule du tableau", () => {
+    render(
+      <CaseFileIdentity
+        displayName="TA069/12345"
+        title="Un très long titre Télérecours"
+        statusLabel="En cours d'instruction"
+        name={{ kind: "link", href: "/case_files/TA069/12345" }}
+      />,
+    );
+
+    const title = screen.getByText("Un très long titre Télérecours");
+    expect(title.className).toContain("fr-text--sm");
+    expect(title.className).not.toContain("truncate");
+    expect(title.getAttribute("title")).toBeNull();
+  });
+
+  it("place le pied à côté du badge de statut, avec retour à la ligne si la place manque", () => {
+    render(
+      <CaseFileIdentity
+        displayName="TA069/12345"
+        title={null}
+        statusLabel="En cours d'instruction"
+        name={{ kind: "heading" }}
+        footer={<p>Dernière synchronisation</p>}
+      />,
+    );
+
+    const row = screen.getByText("En cours d'instruction").parentElement as HTMLElement;
+    expect(row.contains(screen.getByText("Dernière synchronisation"))).toBe(true);
+    expect(row.className).toContain("flex-wrap");
   });
 });

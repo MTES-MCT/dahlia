@@ -66,7 +66,7 @@ model CaseFile {
   // fed by /api/case-file/<id>/hearings — scrape phase B).
   caseFileHearings CaseFileHearing[]
 
-  // User-managed tags (M2M via case_file_tags), edited from the details modal.
+  // User-managed tags (M2M via case_file_tags), edited from the "Qualification du dossier" block.
   caseFileTags CaseFileTag[]
 
   // History of the fields written by the classification script.
@@ -74,7 +74,7 @@ model CaseFile {
 
   procedureState String?
 
-  // User-managed classification fields (edited from the case-file details card).
+  // User-managed classification fields (edited from the "Qualification du dossier" block).
   litigationType LitigationType?
   rightType      RightType?
   // Deprecated: no longer shown in the UI or in case-file display names.

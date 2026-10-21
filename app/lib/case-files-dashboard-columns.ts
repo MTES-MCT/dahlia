@@ -121,7 +121,7 @@ function exportOtherActors(caseFile: CaseFileDashboardRow): string {
 
 // Extra spreadsheet columns so the export carries identity fields shown inside
 // the Dossier cell, the memory-deadline source shown as a badge, and the
-// classification / actors otherwise only visible in the details modal.
+// classification / actors otherwise only visible in the synthèse tab.
 export const CASE_FILES_EXPORT_COLUMNS: CaseFileDashboardColumnDef[] = [
   ...CASE_FILES_DASHBOARD_COLUMNS,
   {

@@ -4,7 +4,6 @@ import { useId, useState } from "react";
 import clsx from "clsx";
 import { fr } from "@codegouvfr/react-dsfr";
 import { Button } from "@codegouvfr/react-dsfr/Button";
-import { PANEL_FRAME_CLASSNAME } from "@/app/ui/panel/panel-frame";
 
 type Props = {
   title: React.ReactNode;
@@ -37,7 +36,10 @@ export function CollapsiblePanel({
       aria-labelledby={titleId}
       className={clsx(
         fr.cx("fr-px-3w", "fr-mb-3w", isOpen ? "fr-py-3w" : "fr-py-2w"),
-        PANEL_FRAME_CLASSNAME,
+        "border",
+        "border-solid",
+        "border-(--border-default-grey)",
+        "bg-(--background-default-grey)",
       )}
     >
       <div

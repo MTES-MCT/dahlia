@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useId, useState } from "react";
+import { useActionState, useState } from "react";
 import clsx from "clsx";
 import { fr } from "@codegouvfr/react-dsfr";
 import { Alert } from "@codegouvfr/react-dsfr/Alert";
@@ -8,7 +8,7 @@ import { Button } from "@codegouvfr/react-dsfr/Button";
 import { ButtonsGroup } from "@codegouvfr/react-dsfr/ButtonsGroup";
 import { Input } from "@codegouvfr/react-dsfr/Input";
 import { CASE_FILE_COMMENT_MAX_LENGTH } from "@/app/lib/case-file-comment";
-import { PANEL_FRAME_CLASSNAME } from "@/app/ui/panel/panel-frame";
+import { CollapsiblePanel } from "@/app/ui/panel/collapsible-panel";
 import { updateCaseFileCommentFormAction } from "@/app/(protected)/case_files/[jurisdictionCode]/[caseFileNumber]/actions";
 
 export type PieceCommentView = {
@@ -45,7 +45,7 @@ function PieceComments({ pieceComments }: { pieceComments: PieceCommentView[] })
       )}
     >
       <p className={fr.cx("fr-label", "fr-mb-2w")}>Commentaires des pièces</p>
-      <ul className={clsx(fr.cx("fr-m-0", "fr-p-0"), "list-none", "flex", "flex-col", "gap-3")}>
+      <ul className={clsx(fr.cx("fr-raw-list", "fr-m-0"), "flex", "flex-col", "gap-3")}>
         {pieceComments.map((piece) => (
           <li
             key={piece.encodedFileId}
@@ -87,7 +87,6 @@ export function CaseFileCommentsPanel({
   comment,
   pieceComments,
 }: Props) {
-  const titleId = useId();
   const savedValue = comment ?? "";
   const [value, setValue] = useState(savedValue);
   const [savedAt, setSavedAt] = useState<string | null>(null);
@@ -106,27 +105,11 @@ export function CaseFileCommentsPanel({
   }
 
   return (
-    <section
-      aria-labelledby={titleId}
-      className={clsx(fr.cx("fr-p-3w", "fr-mb-3w"), PANEL_FRAME_CLASSNAME)}
+    <CollapsiblePanel
+      title="Commentaires"
+      hint="Visible par les agents en charge du dossier"
+      defaultOpen
     >
-      <div
-        className={clsx(
-          fr.cx("fr-mb-5v", "fr-pb-3v"),
-          "border-0",
-          "border-b",
-          "border-solid",
-          "border-(--border-default-grey)",
-        )}
-      >
-        <h2 id={titleId} className={fr.cx("fr-h6", "fr-mb-0")}>
-          Commentaires
-        </h2>
-        <p className={fr.cx("fr-hint-text", "fr-mb-0")}>
-          Visible par les agents en charge du dossier
-        </p>
-      </div>
-
       {pieceComments.length > 0 && <PieceComments pieceComments={pieceComments} />}
 
       <form action={formAction}>
@@ -190,6 +173,6 @@ export function CaseFileCommentsPanel({
           </div>
         )}
       </form>
-    </section>
+    </CollapsiblePanel>
   );
 }
