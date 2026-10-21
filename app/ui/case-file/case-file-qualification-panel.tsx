@@ -19,7 +19,10 @@ import {
   type ProductionDeadlineType,
 } from "@/app/lib/case-file-enums";
 import { formatDateFr, formatDateInputValue } from "@/app/lib/case-file-format";
-import { type QualificationReviewState } from "@/app/lib/case-file-qualification";
+import {
+  type ClassifierQualificationField,
+  type QualificationReviewState,
+} from "@/app/lib/case-file-qualification";
 import { type CaseFileTagView } from "@/app/lib/case-file-tags";
 import { CaseFileTagList } from "@/app/ui/case-file/case-file-identity";
 import { CollapsiblePanel } from "@/app/ui/panel/collapsible-panel";
@@ -40,9 +43,19 @@ export type CaseFileQualificationPanelProps = {
   tags: CaseFileTagView[];
   availableTags: CaseFileTagView[];
   reviewState: QualificationReviewState;
+  // Fields whose classifier value awaits review (shown with a field status).
+  fieldsToReview?: ClassifierQualificationField[];
   // Formatted on the server, in the court's time zone.
   validatedAtLabel: string;
 };
+
+// Field status of a classifier value awaiting review. This DSFR version has no
+// "warning" field state, hence "error".
+function reviewFieldState(needsReview: boolean) {
+  return needsReview
+    ? { state: "error" as const, stateRelatedMessage: "Qualification automatique à valider" }
+    : {};
+}
 
 // DSFR `.fr-select` forces `width: 100%`; size selects to their longest option.
 const SELECT_WIDTH_CLASSNAME = clsx("w-max!");
@@ -127,6 +140,7 @@ export function CaseFileQualificationPanel(props: CaseFileQualificationPanelProp
     availableTags,
     reviewState,
     validatedAtLabel,
+    fieldsToReview = [],
   } = props;
   const [result, formAction, isPending] = useActionState(
     validateCaseFileQualificationFormAction,
@@ -203,14 +217,19 @@ export function CaseFileQualificationPanel(props: CaseFileQualificationPanelProp
         action={formAction}
         onSubmit={() => setSubmittedWhileToReview(isToReview)}
       >
-        <input type="hidden" name="jurisdictionCode" value={jurisdictionCode} />
-        <input type="hidden" name="caseFileNumber" value={caseFileNumber} />
+        {/* autoComplete="off" on every control: Firefox otherwise restores, on
+            reload, the values fields had before, matched by position, over the
+            server-rendered ones (uncontrolled fields, variable hidden inputs). */}
+        <input type="hidden" name="jurisdictionCode" value={jurisdictionCode} autoComplete="off" />
+        <input type="hidden" name="caseFileNumber" value={caseFileNumber} autoComplete="off" />
 
         <div className={fr.cx("fr-grid-row", "fr-grid-row--gutters")}>
           <Select
             label="Type de contentieux"
+            {...reviewFieldState(fieldsToReview.includes("litigationType"))}
             className={fr.cx("fr-col-12", "fr-col-md-6", "fr-mb-1w")}
             nativeSelectProps={{
+              autoComplete: "off",
               name: "litigationType",
               defaultValue: litigationType ?? "",
               className: SELECT_WIDTH_CLASSNAME,
@@ -226,8 +245,10 @@ export function CaseFileQualificationPanel(props: CaseFileQualificationPanelProp
 
           <Select
             label="Droit opposable"
+            {...reviewFieldState(fieldsToReview.includes("rightType"))}
             className={fr.cx("fr-col-12", "fr-col-md-6", "fr-mb-1w")}
             nativeSelectProps={{
+              autoComplete: "off",
               name: "rightType",
               defaultValue: rightType ?? RIGHT_TYPE_UNDEFINED_VALUE,
               className: SELECT_WIDTH_CLASSNAME,
@@ -248,6 +269,7 @@ export function CaseFileQualificationPanel(props: CaseFileQualificationPanelProp
             label="Numéro ComDalo"
             className={fr.cx("fr-col-12", "fr-col-md-6", "fr-mb-1w")}
             nativeInputProps={{
+              autoComplete: "off",
               name: "comDaloNumber",
               defaultValue: comDaloNumber ?? "",
               maxLength: 64,
@@ -260,6 +282,7 @@ export function CaseFileQualificationPanel(props: CaseFileQualificationPanelProp
             label="Date de la décision de la COMED"
             className={fr.cx("fr-col-12", "fr-col-md-6", "fr-mb-1w")}
             nativeInputProps={{
+              autoComplete: "off",
               type: "date",
               name: "comedDecisionDate",
               defaultValue: formatDateInputValue(comedDecisionDate),

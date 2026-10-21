@@ -36,7 +36,8 @@ export function ProductionDeadlineFields({
 
   return (
     <>
-      <input type="hidden" name="hasProductionDeadlineFields" value="true" />
+      {/* autoComplete="off": see the qualification form (Firefox restoration on reload). */}
+      <input type="hidden" name="hasProductionDeadlineFields" value="true" autoComplete="off" />
 
       <div
         className={clsx(
@@ -51,6 +52,7 @@ export function ProductionDeadlineFields({
           options={PRODUCTION_DEADLINE_TYPE_OPTIONS.map((option) => ({
             label: option.label,
             nativeInputProps: {
+              autoComplete: "off",
               value: option.value,
               defaultChecked: initialType === option.value,
               onChange: () => setSelectedType(option.value),
@@ -64,6 +66,7 @@ export function ProductionDeadlineFields({
           state={dateWarning ? "error" : "default"}
           stateRelatedMessage={dateWarning ?? undefined}
           nativeInputProps={{
+            autoComplete: "off",
             type: "date",
             name: "productionDeadlineDate",
             value: dateValue,

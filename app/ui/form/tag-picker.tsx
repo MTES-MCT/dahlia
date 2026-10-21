@@ -131,9 +131,11 @@ export function TagPicker({ availableTags, defaultSelectedIds, className }: TagP
 
   return (
     <div className={clsx(fr.cx("fr-mb-1w"), className)} ref={containerRef}>
-      <input type="hidden" name={HAS_TAGS_FIELD_NAME} value="true" />
+      {/* autoComplete="off": Firefox restores hidden inputs on reload, by
+          position, which could submit another selection than the one shown. */}
+      <input type="hidden" name={HAS_TAGS_FIELD_NAME} value="true" autoComplete="off" />
       {selectedIds.map((id) => (
-        <input key={id} type="hidden" name={TAG_IDS_FIELD_NAME} value={id} />
+        <input key={id} type="hidden" name={TAG_IDS_FIELD_NAME} value={id} autoComplete="off" />
       ))}
 
       <div className="relative">

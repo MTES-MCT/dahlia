@@ -7,7 +7,9 @@
 
 // Fields of the block the classifier may write. `summary` is deprecated and no
 // longer displayed, so its changes do not call for a review.
-export const CLASSIFIER_QUALIFICATION_FIELDS = ["litigationType", "rightType"];
+export const CLASSIFIER_QUALIFICATION_FIELDS = ["litigationType", "rightType"] as const;
+
+export type ClassifierQualificationField = (typeof CLASSIFIER_QUALIFICATION_FIELDS)[number];
 
 export type QualificationReviewState =
   // A classifier change is more recent than the last validation (or none yet).
@@ -26,4 +28,30 @@ export function getQualificationReviewState(
     return "toReview";
   }
   return validatedAt ? "validated" : "notReviewed";
+}
+
+// Latest classifier change per field, as loaded with the case file.
+export type ClassifierFieldChange = { field: string; changedAt: Date };
+
+// Fields whose classifier value was not reviewed yet: the block rule, applied
+// field by field.
+export function getFieldsToReview(
+  validatedAt: Date | null,
+  changes: ClassifierFieldChange[],
+): ClassifierQualificationField[] {
+  return CLASSIFIER_QUALIFICATION_FIELDS.filter((field) => {
+    const change = changes.find((candidate) => candidate.field === field);
+    return (
+      change !== undefined &&
+      getQualificationReviewState(validatedAt, change.changedAt) === "toReview"
+    );
+  });
+}
+
+// Most recent change among `changes`, or null.
+export function getLastClassifierChangeAt(changes: ClassifierFieldChange[]): Date | null {
+  return changes.reduce<Date | null>(
+    (latest, change) => (!latest || change.changedAt > latest ? change.changedAt : latest),
+    null,
+  );
 }

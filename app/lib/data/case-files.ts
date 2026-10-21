@@ -240,13 +240,14 @@ const CASE_FILE_DETAIL_INCLUDE = {
     include: { measure: true, actor: true, attachedFiles: true },
     orderBy: { eventDate: "desc" as const },
   },
-  // Most recent classifier change of a qualification field: drives the review
-  // warning of the "Qualification du dossier" block.
+  // Most recent classifier change of each qualification field: drives the
+  // review warning of the "Qualification du dossier" block and its per-field
+  // status (`distinct` keeps the first row of each field in this order).
   classificationFieldChanges: {
-    where: { field: { in: CLASSIFIER_QUALIFICATION_FIELDS } },
-    orderBy: { changedAt: "desc" as const },
-    take: 1,
-    select: { changedAt: true },
+    where: { field: { in: [...CLASSIFIER_QUALIFICATION_FIELDS] } },
+    orderBy: [{ field: "asc" as const }, { changedAt: "desc" as const }],
+    distinct: ["field" as const],
+    select: { field: true, changedAt: true },
   },
   // Tab counters. Events and pièces are only filtered by case file, so these
   // totals match the unfiltered historique and pièces tabs.
