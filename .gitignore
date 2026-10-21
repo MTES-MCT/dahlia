@@ -57,3 +57,4 @@ opencode.json
 # investigation
 tmp/
 audits/
+.lighthouseci/
