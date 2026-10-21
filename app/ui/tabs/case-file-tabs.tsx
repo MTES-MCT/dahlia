@@ -24,7 +24,11 @@ import { PiecesWorkspace, type WorkspacePiece } from "@/app/ui/pieces/pieces-wor
 import { CaseFileInfoPanel } from "@/app/ui/case-file/case-file-info-panel";
 import { CaseFileCommentsPanel } from "@/app/ui/case-file/case-file-comments-panel";
 import { CaseFileQualificationPanel } from "@/app/ui/case-file/case-file-qualification-panel";
-import { getQualificationReviewState } from "@/app/lib/case-file-qualification";
+import {
+  getFieldsToReview,
+  getLastClassifierChangeAt,
+  getQualificationReviewState,
+} from "@/app/lib/case-file-qualification";
 import { toCaseFileTagViews, type CaseFileTagView } from "@/app/lib/case-file-tags";
 
 type Props = {
@@ -154,7 +158,11 @@ export async function CaseFileTabs({
               availableTags={availableTags}
               reviewState={getQualificationReviewState(
                 caseFile.qualificationValidatedAt,
-                caseFile.classificationFieldChanges[0]?.changedAt ?? null,
+                getLastClassifierChangeAt(caseFile.classificationFieldChanges),
+              )}
+              fieldsToReview={getFieldsToReview(
+                caseFile.qualificationValidatedAt,
+                caseFile.classificationFieldChanges,
               )}
               validatedAtLabel={formatDateTimeFr(caseFile.qualificationValidatedAt)}
             />

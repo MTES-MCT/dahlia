@@ -311,7 +311,7 @@ async function isQualificationReviewPending(key: CaseFileKey): Promise<boolean> 
     select: {
       qualificationValidatedAt: true,
       classificationFieldChanges: {
-        where: { field: { in: CLASSIFIER_QUALIFICATION_FIELDS } },
+        where: { field: { in: [...CLASSIFIER_QUALIFICATION_FIELDS] } },
         orderBy: { changedAt: "desc" },
         take: 1,
         select: { changedAt: true },
