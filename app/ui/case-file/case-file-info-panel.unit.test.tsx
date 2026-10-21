@@ -190,4 +190,12 @@ describe("CaseFileInfoPanel", () => {
     const item = within(screen.getByRole("listitem", { hidden: true }));
     expect(item.getAllByText("2500010")).toHaveLength(1);
   });
+
+  it("tronque le titre Télérecours d'un dossier lié sur une seule ligne", () => {
+    render(<CaseFileInfoPanel caseFile={caseFileFixture()} relatedCaseFiles={RELATED} />);
+
+    const title = screen.getByText("M. Dupont c/ Préfet");
+    expect(title.className).toContain("truncate");
+    expect(title.getAttribute("title")).toBe("M. Dupont c/ Préfet");
+  });
 });

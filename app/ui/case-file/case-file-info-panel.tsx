@@ -93,7 +93,9 @@ function RelatedCaseFiles({ relatedCaseFiles }: { relatedCaseFiles: RelatedCaseF
               !related.accessible && "bg-(--background-alt-grey)",
             )}
           >
-            <div className={clsx("min-w-0")}>
+            {/* flex-1 + min-w-0 give the text column a bounded width, so the
+                single-line Télérecours title can ellipse next to the button. */}
+            <div className={clsx("min-w-0", "flex-1")}>
               {related.accessible ? (
                 <>
                   {/* The display name already starts with the case file number. */}
@@ -103,6 +105,7 @@ function RelatedCaseFiles({ relatedCaseFiles }: { relatedCaseFiles: RelatedCaseF
                   <CaseFileTelerecoursTitle
                     title={related.title}
                     displayName={related.displayName ?? related.key.caseFileNumber}
+                    singleLine
                   />
                 </>
               ) : (

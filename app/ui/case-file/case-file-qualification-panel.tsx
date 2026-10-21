@@ -44,6 +44,9 @@ export type CaseFileQualificationPanelProps = {
   validatedAtLabel: string;
 };
 
+// DSFR `.fr-select` forces `width: 100%`; size selects to their longest option.
+const SELECT_WIDTH_CLASSNAME = clsx("w-max!");
+
 const SAVE_HINT =
   "En enregistrant, vous confirmez avoir vérifié les informations proposées automatiquement.";
 
@@ -207,7 +210,11 @@ export function CaseFileQualificationPanel(props: CaseFileQualificationPanelProp
           <Select
             label="Type de contentieux"
             className={fr.cx("fr-col-12", "fr-col-md-6", "fr-mb-1w")}
-            nativeSelectProps={{ name: "litigationType", defaultValue: litigationType ?? "" }}
+            nativeSelectProps={{
+              name: "litigationType",
+              defaultValue: litigationType ?? "",
+              className: SELECT_WIDTH_CLASSNAME,
+            }}
           >
             <option value=""></option>
             {LITIGATION_TYPE_OPTIONS.map((option) => (
@@ -223,6 +230,7 @@ export function CaseFileQualificationPanel(props: CaseFileQualificationPanelProp
             nativeSelectProps={{
               name: "rightType",
               defaultValue: rightType ?? RIGHT_TYPE_UNDEFINED_VALUE,
+              className: SELECT_WIDTH_CLASSNAME,
             }}
           >
             {/* "Non défini" is the empty option. */}
@@ -244,6 +252,8 @@ export function CaseFileQualificationPanel(props: CaseFileQualificationPanelProp
               defaultValue: comDaloNumber ?? "",
               maxLength: 64,
             }}
+            // `nativeInputProps.className` is overridden by react-dsfr's Input.
+            classes={{ nativeInputOrTextArea: clsx("max-w-64") }}
           />
 
           <Input
@@ -254,10 +264,15 @@ export function CaseFileQualificationPanel(props: CaseFileQualificationPanelProp
               name: "comedDecisionDate",
               defaultValue: formatDateInputValue(comedDecisionDate),
             }}
+            classes={{ nativeInputOrTextArea: clsx("max-w-48") }}
           />
         </div>
 
-        <TagPicker availableTags={availableTags} defaultSelectedIds={tags.map((tag) => tag.id)} />
+        <TagPicker
+          availableTags={availableTags}
+          defaultSelectedIds={tags.map((tag) => tag.id)}
+          className={clsx("max-w-120")}
+        />
 
         {statusLabel === UNDER_INSTRUCTION_STATUS_LABEL && (
           <ProductionDeadlineFields

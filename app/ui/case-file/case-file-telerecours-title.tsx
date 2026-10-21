@@ -6,8 +6,8 @@ type Props = {
   // The Dahlia display name shown above; the title is skipped when it would
   // only repeat it.
   displayName: string;
-  // Page header only: keep the title on one line, ellipsed when too long (the
-  // full title stays available as a tooltip).
+  // Page header and related case files: keep the title on one line, ellipsed
+  // when too long (the full title stays available as a tooltip).
   singleLine?: boolean;
 };
 

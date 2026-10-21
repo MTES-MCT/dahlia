@@ -199,4 +199,17 @@ describe("CaseFileQualificationPanel", () => {
       expect(screen.queryByText(/Qualification revue et validée/)).toBeNull();
     });
   });
+
+  it("dimensionne les champs à leur contenu plutôt qu'à toute la largeur", () => {
+    renderPanel();
+
+    expect(screen.getByRole("combobox", { name: "Type de contentieux" }).className).toContain(
+      "w-max!",
+    );
+    expect(screen.getByRole("combobox", { name: "Droit opposable" }).className).toContain("w-max!");
+    expect(screen.getByRole("textbox", { name: "Numéro ComDalo" }).className).toContain("max-w-64");
+    expect(screen.getByLabelText("Date de la décision de la COMED").className).toContain(
+      "max-w-48",
+    );
+  });
 });
