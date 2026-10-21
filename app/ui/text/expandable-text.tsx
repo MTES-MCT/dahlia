@@ -17,11 +17,17 @@ export function ExpandableText({ text, className }: Props) {
   const textRef = useRef<HTMLParagraphElement>(null);
   const textId = useId();
 
+  // Measured on every resize: an element rendered inside a hidden ancestor
+  // (e.g. a collapsed panel) has a zero height until it becomes visible.
   useEffect(() => {
     const element = textRef.current;
-    if (element && !isOpen) {
-      setOverflows(element.scrollHeight > element.clientHeight);
-    }
+    if (!element || isOpen) return;
+    const measure = () => setOverflows(element.scrollHeight > element.clientHeight);
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
   }, [text, isOpen]);
 
   return (
