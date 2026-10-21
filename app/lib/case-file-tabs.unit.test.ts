@@ -18,26 +18,30 @@ describe("isDebugTabEnabled", () => {
 });
 
 describe("parseCaseFileTab", () => {
-  it("defaults to pieces", () => {
-    expect(parseCaseFileTab(undefined)).toBe("pieces");
-    expect(parseCaseFileTab("unknown")).toBe("pieces");
+  it("defaults to synthese", () => {
+    expect(parseCaseFileTab(undefined)).toBe("synthese");
+    expect(parseCaseFileTab("unknown")).toBe("synthese");
+  });
+
+  it("accepts pieces", () => {
+    expect(parseCaseFileTab("pieces")).toBe("pieces");
   });
 
   it("accepts historique without debug param", () => {
     expect(parseCaseFileTab("historique")).toBe("historique");
   });
 
-  it("falls back to pieces for tab=debug without debug param", () => {
-    expect(parseCaseFileTab("debug")).toBe("pieces");
-    expect(parseCaseFileTab("debug", { tab: "debug" })).toBe("pieces");
+  it("falls back to synthese for tab=debug without debug param", () => {
+    expect(parseCaseFileTab("debug")).toBe("synthese");
+    expect(parseCaseFileTab("debug", { tab: "debug" })).toBe("synthese");
   });
 
   it("accepts tab=debug when a validated admin opts in", () => {
     expect(parseCaseFileTab("debug", { debug: "1" }, true)).toBe("debug");
   });
 
-  it("falls back to pieces for tab=debug when the caller is not an admin", () => {
-    expect(parseCaseFileTab("debug", { debug: "1" }, false)).toBe("pieces");
-    expect(parseCaseFileTab("debug", { debug: "1" })).toBe("pieces");
+  it("falls back to synthese for tab=debug when the caller is not an admin", () => {
+    expect(parseCaseFileTab("debug", { debug: "1" }, false)).toBe("synthese");
+    expect(parseCaseFileTab("debug", { debug: "1" })).toBe("synthese");
   });
 });

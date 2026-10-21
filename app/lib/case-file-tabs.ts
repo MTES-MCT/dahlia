@@ -1,6 +1,8 @@
-export type CaseFileTabId = "pieces" | "historique" | "debug";
+export type CaseFileTabId = "synthese" | "historique" | "pieces" | "debug";
 
-const CASE_FILE_TAB_IDS: CaseFileTabId[] = ["pieces", "historique", "debug"];
+const CASE_FILE_TAB_IDS: CaseFileTabId[] = ["synthese", "historique", "pieces", "debug"];
+
+export const DEFAULT_CASE_FILE_TAB: CaseFileTabId = "synthese";
 
 export type CaseFileSearchParams = Record<string, string | string[] | undefined>;
 
@@ -19,8 +21,10 @@ export function parseCaseFileTab(
   const debugEnabled = searchParams ? isDebugTabEnabled(searchParams, isAdmin) : false;
 
   if (tab === "debug" && !debugEnabled) {
-    return "pieces";
+    return DEFAULT_CASE_FILE_TAB;
   }
 
-  return CASE_FILE_TAB_IDS.includes(tab as CaseFileTabId) ? (tab as CaseFileTabId) : "pieces";
+  return CASE_FILE_TAB_IDS.includes(tab as CaseFileTabId)
+    ? (tab as CaseFileTabId)
+    : DEFAULT_CASE_FILE_TAB;
 }
