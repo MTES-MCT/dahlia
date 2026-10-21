@@ -1,103 +1,42 @@
 import { fr } from "@codegouvfr/react-dsfr";
 import clsx from "clsx";
-import {
-  formatDateFr,
-  formatDateTimeFr,
-  getActorDisplayName,
-  getCaseFileDisplayName,
-} from "@/app/lib/case-file-format";
-import {
-  getMainClaimantActor,
-  getMainDefenderActor,
-  getOtherCaseFileActors,
-} from "@/app/lib/case-file-actors";
-import { type CaseFileTagView, toCaseFileTagViews } from "@/app/lib/case-file-tags";
+import { getCaseFileDisplayName } from "@/app/lib/case-file-format";
 import { type CaseFileDetail } from "@/app/lib/data/case-files";
-import {
-  CaseFileDetailsHeader,
-  CaseFileDetailsModal,
-  type CaseFileDetailsEditorProps,
-} from "@/app/ui/form/case-file-details-editor";
+import { CaseFileIdentity } from "@/app/ui/case-file/case-file-identity";
+import { CaseFileTelerecoursSync } from "@/app/ui/case-file/case-file-telerecours-sync";
 
 type Props = {
   caseFile: NonNullable<CaseFileDetail>;
-  // Full tag catalogue, loaded by the page (no data access from app/ui).
-  availableTags: CaseFileTagView[];
 };
 
-export function CaseFileDetailsCard({ caseFile, availableTags }: Props) {
-  const editorProps: CaseFileDetailsEditorProps = {
-    jurisdictionCode: caseFile.jurisdictionCode,
-    caseFileNumber: caseFile.caseFileNumber,
-    title: caseFile.title,
-    statusLabel: caseFile.lastStatus.label,
-    litigationType: caseFile.litigationType,
-    rightType: caseFile.rightType,
-    productionDeadlineType: caseFile.productionDeadlineType,
-    productionDeadlineDate: caseFile.productionDeadlineDate,
-    tags: toCaseFileTagViews(caseFile.caseFileTags),
-    availableTags,
-    mainClaimantName: getActorDisplayName(getMainClaimantActor(caseFile)),
-    mainDefenderName: getActorDisplayName(getMainDefenderActor(caseFile)),
-    otherActors: getOtherCaseFileActors(caseFile).map((link) => ({
-      actorId: link.actorId,
-      qualityLabel: link.quality.name,
-      name: getActorDisplayName(link.actor),
-    })),
-    depositDateLabel: formatDateFr(caseFile.depositDate),
-    chamberName: caseFile.chamber?.name,
-    decisionReadingDateLabel: formatDateTimeFr(caseFile.lastDecisionReading?.readingDate),
-    decisionNature: caseFile.lastDecisionReading?.nature ?? null,
-    decisionOperativePart: caseFile.lastDecisionReading?.operativePart ?? null,
-  };
-
+// Sticky header of the case-file page: title, Télérecours title, status and the
+// Télérecours sync notice. Qualification and comments are edited from the
+// synthèse tab.
+export function CaseFileDetailsCard({ caseFile }: Props) {
   return (
-    <>
-      <section
-        className={clsx(
-          fr.cx("fr-p-1w", "fr-mb-3w"),
-          "shrink-0",
-          "sticky",
-          "top-0",
-          "z-10",
-          "bg-(--background-default-grey)",
-          "border-0",
-          "border-l-4",
-          "border-solid",
-          "border-l-(--border-active-blue-france)",
-        )}
-      >
-        <CaseFileDetailsHeader
-          displayName={getCaseFileDisplayName(caseFile)}
-          title={editorProps.title}
-          statusLabel={editorProps.statusLabel}
-          tags={editorProps.tags}
-          jurisdictionCode={caseFile.jurisdictionCode}
-          caseFileNumber={caseFile.caseFileNumber}
-          telerecoursSyncAt={caseFile.telerecoursSyncAt}
-        />
-      </section>
-
-      {/* Rendered outside the sticky section so the modal backdrop covers the header. */}
-      <CaseFileDetailsModal
-        jurisdictionCode={editorProps.jurisdictionCode}
-        caseFileNumber={editorProps.caseFileNumber}
-        statusLabel={editorProps.statusLabel}
-        litigationType={editorProps.litigationType}
-        rightType={editorProps.rightType}
-        productionDeadlineType={editorProps.productionDeadlineType}
-        productionDeadlineDate={editorProps.productionDeadlineDate}
-        tags={editorProps.tags}
-        availableTags={editorProps.availableTags}
-        mainClaimantName={editorProps.mainClaimantName}
-        mainDefenderName={editorProps.mainDefenderName}
-        otherActors={editorProps.otherActors}
-        depositDateLabel={editorProps.depositDateLabel}
-        chamberName={editorProps.chamberName}
-        decisionReadingDateLabel={editorProps.decisionReadingDateLabel}
-        decisionNature={editorProps.decisionNature}
-        decisionOperativePart={editorProps.decisionOperativePart}
+    <section
+      className={clsx(
+        fr.cx("fr-p-1w", "fr-mb-3w"),
+        "shrink-0",
+        "sticky",
+        "top-0",
+        "z-10",
+        "bg-(--background-default-grey)",
+      )}
+    >
+      <CaseFileIdentity
+        displayName={getCaseFileDisplayName(caseFile)}
+        title={caseFile.title}
+        statusLabel={caseFile.lastStatus.label}
+        name={{ kind: "heading" }}
+        footer={
+          <CaseFileTelerecoursSync
+            jurisdictionCode={caseFile.jurisdictionCode}
+            caseFileNumber={caseFile.caseFileNumber}
+            telerecoursSyncAt={caseFile.telerecoursSyncAt}
+          />
+        }
       />
-    </>
+    </section>
   );
 }

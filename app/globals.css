@@ -51,12 +51,3 @@
   padding-right: 1rem;
   height: auto;
 }
-
-/* Case file details modal: wider than react-dsfr "large" (lg-8 / 8 cols).
-   Scope to the modal shell only (.fr-grid-row--center), not inner form grids. */
-@media (min-width: 62em) {
-  #case-file-details-modal .fr-grid-row--center > div {
-    flex: 0 0 91.6666666667%;
-    max-width: 91.6666666667%;
-  }
-}

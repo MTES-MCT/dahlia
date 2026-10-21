@@ -63,7 +63,7 @@ export default async function Page({ params, searchParams }: Props) {
           isPieces ? clsx("h-screen", "min-h-0") : clsx("min-h-0", "flex-1"),
         )}
       >
-        <CaseFileDetailsCard caseFile={caseFile} availableTags={availableTags} />
+        <CaseFileDetailsCard caseFile={caseFile} />
 
         <CaseFileTabs
           caseFile={caseFile}

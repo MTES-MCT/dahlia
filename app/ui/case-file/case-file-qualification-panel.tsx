@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useActionState, useId } from "react";
+import { Fragment, useActionState, useId, useState } from "react";
 import clsx from "clsx";
 import { fr } from "@codegouvfr/react-dsfr";
 import { Alert } from "@codegouvfr/react-dsfr/Alert";
@@ -23,7 +23,7 @@ import { type QualificationReviewState } from "@/app/lib/case-file-qualification
 import { type CaseFileTagView } from "@/app/lib/case-file-tags";
 import { CaseFileTagList } from "@/app/ui/case-file/case-file-identity";
 import { CollapsiblePanel } from "@/app/ui/panel/collapsible-panel";
-import { ProductionDeadlineFields } from "@/app/ui/form/case-file-details-editor";
+import { ProductionDeadlineFields } from "@/app/ui/form/production-deadline-fields";
 import { TagPicker } from "@/app/ui/form/tag-picker";
 import { validateCaseFileQualificationFormAction } from "@/app/(protected)/case_files/[jurisdictionCode]/[caseFileNumber]/actions";
 
@@ -43,6 +43,9 @@ export type CaseFileQualificationPanelProps = {
   // Formatted on the server, in the court's time zone.
   validatedAtLabel: string;
 };
+
+// DSFR `.fr-select` forces `width: 100%`; size selects to their longest option.
+const SELECT_WIDTH_CLASSNAME = clsx("w-max!");
 
 const SAVE_HINT =
   "En enregistrant, vous confirmez avoir vérifié les informations proposées automatiquement.";
@@ -132,6 +135,18 @@ export function CaseFileQualificationPanel(props: CaseFileQualificationPanelProp
   const formId = useId();
   const isToReview = reviewState === "toReview";
 
+  // The success notice is a feedback on the save the agent just made, not a
+  // persistent state: it only follows a save that settled a pending review, and
+  // a page reload drops it. Whether a review was pending is captured on submit,
+  // before the revalidated props report the case file as validated.
+  const [submittedWhileToReview, setSubmittedWhileToReview] = useState(false);
+  const [showValidated, setShowValidated] = useState(false);
+  const [handledResult, setHandledResult] = useState(result);
+  if (result !== handledResult) {
+    setHandledResult(result);
+    setShowValidated(Boolean(result?.ok) && submittedWhileToReview);
+  }
+
   // Remount the form when the saved values change, so uncontrolled fields show
   // what is now stored.
   const formKey = [
@@ -166,7 +181,7 @@ export function CaseFileQualificationPanel(props: CaseFileQualificationPanelProp
           </>
         }
       />
-    ) : reviewState === "validated" ? (
+    ) : showValidated && reviewState === "validated" ? (
       <Alert
         severity="success"
         small
@@ -182,7 +197,12 @@ export function CaseFileQualificationPanel(props: CaseFileQualificationPanelProp
       banner={banner}
       summary={<QualificationSummary {...props} />}
     >
-      <form key={formKey} id={formId} action={formAction}>
+      <form
+        key={formKey}
+        id={formId}
+        action={formAction}
+        onSubmit={() => setSubmittedWhileToReview(isToReview)}
+      >
         <input type="hidden" name="jurisdictionCode" value={jurisdictionCode} />
         <input type="hidden" name="caseFileNumber" value={caseFileNumber} />
 
@@ -190,7 +210,11 @@ export function CaseFileQualificationPanel(props: CaseFileQualificationPanelProp
           <Select
             label="Type de contentieux"
             className={fr.cx("fr-col-12", "fr-col-md-6", "fr-mb-1w")}
-            nativeSelectProps={{ name: "litigationType", defaultValue: litigationType ?? "" }}
+            nativeSelectProps={{
+              name: "litigationType",
+              defaultValue: litigationType ?? "",
+              className: SELECT_WIDTH_CLASSNAME,
+            }}
           >
             <option value=""></option>
             {LITIGATION_TYPE_OPTIONS.map((option) => (
@@ -206,6 +230,7 @@ export function CaseFileQualificationPanel(props: CaseFileQualificationPanelProp
             nativeSelectProps={{
               name: "rightType",
               defaultValue: rightType ?? RIGHT_TYPE_UNDEFINED_VALUE,
+              className: SELECT_WIDTH_CLASSNAME,
             }}
           >
             {/* "Non défini" is the empty option. */}
@@ -227,6 +252,8 @@ export function CaseFileQualificationPanel(props: CaseFileQualificationPanelProp
               defaultValue: comDaloNumber ?? "",
               maxLength: 64,
             }}
+            // `nativeInputProps.className` is overridden by react-dsfr's Input.
+            classes={{ nativeInputOrTextArea: clsx("max-w-64") }}
           />
 
           <Input
@@ -237,10 +264,15 @@ export function CaseFileQualificationPanel(props: CaseFileQualificationPanelProp
               name: "comedDecisionDate",
               defaultValue: formatDateInputValue(comedDecisionDate),
             }}
+            classes={{ nativeInputOrTextArea: clsx("max-w-48") }}
           />
         </div>
 
-        <TagPicker availableTags={availableTags} defaultSelectedIds={tags.map((tag) => tag.id)} />
+        <TagPicker
+          availableTags={availableTags}
+          defaultSelectedIds={tags.map((tag) => tag.id)}
+          className={clsx("max-w-120")}
+        />
 
         {statusLabel === UNDER_INSTRUCTION_STATUS_LABEL && (
           <ProductionDeadlineFields

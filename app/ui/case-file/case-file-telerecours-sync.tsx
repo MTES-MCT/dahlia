@@ -91,7 +91,7 @@ function formatTelerecoursSyncLabel(telerecoursSyncAt: Date | null): string {
     : "Aucune synchronisation Télérecours";
 }
 
-// Shown under "Détails du dossier". On mount (each visit of the case file page)
+// Shown under the status badge of the case-file header. On mount (each visit of the case file page)
 // it re-runs the same Télérecours enrichment as the debug "Rafraîchir" button.
 // The request goes through fetch() rather than the Server Action: Next.js wraps
 // every Server Action in startTransition, which marks the whole page as pending
@@ -138,14 +138,13 @@ export function CaseFileTelerecoursSync({
 
   return (
     <div
-      className={clsx(
-        fr.cx("fr-text--xs", "fr-mb-0"),
-        "max-w-56 text-right text-(--text-mention-grey) italic",
-      )}
+      className={clsx(fr.cx("fr-text--xs", "fr-mb-0"), "text-(--text-mention-grey) italic")}
       aria-live="polite"
     >
-      <p className={fr.cx("fr-mb-0")}>{formatTelerecoursSyncLabel(telerecoursSyncAt)}</p>
-      {isPending ? <p className={fr.cx("fr-mb-0")}>Synchronisation…</p> : null}
+      {/* While syncing, the notice replaces the last-sync date it is about to update. */}
+      <p className={fr.cx("fr-mb-0")}>
+        {isPending ? "Synchronisation…" : formatTelerecoursSyncLabel(telerecoursSyncAt)}
+      </p>
       {error ? (
         <p className={clsx(fr.cx("fr-mb-0"), "text-(--text-default-error)")}>
           {formatTelerecoursSyncError(error)}

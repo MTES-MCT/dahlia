@@ -26,7 +26,6 @@ vi.mock("next/headers", () => ({
 import { revalidatePath } from "next/cache";
 import {
   updateCaseFileCommentFormAction,
-  updateCaseFileDetailsFormAction,
   validateCaseFileQualificationFormAction,
 } from "./actions";
 import {
@@ -100,7 +99,9 @@ async function seedCaseFile(overrides?: {
   });
 }
 
-describe("updateCaseFileDetailsFormAction (integration)", () => {
+// Classification fields shared by every qualification save: type de contentieux,
+// droit, tags, échéance à produire, and the permission scope.
+describe("validateCaseFileQualificationFormAction — champs de classification (integration)", () => {
   beforeAll(async () => {
     await setupTestDatabase();
   });
@@ -122,7 +123,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
   });
 
   it("persiste les champs de classification en base", async () => {
-    const result = await updateCaseFileDetailsFormAction(
+    const result = await validateCaseFileQualificationFormAction(
       null,
       buildFormData({
         jurisdictionCode: "TA069",
@@ -152,7 +153,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
       },
     });
 
-    const result = await updateCaseFileDetailsFormAction(
+    const result = await validateCaseFileQualificationFormAction(
       null,
       buildFormData({
         jurisdictionCode: "TA069",
@@ -179,7 +180,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
       data: { summary: "Ancienne raison" },
     });
 
-    const result = await updateCaseFileDetailsFormAction(
+    const result = await validateCaseFileQualificationFormAction(
       null,
       buildFormData({
         jurisdictionCode: "TA069",
@@ -199,7 +200,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
   });
 
   it("persiste l'échéance à produire lorsque les champs dédiés sont envoyés", async () => {
-    const result = await updateCaseFileDetailsFormAction(
+    const result = await validateCaseFileQualificationFormAction(
       null,
       buildFormData({
         jurisdictionCode: "TA069",
@@ -230,7 +231,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
       },
     });
 
-    const result = await updateCaseFileDetailsFormAction(
+    const result = await validateCaseFileQualificationFormAction(
       null,
       buildFormData({
         jurisdictionCode: "TA069",
@@ -261,7 +262,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
       },
     });
 
-    const result = await updateCaseFileDetailsFormAction(
+    const result = await validateCaseFileQualificationFormAction(
       null,
       buildFormData({
         jurisdictionCode: "TA069",
@@ -282,7 +283,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
   });
 
   it("refuse un numéro de dossier manquant", async () => {
-    const result = await updateCaseFileDetailsFormAction(
+    const result = await validateCaseFileQualificationFormAction(
       null,
       buildFormData({
         litigationType: "REFERE",
@@ -295,7 +296,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
   });
 
   it("refuse un type de contentieux invalide", async () => {
-    const result = await updateCaseFileDetailsFormAction(
+    const result = await validateCaseFileQualificationFormAction(
       null,
       buildFormData({
         jurisdictionCode: "TA069",
@@ -314,7 +315,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
   });
 
   it("refuse une date limite de production manquante lorsque le type est renseigné", async () => {
-    const result = await updateCaseFileDetailsFormAction(
+    const result = await validateCaseFileQualificationFormAction(
       null,
       buildFormData({
         jurisdictionCode: "TA069",
@@ -331,7 +332,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
   });
 
   it("retourne une erreur lorsque le dossier n'existe pas", async () => {
-    const result = await updateCaseFileDetailsFormAction(
+    const result = await validateCaseFileQualificationFormAction(
       null,
       buildFormData({
         caseFileNumber: "INEXISTANT",
@@ -381,7 +382,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
     it("attache les tags sélectionnés au dossier", async () => {
       const { urgent, relancer } = await seedTags();
 
-      const result = await updateCaseFileDetailsFormAction(
+      const result = await validateCaseFileQualificationFormAction(
         null,
         buildTagsFormData([urgent, relancer]),
       );
@@ -394,18 +395,18 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
 
     it("remplace intégralement le jeu de tags", async () => {
       const { urgent, relancer } = await seedTags();
-      await updateCaseFileDetailsFormAction(null, buildTagsFormData([urgent, relancer]));
+      await validateCaseFileQualificationFormAction(null, buildTagsFormData([urgent, relancer]));
 
-      await updateCaseFileDetailsFormAction(null, buildTagsFormData([relancer]));
+      await validateCaseFileQualificationFormAction(null, buildTagsFormData([relancer]));
 
       expect(await currentTagIds()).toEqual([relancer]);
     });
 
     it("retire tous les tags quand la sélection est vide", async () => {
       const { urgent } = await seedTags();
-      await updateCaseFileDetailsFormAction(null, buildTagsFormData([urgent]));
+      await validateCaseFileQualificationFormAction(null, buildTagsFormData([urgent]));
 
-      await updateCaseFileDetailsFormAction(null, buildTagsFormData([]));
+      await validateCaseFileQualificationFormAction(null, buildTagsFormData([]));
 
       expect(await currentTagIds()).toEqual([]);
     });
@@ -413,7 +414,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
     it("dédoublonne les identifiants envoyés deux fois", async () => {
       const { urgent } = await seedTags();
 
-      const result = await updateCaseFileDetailsFormAction(
+      const result = await validateCaseFileQualificationFormAction(
         null,
         buildTagsFormData([urgent, urgent]),
       );
@@ -425,10 +426,13 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
     // The ids travel in hidden inputs, so they are forgeable.
     it("refuse un identifiant de tag inexistant", async () => {
       const { urgent } = await seedTags();
-      await updateCaseFileDetailsFormAction(null, buildTagsFormData([urgent]));
+      await validateCaseFileQualificationFormAction(null, buildTagsFormData([urgent]));
       vi.mocked(revalidatePath).mockClear();
 
-      const result = await updateCaseFileDetailsFormAction(null, buildTagsFormData([999999]));
+      const result = await validateCaseFileQualificationFormAction(
+        null,
+        buildTagsFormData([999999]),
+      );
 
       expect(result).toEqual({ ok: false, error: "Tag introuvable." });
       expect(await currentTagIds()).toEqual([urgent]);
@@ -443,7 +447,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
       });
       formData.append("tagIds", "abc");
 
-      expect(await updateCaseFileDetailsFormAction(null, formData)).toEqual({
+      expect(await validateCaseFileQualificationFormAction(null, formData)).toEqual({
         ok: false,
         error: "Tag invalide.",
       });
@@ -453,9 +457,9 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
     // must never clear the tags it did not show.
     it("ne touche pas aux tags quand le champ n'a pas été rendu", async () => {
       const { urgent } = await seedTags();
-      await updateCaseFileDetailsFormAction(null, buildTagsFormData([urgent]));
+      await validateCaseFileQualificationFormAction(null, buildTagsFormData([urgent]));
 
-      await updateCaseFileDetailsFormAction(
+      await validateCaseFileQualificationFormAction(
         null,
         buildFormData({ caseFileNumber: CASE_FILE_NUMBER, litigationType: "REFERE" }),
       );
@@ -465,7 +469,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
 
     it("interdit la suppression d'un tag encore utilisé", async () => {
       const { urgent } = await seedTags();
-      await updateCaseFileDetailsFormAction(null, buildTagsFormData([urgent]));
+      await validateCaseFileQualificationFormAction(null, buildTagsFormData([urgent]));
 
       // The `Restrict` foreign key is the last-resort guard behind the count
       // check performed by the admin delete action.
@@ -474,7 +478,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
 
     it("détache les tags quand le dossier est supprimé", async () => {
       const { urgent } = await seedTags();
-      await updateCaseFileDetailsFormAction(null, buildTagsFormData([urgent]));
+      await validateCaseFileQualificationFormAction(null, buildTagsFormData([urgent]));
 
       await testPrisma.caseFile.delete({ where: CASE_FILE_WHERE });
 
@@ -527,7 +531,7 @@ describe("updateCaseFileDetailsFormAction (integration)", () => {
     }
 
     async function editDetails() {
-      return updateCaseFileDetailsFormAction(
+      return validateCaseFileQualificationFormAction(
         null,
         buildFormData({
           jurisdictionCode: "TA069",
@@ -712,23 +716,6 @@ describe("validateCaseFileQualificationFormAction (integration)", () => {
     expect(result).toEqual({ ok: false, error: "Dossier introuvable." });
     const unchanged = await testPrisma.caseFile.findUniqueOrThrow({ where: CASE_FILE_WHERE });
     expect(unchanged.qualificationValidatedAt).toBeNull();
-  });
-
-  it("n'horodate pas la validation depuis la modale Détails du dossier", async () => {
-    await updateCaseFileDetailsFormAction(
-      null,
-      buildFormData({
-        jurisdictionCode: "TA069",
-        caseFileNumber: CASE_FILE_NUMBER,
-        litigationType: "REFERE",
-        comDaloNumber: "ignored",
-      }),
-    );
-
-    const updated = await testPrisma.caseFile.findUniqueOrThrow({ where: CASE_FILE_WHERE });
-    expect(updated.litigationType).toBe("REFERE");
-    expect(updated.qualificationValidatedAt).toBeNull();
-    expect(updated.comDaloNumber).toBeNull();
   });
 });
 
