@@ -68,6 +68,17 @@ function scopeWhere(scope: CaseFileScope): Prisma.CaseFileWhereInput {
   return scope.unrestricted ? {} : { jurisdictionId: { in: scope.jurisdictionIds } };
 }
 
+// In-memory counterpart of `scopeWhere`, for a case file already loaded through
+// another (scoped) record. Same rule: a null jurisdiction is only visible to an
+// unrestricted administrator.
+export function isJurisdictionInScope(
+  scope: CaseFileScope,
+  jurisdictionId: number | null,
+): boolean {
+  if (scope.unrestricted) return true;
+  return jurisdictionId !== null && scope.jurisdictionIds.includes(jurisdictionId);
+}
+
 // WHERE fragment to merge into every CaseFile query. An empty scope yields
 // `IN ()`, which matches nothing — including case files with no jurisdiction at
 // all. An administrator with no assigned jurisdiction gets an empty fragment,

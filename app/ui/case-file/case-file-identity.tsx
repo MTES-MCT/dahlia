@@ -4,6 +4,7 @@ import Link from "next/link";
 import clsx from "clsx";
 import { statusBadgeAccentuationClassName } from "@/app/lib/status-badge-accentuation";
 import { type CaseFileTagView } from "@/app/lib/case-file-tags";
+import { CaseFileTelerecoursTitle } from "@/app/ui/case-file/case-file-telerecours-title";
 import { TagBadge } from "@/app/ui/case-file/tag-badge";
 
 export function CaseFileTagList({ tags }: { tags: CaseFileTagView[] }) {
@@ -51,7 +52,6 @@ export function CaseFileIdentity({
   name,
   actions,
 }: CaseFileIdentityProps) {
-  const trimmedTitle = title?.trim();
   const isHeading = name.kind === "heading";
 
   const identity = (
@@ -62,11 +62,7 @@ export function CaseFileIdentity({
         <Link href={name.href}>{displayName}</Link>
       )}
 
-      {trimmedTitle ? (
-        <p className={clsx(fr.cx("fr-mb-1v", "fr-mt-1v"), "text-(--text-mention-grey) italic")}>
-          {trimmedTitle}
-        </p>
-      ) : null}
+      <CaseFileTelerecoursTitle title={title} displayName={displayName} />
 
       <div className={clsx(!isHeading && fr.cx("fr-mt-1v"))}>
         <Badge as="span" noIcon className={fr.cx(statusBadgeAccentuationClassName(statusLabel))}>
