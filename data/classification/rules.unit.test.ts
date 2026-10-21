@@ -112,9 +112,10 @@ const cases: {
     },
   },
   {
-    // Execution of a judgment: the procedure itself stays to be qualified.
+    // Execution of a judgment: an injunction litigation.
     title: "DAHO - exe jugt ordonnance du 23/09/24",
     expected: {
+      litigationType: "INJONCTION",
       rightType: "DAHO",
       summary: "Exécution de jugement",
     },
@@ -205,7 +206,11 @@ const cases: {
   },
   {
     title: "DAHO -demande execution de jugement du 18/10/2023",
-    expected: { litigationType: "INJONCTION", rightType: "DAHO" },
+    expected: {
+      litigationType: "INJONCTION",
+      rightType: "DAHO",
+      summary: "Exécution de jugement",
+    },
   },
   {
     title: "LOGEMENT-DALO  REFUS LOGEMENT PROPOSE  DECISION DU 4/10/17",

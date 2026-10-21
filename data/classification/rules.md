@@ -155,20 +155,24 @@ piste.
 
 Ces règles ne touchent ni au contentieux ni à la raison.
 
-### B. Situations qui ne qualifient **pas** la procédure (`summary` seulement)
+### B. Situations au libellé prioritaire (`summary`, parfois `litigationType`)
 
-Libellés plus parlants que le type de recours, mais qui **ne disent pas** s’il
-s’agit d’un REP, d’une injonction, etc. Elles viennent **avant** la section C
-pour que le `summary` soit déjà pris : une liquidation d’astreinte plus bas ne
-pourra plus l’écraser.
+Libellés plus parlants que le type de recours. Elles viennent **avant** la
+section C pour que le `summary` soit déjà pris : une liquidation d’astreinte
+plus bas ne pourra plus l’écraser.
 
-| Id                                      | Raison posée                     | Ne pose pas      |
-| --------------------------------------- | -------------------------------- | ---------------- |
-| `situation-execution-jugement`          | Exécution de jugement            | `litigationType` |
-| `situation-carence-hebergement-urgence` | Carence en hébergement d’urgence | `litigationType` |
+| Id                                      | Raison posée                     | `litigationType`         |
+| --------------------------------------- | -------------------------------- | ------------------------ |
+| `situation-execution-jugement`          | Exécution de jugement            | `INJONCTION`             |
+| `situation-carence-hebergement-urgence` | Carence en hébergement d’urgence | _(aucun — laissé à C–E)_ |
 
-Le type de contentieux, s’il est identifiable par ailleurs, sera posé par C
-(ou D, ou E).
+`situation-execution-jugement` couvre « exécution du jugement / de la décision
+/ de l’ordonnance », « exe jugt » et « demande (d’)exécution ». Comme elle pose
+aussi `INJONCTION`, ce type l’emporte sur les marqueurs de la section C (par
+exemple une liquidation d’astreinte citée dans le même titre).
+
+Pour `situation-carence-hebergement-urgence`, le type de contentieux, s’il est
+identifiable par ailleurs, sera posé par C (ou D, ou E).
 
 ### C. Type de contentieux (marqueurs explicites)
 
@@ -197,7 +201,6 @@ Le titre décrit un **fait** d’où l’on infère le recours, sans le nommer.
 | `situation-rejet-commission`                 | REP — recours contre le rejet de la commission      | La commission est nommée : c’est le libellé le plus précis                     |
 | `situation-refus-reconnaissance-prioritaire` | REP — refus de reconnaissance prioritaire           | **Après** la précédente : si la commission est citée, on préfère son `summary` |
 | `situation-sortie-dispositif`                | Injonction — recours contre la sortie du dispositif |                                                                                |
-| `situation-demande-execution`                | Injonction (le `summary` vient de B)                |                                                                                |
 | `situation-refus-logement`                   | Injonction — refus de logement                      |                                                                                |
 | `situation-absence-proposition-logement`     | Injonction DALO                                     |                                                                                |
 | `situation-absence-proposition-hebergement`  | Injonction DAHO                                     | Le `rightType` DAHO a déjà été posé en A                                       |
@@ -265,8 +268,9 @@ Si un attribut manque dans cette ligne, aucune règle ne l’a produit (ou il
 2. Écrire le `pattern` contre du texte **normalisé**. Vérifier avec
    `normalizeText("titre réel")` si le motif est ambigu.
 3. Ne renseigner que les attributs que la règle **doit** poser. Pour un
-   `summary` plus informatif que le libellé de contentieux, omettre
-   `litigationType` et mettre la règle en B.
+   `summary` plus informatif que le libellé de contentieux, mettre la règle en
+   B ; n’y ajouter `litigationType` que s’il doit primer sur les marqueurs de
+   la section C.
 4. Ajouter des `examples` : des titres **réels**, pas inventés. Le test
    `rules.unit.test.ts` garantit que chaque exemple est reconnu **par cette
    règle** et qu’aucune règle **au-dessus** ne lui prend ses attributs.

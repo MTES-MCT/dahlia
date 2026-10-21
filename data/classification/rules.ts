@@ -21,9 +21,10 @@ import type { ClassificationRule } from "./types";
 //                     then explicit acronym (DALO/DAHO) before the generic wording
 //                     (logement/hébergement), so "DALO : absence de proposition
 //                     d'hébergement" stays a DALO case file.
-//   B. situations that do NOT qualify the procedure — they only feed `summary`,
-//                     which is why they come before section C: their wording is
-//                     more informative than the litigation label itself.
+//   B. situations with a priority summary — their wording is more informative
+//                     than the litigation label itself, which is why they come
+//                     before section C. Some also set `litigationType`, which
+//                     then wins over the explicit markers of section C.
 //   C. litigation   — explicit procedure markers.
 //   D. situations that DO qualify the procedure — `summary` + `litigationType`.
 //   E. generic fallback — evaluated last, fills only what is still missing.
@@ -104,19 +105,21 @@ export const DEFAULT_RULES: readonly ClassificationRule[] = [
     examples: ["LOGEMENT - Liquidation d'astreinte"],
   },
 
-  // ───── B. Situations that do not qualify the procedure (summary only) ─────
+  // ───── B. Situations with a priority summary ─────
   {
     id: "situation-execution-jugement",
     description:
-      "Demande d'exécution d'un jugement / d'une ordonnance (le type de contentieux reste à qualifier)",
+      "Demande d'exécution d'un jugement / d'une décision / d'une ordonnance : recours injonction",
     pattern:
-      /\bexecution (du |de la |d une |d un )?(jugement|decision|ordonnance)\b|\bexe jugt\b|\bdemande d execution\b/,
+      /\bexecution (du |de la |d une |d un )?(jugement|decision|ordonnance)\b|\bexe jugt\b|\bdemande (d )?execution\b/,
     litigationType: "INJONCTION",
     summary: "Exécution de jugement",
     examples: [
       "Exécution du jugement du 23/11/2020",
       "DAHO - exe jugt ordonnance du 23/09/24",
+      "DAHO -demande execution de jugement du 18/10/2023",
       "DALO_Demande d'exécution décision TA 2501186",
+      "DALO_Demande d'exécution ordonance TA 2403103 du 26/07/24",
       "EXECUTION JUGEMENT - recours contre rejet commission dalo -ordonance 2207297",
     ],
   },
@@ -262,18 +265,6 @@ export const DEFAULT_RULES: readonly ClassificationRule[] = [
     examples: [
       "DALO_Recours sortie du dispositif - Décision du 02/03/2026",
       "DALO_Contestation sortie du dispositif DALO",
-    ],
-  },
-  {
-    // Only provides the litigation type: the summary "Exécution de jugement"
-    // is already set by `situation-execution-jugement` (section B).
-    id: "situation-demande-execution",
-    description: "Demande d'exécution (d'un jugement, d'une décision) : recours injonction",
-    pattern: /\bdemande (d )?execution\b/,
-    litigationType: "INJONCTION",
-    examples: [
-      "DAHO -demande execution de jugement du 18/10/2023",
-      "DALO_Demande d'exécution ordonance TA 2403103 du 26/07/24",
     ],
   },
   {
