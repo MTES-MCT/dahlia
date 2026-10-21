@@ -212,4 +212,40 @@ describe("CaseFileQualificationPanel", () => {
       "max-w-48",
     );
   });
+
+  it("signale « Qualification automatique à valider » sur les seuls champs à revoir", () => {
+    renderPanel({ fieldsToReview: ["litigationType"] });
+
+    const litigationGroup = screen
+      .getByRole("combobox", { name: /Type de contentieux/ })
+      .closest(".fr-select-group") as HTMLElement;
+    const rightGroup = screen
+      .getByRole("combobox", { name: /Droit opposable/ })
+      .closest(".fr-select-group") as HTMLElement;
+
+    expect(litigationGroup.className).toContain("fr-select-group--error");
+    expect(litigationGroup.textContent).toContain("Qualification automatique à valider");
+    expect(rightGroup.className).not.toContain("fr-select-group--error");
+    expect(rightGroup.textContent).not.toContain("Qualification automatique à valider");
+  });
+
+  it("n'affiche aucun statut de champ quand rien n'est à revoir", () => {
+    renderPanel({ reviewState: "validated", fieldsToReview: [] });
+
+    expect(screen.queryByText("Qualification automatique à valider")).toBeNull();
+  });
+
+  it("désactive l'autocomplétion sur tous les champs, pour que Firefox ne restaure pas d'anciennes valeurs au rechargement", () => {
+    // Under instruction and with a tag: renders the deadline fields and the
+    // tag hidden inputs too.
+    renderPanel({ statusLabel: "En cours d'instruction" });
+
+    const form = document.querySelector("form") as HTMLFormElement;
+    const controls = [...form.querySelectorAll("input, select, textarea")];
+    expect(controls.length).toBeGreaterThan(8);
+    const missing = controls
+      .filter((control) => control.getAttribute("autocomplete") !== "off")
+      .map((control) => control.getAttribute("name") ?? control.outerHTML);
+    expect(missing).toEqual([]);
+  });
 });
