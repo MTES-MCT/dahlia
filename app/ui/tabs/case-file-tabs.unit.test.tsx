@@ -3,6 +3,7 @@ import { render, screen, cleanup } from "@testing-library/react";
 import { CaseFileTabs } from "./case-file-tabs";
 import { fetchCaseFilePiecesFiltered } from "@/app/lib/data/attached-files";
 import { fetchCaseFileEventsTableData } from "@/app/lib/data/case-file-events";
+import { fetchRelatedCaseFiles } from "@/app/lib/data/related-case-files";
 import { fetchCaseFileDebugSnapshot, type CaseFileDetail } from "@/app/lib/data/case-files";
 import type { CaseFilePiece } from "@/app/lib/data/attached-files";
 import type { CaseFileEventsTableData } from "@/app/lib/data/case-file-events";
@@ -20,6 +21,10 @@ vi.mock(
     savePieceMetadataAction: vi.fn(),
   }),
 );
+
+vi.mock("@/app/lib/data/related-case-files", () => ({
+  fetchRelatedCaseFiles: vi.fn(),
+}));
 
 vi.mock("@/app/lib/data/case-file-events", () => ({
   fetchCaseFileEventsTableData: vi.fn(),
@@ -106,8 +111,9 @@ const debugSnapshot = {
 const mockCaseFile = {
   caseFileNumber: "TA069-2026-001",
   updatedAt: new Date("2026-01-01T12:00:00"),
+  caseFileActors: [],
   _count: { events: 4, attachedFiles: 2 },
-} as NonNullable<CaseFileDetail>;
+} as unknown as NonNullable<CaseFileDetail>;
 
 const baseProps = {
   caseFile: mockCaseFile,
@@ -124,6 +130,7 @@ describe("CaseFileTabs", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(fetchCaseFilePiecesFiltered).mockResolvedValue(pieces);
+    vi.mocked(fetchRelatedCaseFiles).mockResolvedValue([]);
     vi.mocked(fetchCaseFileEventsTableData).mockResolvedValue(historiqueTable);
     vi.mocked(fetchCaseFileDebugSnapshot).mockResolvedValue(debugSnapshot);
   });
@@ -167,9 +174,11 @@ describe("CaseFileTabs", () => {
     );
   });
 
-  it("ne charge aucune donnée d'onglet sur la synthèse", async () => {
+  it("charge uniquement les dossiers liés sur la synthèse", async () => {
     await renderCaseFileTabs({ ...baseProps, tab: "synthese" });
 
+    expect(fetchRelatedCaseFiles).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("heading", { name: "Informations du dossier" })).toBeTruthy();
     expect(fetchCaseFilePiecesFiltered).not.toHaveBeenCalled();
     expect(fetchCaseFileEventsTableData).not.toHaveBeenCalled();
     expect(fetchCaseFileDebugSnapshot).not.toHaveBeenCalled();
@@ -226,6 +235,7 @@ describe("CaseFileTabs", () => {
     await renderCaseFileTabs({ ...baseProps, tab: "pieces" });
 
     expect(fetchCaseFilePiecesFiltered).toHaveBeenCalledTimes(1);
+    expect(fetchRelatedCaseFiles).not.toHaveBeenCalled();
     expect(fetchCaseFileEventsTableData).not.toHaveBeenCalled();
     expect(fetchCaseFileDebugSnapshot).not.toHaveBeenCalled();
   });
