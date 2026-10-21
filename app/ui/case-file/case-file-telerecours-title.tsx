@@ -15,7 +15,7 @@ export function CaseFileTelerecoursTitle({ title, displayName }: Props) {
   if (!trimmedTitle || trimmedTitle === displayName.trim()) return null;
 
   return (
-    <p className={clsx(fr.cx("fr-mb-1v", "fr-mt-1v"), "text-(--text-mention-grey) italic")}>
+    <p className={clsx(fr.cx("fr-my-1v"), "text-(--text-mention-grey) italic")}>
       {trimmedTitle}
     </p>
   );
