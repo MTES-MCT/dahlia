@@ -55,6 +55,7 @@ const pieces = [
     fileName: "requete.pdf",
     dahliaName: null,
     comment: null,
+    isFavorite: false,
     mimeType: "application/pdf",
     fileTypeLabel: "Requête",
     fileFamilyTypeLabel: "Requête",

@@ -41,6 +41,8 @@ model AttachedFile {
   dahliaName String?
   number     String?
   comment    String?
+  // Shared by every agent of the case file: favorites are listed first.
+  isFavorite Boolean @default(false)
 
   caseFileNumber String
   caseFile       CaseFile @relation(fields: [jurisdictionCode, caseFileNumber], references: [jurisdictionCode, caseFileNumber], onDelete: Cascade)
