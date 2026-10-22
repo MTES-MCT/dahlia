@@ -112,7 +112,6 @@ export async function CaseFileTabs({
   const workspacePieces: WorkspacePiece[] | null =
     pieces?.map((piece) => ({
       encodedFileId: piece.encodedFileId,
-      number: piece.number,
       fileName: piece.fileName,
       dahliaName: piece.dahliaName,
       comment: piece.comment,

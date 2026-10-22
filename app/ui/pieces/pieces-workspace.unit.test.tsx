@@ -13,7 +13,6 @@ vi.mock(
 const pieces: WorkspacePiece[] = [
   {
     encodedFileId: "f1",
-    number: "001",
     fileName: "requete.pdf",
     dahliaName: "Requête introductive",
     comment: "À vérifier",
@@ -23,7 +22,6 @@ const pieces: WorkspacePiece[] = [
   },
   {
     encodedFileId: "f2",
-    number: null,
     fileName: "annexe.pdf",
     dahliaName: null,
     comment: null,
@@ -58,7 +56,7 @@ describe("PiecesWorkspace", () => {
   it("liste toutes les pièces avec le libellé DAHLIA ou le nom original", () => {
     renderWorkspace();
     const nav = sidebar();
-    expect(within(nav).getByRole("button", { name: /001 - Requête introductive/ })).toBeTruthy();
+    expect(within(nav).getByRole("button", { name: /Requête introductive/ })).toBeTruthy();
     expect(within(nav).getByRole("button", { name: /annexe\.pdf/ })).toBeTruthy();
   });
 

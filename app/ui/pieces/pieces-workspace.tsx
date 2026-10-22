@@ -16,7 +16,6 @@ import { PieceViewer } from "@/app/ui/piece-viewer";
 // are precomputed on the server (the viewer only needs a URL).
 export type WorkspacePiece = {
   encodedFileId: string;
-  number: string | null;
   fileName: string;
   dahliaName: string | null;
   comment: string | null;
@@ -27,7 +26,6 @@ export type WorkspacePiece = {
 
 type Override = {
   dahliaName: string | null;
-  number: string | null;
   comment: string | null;
 };
 
@@ -411,7 +409,6 @@ function PieceDetail({ caseFileKey, piece, editing, onEdit, onCancel, onSaved }:
       ) : (
         <div className={clsx("shrink-0", fr.cx("fr-mb-3w"))}>
           <div className={clsx("flex", "items-baseline", "gap-2", fr.cx("fr-mb-1w"))}>
-            {piece.number && <strong>{piece.number}</strong>}
             <h2 className={fr.cx("fr-h5", "fr-mb-0")}>{name}</h2>
           </div>
           {piece.dahliaName && (
@@ -451,7 +448,6 @@ type FormProps = {
 
 function PieceDetailForm({ caseFileKey, piece, onCancel, onSaved }: FormProps) {
   const [dahliaName, setDahliaName] = useState(piece.dahliaName ?? piece.fileName);
-  const [number, setNumber] = useState(piece.number ?? "");
   const [comment, setComment] = useState(piece.comment ?? "");
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -465,13 +461,11 @@ function PieceDetailForm({ caseFileKey, piece, onCancel, onSaved }: FormProps) {
 
       const result = await savePieceMetadataAction(caseFileKey, piece.encodedFileId, {
         dahliaName: dahliaNameToSave,
-        number,
         comment,
       });
       if (result.ok) {
         onSaved(piece.encodedFileId, {
           dahliaName: dahliaNameToSave || null,
-          number: number.trim() || null,
           comment: comment.trim() || null,
         });
       } else {
@@ -482,26 +476,14 @@ function PieceDetailForm({ caseFileKey, piece, onCancel, onSaved }: FormProps) {
 
   return (
     <form onSubmit={handleSubmit} className={clsx("shrink-0", fr.cx("fr-mb-3w"))}>
-      <div className={fr.cx("fr-grid-row", "fr-grid-row--gutters")}>
-        <Input
-          label="Numéro"
-          nativeInputProps={{
-            value: number,
-            onChange: (event) => setNumber(event.target.value),
-            inputMode: "numeric",
-            pattern: "[0-9]*",
-          }}
-          className={fr.cx("fr-col-12", "fr-col-md-3", "fr-mb-1w")}
-        />
-        <Input
-          label="Nom sur DAHLIA"
-          nativeInputProps={{
-            value: dahliaName,
-            onChange: (event) => setDahliaName(event.target.value),
-          }}
-          className={fr.cx("fr-col-12", "fr-col-md-9", "fr-mb-1w")}
-        />
-      </div>
+      <Input
+        label="Nom sur DAHLIA"
+        nativeInputProps={{
+          value: dahliaName,
+          onChange: (event) => setDahliaName(event.target.value),
+        }}
+        className={fr.cx("fr-mb-1w")}
+      />
       <Input
         label="Commentaire"
         textArea

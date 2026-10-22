@@ -56,7 +56,6 @@ describe("linkRelatedCaseFiles", () => {
     const IMPORT = {
       anonymize: false,
       enrich: false,
-      updatePieceNumbers: false,
       updatePieceName: false,
     };
 

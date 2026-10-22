@@ -16,7 +16,6 @@ const PIECES_LIST_SELECT = {
   encodedFileId: true,
   fileName: true,
   dahliaName: true,
-  number: true,
   comment: true,
   mimeType: true,
   fileTypeLabel: true,

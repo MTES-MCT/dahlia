@@ -1,14 +1,11 @@
 export type PieceLabelInput = {
-  number?: string | null;
   fileName: string;
   dahliaName?: string | null;
 };
 
 // User-facing label for a pièce: DAHLIA name when set, otherwise Télérecours filename.
 export function pieceDisplayLabel(piece: PieceLabelInput): string {
-  return piece.dahliaName
-    ? (piece.number ? `${piece.number} - ` : "") + piece.dahliaName
-    : piece.fileName;
+  return piece.dahliaName || piece.fileName;
 }
 
 function fileExtension(fileName: string): string {
