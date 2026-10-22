@@ -17,6 +17,7 @@ const pieces: WorkspacePiece[] = [
     dahliaName: "Requête introductive",
     comment: "À vérifier",
     typeLabel: "Requête",
+    eventDate: "12/03/2026",
     dataUrl: "/data/f1",
     viewerMimeType: "application/pdf",
   },
@@ -26,6 +27,7 @@ const pieces: WorkspacePiece[] = [
     dahliaName: null,
     comment: null,
     typeLabel: "Mémoire",
+    eventDate: "",
     dataUrl: "/data/f2",
     viewerMimeType: "application/pdf",
   },
@@ -77,6 +79,13 @@ describe("PiecesWorkspace", () => {
     const nav = sidebar();
     expect(within(nav).getByRole("button", { name: /Requête introductive/ })).toBeTruthy();
     expect(within(nav).getByRole("button", { name: /annexe\.pdf/ })).toBeTruthy();
+  });
+
+  it("affiche dans la liste le nom de fichier et la date de l'événement de la pièce", () => {
+    renderWorkspace();
+    const button = within(sidebar()).getByRole("button", { name: /Requête introductive/ });
+    expect(within(button).getByText("requete.pdf")).toBeTruthy();
+    expect(within(button).getByText("12/03/2026")).toBeTruthy();
   });
 
   it("affiche la première pièce dans le panneau de détail par défaut", () => {
@@ -147,6 +156,38 @@ describe("PiecesWorkspace", () => {
     ).toBe(true);
 
     fireEvent.click(screen.getByRole("button", { name: "Pièce précédente" }));
+    expect(screen.getByRole("heading", { name: "Requête introductive" })).toBeTruthy();
+  });
+
+  it("change de pièce avec les flèches haut et bas du clavier", () => {
+    renderWorkspace();
+
+    fireEvent.keyDown(window, { key: "ArrowDown" });
+    expect(screen.getByRole("heading", { name: "annexe.pdf" })).toBeTruthy();
+    // Already on the last pièce: nothing changes.
+    fireEvent.keyDown(window, { key: "ArrowDown" });
+    expect(screen.getByRole("heading", { name: "annexe.pdf" })).toBeTruthy();
+
+    fireEvent.keyDown(window, { key: "ArrowUp" });
+    expect(screen.getByRole("heading", { name: "Requête introductive" })).toBeTruthy();
+  });
+
+  it("change de pièce avec les flèches droite et gauche du clavier", () => {
+    renderWorkspace();
+
+    fireEvent.keyDown(window, { key: "ArrowRight" });
+    expect(screen.getByRole("heading", { name: "annexe.pdf" })).toBeTruthy();
+
+    fireEvent.keyDown(window, { key: "ArrowLeft" });
+    expect(screen.getByRole("heading", { name: "Requête introductive" })).toBeTruthy();
+  });
+
+  it("ignore les flèches du clavier pendant la saisie dans un champ", () => {
+    vi.mocked(savePieceMetadataAction).mockResolvedValue({ ok: true });
+    renderWorkspace();
+    fireEvent.click(screen.getByRole("button", { name: /Éditer/ }));
+
+    fireEvent.keyDown(within(editModal()).getByLabelText("Nom sur DAHLIA"), { key: "ArrowDown" });
     expect(screen.getByRole("heading", { name: "Requête introductive" })).toBeTruthy();
   });
 

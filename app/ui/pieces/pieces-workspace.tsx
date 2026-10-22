@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import clsx from "clsx";
 import { fr } from "@codegouvfr/react-dsfr";
 import { Button } from "@codegouvfr/react-dsfr/Button";
@@ -27,6 +27,8 @@ export type WorkspacePiece = {
   dahliaName: string | null;
   comment: string | null;
   typeLabel: string | null;
+  // Event creation date, formatted on the server (dd/mm/yyyy, empty when absent).
+  eventDate: string;
   dataUrl: string;
   viewerMimeType: string;
 };
@@ -43,6 +45,18 @@ type Props = {
   // back to the first pièce when unknown.
   initialPieceId?: string;
 };
+
+// Arrow keys switching the shown pièce: up/left → previous, down/right → next.
+const PIECE_NAVIGATION_KEYS: Record<string, "previous" | "next"> = {
+  ArrowUp: "previous",
+  ArrowLeft: "previous",
+  ArrowDown: "next",
+  ArrowRight: "next",
+};
+
+// Keyboard targets where the arrow keys keep their native meaning (text
+// editing, select, the edit modal) instead of switching pièce.
+const ARROW_KEYS_IGNORED_TARGETS = "input, textarea, select, dialog, [contenteditable]";
 
 // Parse the RFC 6266 filename out of a Content-Disposition header, if any.
 function filenameFromDisposition(header: string | null): string | undefined {
@@ -103,6 +117,32 @@ export function PiecesWorkspace({ caseFileKey, pieces, initialPieceId }: Props) 
     setEditGeneration((generation) => generation + 1);
     pieceEditModal.open();
   }
+
+  // Arrow keys show the previous / next pièce, like the header arrows.
+  const previousId = previous?.encodedFileId ?? null;
+  const nextId = next?.encodedFileId ?? null;
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      const direction = PIECE_NAVIGATION_KEYS[event.key];
+      if (!direction) return;
+      if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+      if (event.target instanceof Element && event.target.closest(ARROW_KEYS_IGNORED_TARGETS)) {
+        return;
+      }
+      const targetId = direction === "previous" ? previousId : nextId;
+      if (!targetId) return;
+      event.preventDefault();
+      setCurrentId(targetId);
+      setSelectedIds(new Set([targetId]));
+      // Keep the newly shown pièce visible in the sidebar list.
+      document
+        .getElementById(`piece-select-${targetId}`)
+        ?.closest("li")
+        ?.scrollIntoView?.({ block: "nearest" });
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [previousId, nextId]);
 
   return (
     <div className={clsx("flex", "min-h-100", "flex-1", "flex-col", "md:flex-row")}>
@@ -265,12 +305,14 @@ function PiecesSidebar({
 
         <ul
           className={clsx(
-            fr.cx("fr-raw-list"),
+            fr.cx("fr-raw-list", "fr-p-1w"),
             "m-0",
+            "flex",
             "min-h-0",
             "flex-1",
+            "flex-col",
+            "gap-1",
             "overflow-y-auto",
-            "p-0",
           )}
         >
           {pieces.map((piece) => {
@@ -279,13 +321,24 @@ function PiecesSidebar({
             const label = pieceDisplayLabel(piece);
             return (
               <li key={id}>
+                {/* Mockup highlight: blue tint + 3px left bar on the shown pièce,
+                    grey tint on hover for the others. */}
                 <div
                   className={clsx(
                     "flex",
                     "items-start",
                     "gap-2",
-                    fr.cx("fr-px-2w", "fr-py-1v"),
-                    isCurrent && "bg-(--background-open-blue-france)",
+                    fr.cx("fr-px-1w", "fr-py-1w"),
+                    "rounded",
+                    "border-0",
+                    "border-l-3",
+                    "border-solid",
+                    isCurrent
+                      ? clsx(
+                          "bg-(--background-alt-blue-france)",
+                          "border-(--border-active-blue-france)",
+                        )
+                      : clsx("border-transparent", "hover:bg-(--background-alt-grey)"),
                   )}
                 >
                   <div className="fr-checkbox-group fr-checkbox-group--sm">
@@ -318,23 +371,27 @@ function PiecesSidebar({
                       className={clsx(
                         fr.cx("fr-text--sm", "fr-mb-0"),
                         "block",
-                        "truncate",
-                        isCurrent ? "font-bold" : "font-medium",
+                        "wrap-anywhere",
+                        "font-medium",
                       )}
-                      title={label}
                     >
                       {label}
                     </span>
-                    {piece.dahliaName && (
+                    <CaseFileTelerecoursTitle
+                      title={piece.fileName}
+                      displayName={label}
+                      singleLine
+                      as="span"
+                    />
+                    {piece.eventDate && (
                       <span
                         className={clsx(
                           fr.cx("fr-text--xs", "fr-mb-0"),
-                          "text-grey",
                           "block",
-                          "wrap-break-word",
+                          "text-(--text-mention-grey)",
                         )}
                       >
-                        {piece.fileName}
+                        {piece.eventDate}
                       </span>
                     )}
                     {piece.typeLabel && (
@@ -438,6 +495,7 @@ function PieceHeader({ piece, onPrevious, onNext, onEdit }: HeaderProps) {
             size="small"
             iconId="fr-icon-arrow-left-s-line"
             title="Pièce précédente"
+            nativeButtonProps={{ "aria-keyshortcuts": "ArrowUp ArrowLeft" }}
             onClick={onPrevious}
             disabled={!onPrevious}
           />
@@ -450,6 +508,7 @@ function PieceHeader({ piece, onPrevious, onNext, onEdit }: HeaderProps) {
             size="small"
             iconId="fr-icon-arrow-right-s-line"
             title="Pièce suivante"
+            nativeButtonProps={{ "aria-keyshortcuts": "ArrowDown ArrowRight" }}
             onClick={onNext}
             disabled={!onNext}
           />

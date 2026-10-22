@@ -116,6 +116,7 @@ export async function CaseFileTabs({
       dahliaName: piece.dahliaName,
       comment: piece.comment,
       typeLabel: piece.fileTypeLabel,
+      eventDate: formatDateFr(piece.eventCreationDate),
       dataUrl: `${caseFilePath}/pieces/${encodeURIComponent(piece.encodedFileId)}/data`,
       // Outside production the data route serves a mocked PDF regardless of the
       // real pièce type, so the viewer must render it as a PDF.

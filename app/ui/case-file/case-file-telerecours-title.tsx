@@ -9,24 +9,32 @@ type Props = {
   // Page header and related case files: keep the title on one line, ellipsed
   // when too long (the full title stays available as a tooltip).
   singleLine?: boolean;
+  // `span` where a <p> is not allowed, e.g. inside the pièces sidebar <button>.
+  as?: "p" | "span";
 };
 
 // Télérecours title of a case file, rendered as a grey italic line under its
 // Dahlia display name (detail page header, dashboard cell, related case files).
-export function CaseFileTelerecoursTitle({ title, displayName, singleLine = false }: Props) {
+export function CaseFileTelerecoursTitle({
+  title,
+  displayName,
+  singleLine = false,
+  as: Tag = "p",
+}: Props) {
   const trimmedTitle = title?.trim();
   if (!trimmedTitle || trimmedTitle === displayName.trim()) return null;
 
   return (
-    <p
+    <Tag
       className={clsx(
         fr.cx("fr-text--sm", "fr-my-1v"),
+        Tag === "span" && "block",
         "text-(--text-mention-grey) italic",
         singleLine && "truncate",
       )}
       title={singleLine ? trimmedTitle : undefined}
     >
       {trimmedTitle}
-    </p>
+    </Tag>
   );
 }
