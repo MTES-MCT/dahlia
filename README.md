@@ -298,7 +298,11 @@ sauf si `<JURIDICTION>_TELERECOURS_JURISDICTION` la surcharge :
    le détail enrichi, **toutes** les audiences, les mesures (events) et les pièces
    jointes.
 3. **Phase C** _(sautée si `--enrich none`)_ — crée les liens entre dossiers liés
-   (`related-case-files`) pour les mêmes dossiers cibles.
+   (`related-case-files`) pour les mêmes dossiers cibles. Un dossier lié absent
+   de la base est d'abord importé depuis son détail Télérecours (avec, en
+   `--enrich all`, ses acteurs, audiences, mesures et pièces jointes). Si
+   Télérecours le refuse (compte sans droit sur le dossier, champs requis
+   manquants…), un avertissement est affiché et le lien n'est pas créé.
 4. **Phase D** _(exécutée uniquement avec `--classify`)_ — applique le moteur de
    règles de classification aux dossiers du périmètre (voir « Classification
    automatique des dossiers » plus bas).
