@@ -126,7 +126,7 @@ async function upsertLastDecisionReading(
   });
 }
 
-async function upsertCaseFileDetail(
+export async function upsertCaseFileDetail(
   prisma: PrismaClient,
   key: CaseFileKey,
   detail: CaseFileDetail,
