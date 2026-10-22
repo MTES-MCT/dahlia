@@ -22,6 +22,8 @@ export interface Args {
   // closed), or none (skip phases B and C).
   enrich: EnrichMode;
   updatePieceNumbers: boolean;
+  // Phase B — seed attached files' empty dahliaName from their file name.
+  updatePieceName: boolean;
   // Phases B/C — delete the events, attached files and related-case-file links
   // stored for a case file but no longer returned by Telerecours.
   force: boolean;

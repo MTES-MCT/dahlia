@@ -30,6 +30,35 @@ export function leadingNumber(fileName: string): string | null {
   return match ? match[0] : null;
 }
 
+// A date at the head of a file name (2025-01-17, 18_05_18, 21.01.2025) is kept
+// as text rather than split into piece numbers.
+const LEADING_DATE =
+  /^(?:\d{4}-\d{2}-\d{2}|\d{1,2}[_.-]\d{1,2}[_.-](?:\d{4}|\d{2}))(?=[^\p{L}\p{N}]|$)/u;
+// Piece label before its number (P_34, PJ5, PJ_1, Piece_33, piece_n_4, Pièce n°3).
+const PIECE_PREFIX = /^(?:PJ|P|Pi[eè]ces?)[^\p{L}\p{N}]*(?:n[°o]?[^\p{L}\p{N}]*)?(?=\d)/iu;
+const LEADING_NUMBER = /^(\d+)[^\p{L}\p{N}]*/u;
+
+// Derive a Dahlia display name from a Telerecours file name: drop the ".pdf"
+// extension and piece prefixes (P_, PJ, Pièce n°…), zero-pad every leading
+// number to at least 5 digits, keep leading dates as text, then replace
+// underscores with single spaces in the remaining text.
+// e.g. "P_20261021_34_requête.pdf" → "20261021 00034 requête". Returns null
+// when nothing is left.
+export function pieceNameFromFileName(fileName: string): string | null {
+  let rest = fileName.replace(/\.pdf$/i, "");
+  const numbers: string[] = [];
+  while (!LEADING_DATE.test(rest)) {
+    rest = rest.replace(PIECE_PREFIX, "");
+    const match = rest.match(LEADING_NUMBER);
+    if (!match) break;
+    numbers.push(match[1].padStart(5, "0"));
+    rest = rest.slice(match[0].length);
+  }
+  const text = rest.replace(/_/g, " ").replace(/\s+/g, " ").trim();
+  const name = [...numbers, text].filter(Boolean).join(" ");
+  return name || null;
+}
+
 // Normalize a string for case- and accent-insensitive comparison.
 function normalizeLabel(value: string): string {
   return value
@@ -197,6 +226,7 @@ async function upsertAttachedFile(
   key: CaseFileKey,
   file: AttachedFile,
   updatePieceNumbers: boolean,
+  updatePieceName: boolean,
 ): Promise<{ upserted: boolean; reason?: string }> {
   const { jurisdictionCode } = key;
   // The corresponding event must already have been created by phase B/measures.
@@ -257,6 +287,19 @@ async function upsertAttachedFile(
       number: pieceNumber,
     },
   });
+  // --update-piece-name: seed dahliaName from the file name, only when it is
+  // still null or empty so a manual edit is never overwritten.
+  const pieceName = updatePieceName ? pieceNameFromFileName(file.fileName) : null;
+  if (pieceName) {
+    await prisma.attachedFile.updateMany({
+      where: {
+        jurisdictionCode,
+        encodedFileId: file.encodedFileId,
+        OR: [{ dahliaName: null }, { dahliaName: "" }],
+      },
+      data: { dahliaName: pieceName },
+    });
+  }
   return { upserted: true };
 }
 
@@ -302,6 +345,7 @@ export async function enrichCaseFile(
   anonymize: boolean,
   updatePieceNumbers: boolean = false,
   force: boolean = false,
+  updatePieceName: boolean = false,
 ): Promise<void> {
   // Tag the case file with the jurisdiction this enrichment was fetched from.
   // Also covers the webapp's single-case-file refresh, which never runs phase A.
@@ -364,7 +408,7 @@ export async function enrichCaseFile(
   for await (const file of paginate<AttachedFile>((page) =>
     client.getCaseFileAttachedFiles(caseFileNumber, jurisdiction, page),
   )) {
-    const result = await upsertAttachedFile(prisma, key, file, updatePieceNumbers);
+    const result = await upsertAttachedFile(prisma, key, file, updatePieceNumbers, updatePieceName);
     files.push(file);
     if (result.upserted) {
       filesCount++;
