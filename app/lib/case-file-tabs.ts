@@ -1,3 +1,5 @@
+import { buildBackParams, type CarriedSearchParams } from "@/app/lib/carried-search-params";
+
 export type CaseFileTabId = "synthese" | "historique" | "pieces" | "debug";
 
 const CASE_FILE_TAB_IDS: CaseFileTabId[] = ["synthese", "historique", "pieces", "debug"];
@@ -7,9 +9,16 @@ export const DEFAULT_CASE_FILE_TAB: CaseFileTabId = "synthese";
 // Query param selecting the pièce shown first in the pièces tab.
 export const PIECE_PARAM = "piece";
 
-// URL suffix opening the pièces tab on a given pièce.
-export function pieceTabSuffix(encodedFileId: string): string {
-  return `?${new URLSearchParams({ tab: "pieces", [PIECE_PARAM]: encodedFileId })}`;
+// URL suffix opening the pièces tab on a given pièce. The current query params
+// (dashboard search context carried by the breadcrumb) are kept.
+export function pieceTabSuffix(
+  encodedFileId: string,
+  carriedSearchParams: CarriedSearchParams = {},
+): string {
+  const params = buildBackParams(carriedSearchParams);
+  params.set("tab", "pieces");
+  params.set(PIECE_PARAM, encodedFileId);
+  return `?${params}`;
 }
 
 export type CaseFileSearchParams = Record<string, string | string[] | undefined>;

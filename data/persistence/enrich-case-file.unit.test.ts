@@ -157,6 +157,30 @@ describe("enrichCaseFile", () => {
     );
   });
 
+  it.each([
+    ["REQ", true],
+    ["PRQ", false],
+  ])(
+    "flags a newly created %s pièce as favorite=%s, never on update",
+    async (fileFamilyType, isFavorite) => {
+      prisma.caseFileEvent.findUnique.mockResolvedValue({ id: 90001 } as never);
+      prisma.fileFamilyType.upsert.mockResolvedValue({ code: fileFamilyType, label: "x" } as never);
+      const client = fakeTelerecoursClient({
+        getCaseFileDetail: vi.fn().mockResolvedValue(caseFileDetailFixture()),
+        getCaseFileMeasures: vi.fn().mockResolvedValue(page([eventFixture({ id: 90001 })])),
+        getCaseFileAttachedFiles: vi
+          .fn()
+          .mockResolvedValue(page([attachedFileFixture({ fileFamilyType })])),
+      });
+
+      await enrichCaseFile(prisma, client, "TA069-001", "TA069", true);
+
+      const upsert = prisma.attachedFile.upsert.mock.calls[0][0];
+      expect(upsert.create).toMatchObject({ isFavorite });
+      expect(upsert.update).not.toHaveProperty("isFavorite");
+    },
+  );
+
   it("stamps telerecoursUpdatedAt and telerecoursSyncAt on first sync (no prior hash)", async () => {
     prisma.caseFileEvent.findUnique.mockResolvedValue({ id: 90001 } as never);
     prisma.fileFamilyType.upsert.mockResolvedValue({ code: "REQ", label: "Requête" } as never);

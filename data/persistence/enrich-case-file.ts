@@ -213,6 +213,10 @@ async function upsertCaseFileEvent(
   });
 }
 
+// Télérecours file family ("Requête") flagged as favorite when the pièce is
+// first imported (scrape or case-file sync).
+export const FAVORITE_ON_CREATE_FAMILY_TYPE = "REQ";
+
 async function upsertAttachedFile(
   prisma: PrismaClient,
   key: CaseFileKey,
@@ -266,10 +270,17 @@ async function upsertAttachedFile(
     where: {
       jurisdictionCode_encodedFileId: { jurisdictionCode, encodedFileId: file.encodedFileId },
     },
-    // `update` leaves user-editable fields (dahliaName, comment) untouched so
-    // manual edits survive a re-scrape. The deprecated `number` is never written.
+    // `update` leaves user-editable fields (dahliaName, comment, isFavorite)
+    // untouched so manual edits survive a re-scrape. The deprecated `number` is
+    // never written.
     update: data,
-    create: { jurisdictionCode, encodedFileId: file.encodedFileId, ...data },
+    // A new "Requête" pièce starts as a favorite; agents may unflag it later.
+    create: {
+      jurisdictionCode,
+      encodedFileId: file.encodedFileId,
+      ...data,
+      isFavorite: file.fileFamilyType === FAVORITE_ON_CREATE_FAMILY_TYPE,
+    },
   });
   // --update-piece-name: seed dahliaName from the file name, only when it is
   // still null or empty so a manual edit is never overwritten.

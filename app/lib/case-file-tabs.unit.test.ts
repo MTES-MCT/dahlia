@@ -47,6 +47,12 @@ describe("parseCaseFileTab", () => {
 });
 
 describe("pieceTabSuffix", () => {
+  it("conserve les paramètres de recherche du tableau de bord", () => {
+    expect(
+      pieceTabSuffix("f1", { q: "dupont", page: "2", tab: "synthese", piece: "ancienne" }),
+    ).toBe("?q=dupont&page=2&tab=pieces&piece=f1");
+  });
+
   it("opens the pièces tab on the given pièce, URL-encoded", () => {
     expect(pieceTabSuffix("L0FU/VE+FDS==")).toBe("?tab=pieces&piece=L0FU%2FVE%2BFDS%3D%3D");
   });

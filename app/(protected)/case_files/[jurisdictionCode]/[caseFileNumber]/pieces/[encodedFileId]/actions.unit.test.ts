@@ -20,7 +20,7 @@ vi.mock("next/cache", () => ({
   revalidatePath: (...args: unknown[]) => mockRevalidatePath(...args),
 }));
 
-import { savePieceMetadataAction } from "./actions";
+import { savePieceMetadataAction, setPieceFavoriteAction } from "./actions";
 
 const INPUT = { dahliaName: "Requête", comment: "" };
 const KEY = { jurisdictionCode: "TA069", caseFileNumber: "TA069-001" };
@@ -80,5 +80,48 @@ describe("savePieceMetadataAction", () => {
     const result = await savePieceMetadataAction(KEY, "piece-1", INPUT);
 
     expect(result).toEqual({ ok: false, error: "Une erreur est survenue." });
+  });
+});
+
+describe("favori d'une pièce", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("enregistre le favori avec les métadonnées quand il est fourni", async () => {
+    mockFetchAttachedFile.mockResolvedValue({ encodedFileId: "piece-1" });
+    mockAttachedFileUpdate.mockResolvedValue({});
+
+    await savePieceMetadataAction(KEY, "piece-1", { ...INPUT, isFavorite: true });
+
+    expect(mockAttachedFileUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { dahliaName: "Requête", comment: null, isFavorite: true },
+      }),
+    );
+  });
+
+  it("ne modifie que le favori via l'étoile", async () => {
+    mockFetchAttachedFile.mockResolvedValue({ encodedFileId: "piece-1" });
+    mockAttachedFileUpdate.mockResolvedValue({});
+
+    expect(await setPieceFavoriteAction(KEY, "piece-1", true)).toEqual({ ok: true });
+    expect(mockAttachedFileUpdate).toHaveBeenCalledWith({
+      where: {
+        jurisdictionCode_encodedFileId: { jurisdictionCode: "TA069", encodedFileId: "piece-1" },
+      },
+      data: { isFavorite: true },
+    });
+    expect(mockRevalidatePath).toHaveBeenCalledWith("/case_files/TA069/TA069-001");
+  });
+
+  it("refuse l'étoile sur une pièce hors du périmètre de droit", async () => {
+    mockFetchAttachedFile.mockResolvedValue(null);
+
+    expect(await setPieceFavoriteAction(KEY, "piece-interdite", true)).toEqual({
+      ok: false,
+      error: "Pièce introuvable.",
+    });
+    expect(mockAttachedFileUpdate).not.toHaveBeenCalled();
   });
 });

@@ -9,6 +9,7 @@ import { fetchCaseFilePiecesFiltered, fetchCommentedPieces } from "@/app/lib/dat
 import { fetchRelatedCaseFiles } from "@/app/lib/data/related-case-files";
 import { HISTORIQUE_FACET_KEYS, HISTORIQUE_PARAMS } from "@/app/lib/historique-table";
 import { PIECES_DEFAULT_ORDER, PIECES_DEFAULT_SORT_BY } from "@/app/lib/pieces-table";
+import { comparePiecesByDateDescThenName } from "@/app/lib/piece-display";
 import {
   isDebugTabEnabled,
   PIECE_PARAM,
@@ -109,12 +110,15 @@ export async function CaseFileTabs({
 
   const caseFilePath = caseFileHref(caseFileKey);
 
+  // Within the "Favoris" / "Autres pièces" groups (split client-side, order
+  // kept): event date desc, then name asc.
   const workspacePieces: WorkspacePiece[] | null =
-    pieces?.map((piece) => ({
+    pieces?.toSorted(comparePiecesByDateDescThenName).map((piece) => ({
       encodedFileId: piece.encodedFileId,
       fileName: piece.fileName,
       dahliaName: piece.dahliaName,
       comment: piece.comment,
+      isFavorite: piece.isFavorite,
       typeLabel: piece.fileTypeLabel,
       eventDate: formatDateFr(piece.eventCreationDate),
       dataUrl: `${caseFilePath}/pieces/${encodeURIComponent(piece.encodedFileId)}/data`,
@@ -174,7 +178,7 @@ export async function CaseFileTabs({
                 encodedFileId: piece.encodedFileId,
                 name: piece.dahliaName ?? piece.fileName,
                 comment: piece.comment ?? "",
-                href: caseFileHref(caseFileKey, pieceTabSuffix(piece.encodedFileId)),
+                href: caseFileHref(caseFileKey, pieceTabSuffix(piece.encodedFileId, searchParams)),
               }))}
             />
           </>
