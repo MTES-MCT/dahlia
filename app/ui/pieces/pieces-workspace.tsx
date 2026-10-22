@@ -6,10 +6,17 @@ import { fr } from "@codegouvfr/react-dsfr";
 import { Button } from "@codegouvfr/react-dsfr/Button";
 import { Input } from "@codegouvfr/react-dsfr/Input";
 import { Alert } from "@codegouvfr/react-dsfr/Alert";
+import { createModal } from "@codegouvfr/react-dsfr/Modal";
 import { caseFileHref, type CaseFileKey } from "@/app/lib/case-file-key";
 import { pieceDisplayLabel, pieceDownloadFileName } from "@/app/lib/piece-display";
 import { savePieceMetadataAction } from "@/app/(protected)/case_files/[jurisdictionCode]/[caseFileNumber]/pieces/[encodedFileId]/actions";
 import { PieceViewer } from "@/app/ui/piece-viewer";
+import { CaseFileTelerecoursTitle } from "@/app/ui/case-file/case-file-telerecours-title";
+
+const pieceEditModal = createModal({
+  isOpenedByDefault: false,
+  id: "piece-edit-modal",
+});
 
 // One pièce as needed by the workspace. Raw editable fields are kept so labels
 // can be recomputed client-side after an inline edit; `dataUrl`/`viewerMimeType`
@@ -52,7 +59,8 @@ export function PiecesWorkspace({ caseFileKey, pieces, initialPieceId }: Props) 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(
     () => new Set(firstId ? [firstId] : []),
   );
-  const [editing, setEditing] = useState(false);
+  // Bumped on each "Éditer" click so the modal form remounts with fresh values.
+  const [editGeneration, setEditGeneration] = useState(0);
 
   // Merge the server pièce with any in-memory edit so the sidebar label and the
   // detail panel reflect a save without waiting for a full page revalidation.
@@ -61,7 +69,10 @@ export function PiecesWorkspace({ caseFileKey, pieces, initialPieceId }: Props) 
     [pieces, overrides],
   );
 
-  const current = merged.find((piece) => piece.encodedFileId === currentId) ?? null;
+  const currentIndex = merged.findIndex((piece) => piece.encodedFileId === currentId);
+  const current = currentIndex >= 0 ? merged[currentIndex] : null;
+  const previous = currentIndex > 0 ? merged[currentIndex - 1] : null;
+  const next = currentIndex >= 0 ? (merged[currentIndex + 1] ?? null) : null;
 
   const allSelected = pieces.length > 0 && selectedIds.size === pieces.length;
   const someSelected = selectedIds.size > 0 && !allSelected;
@@ -86,7 +97,11 @@ export function PiecesWorkspace({ caseFileKey, pieces, initialPieceId }: Props) 
   function selectPiece(id: string) {
     setCurrentId(id);
     setSelectedIds(new Set([id]));
-    setEditing(false);
+  }
+
+  function openEdit() {
+    setEditGeneration((generation) => generation + 1);
+    pieceEditModal.open();
   }
 
   return (
@@ -104,16 +119,27 @@ export function PiecesWorkspace({ caseFileKey, pieces, initialPieceId }: Props) 
       />
 
       <PieceDetailPane
-        caseFileKey={caseFileKey}
         piece={current}
-        editing={editing}
-        onEdit={() => setEditing(true)}
-        onCancel={() => setEditing(false)}
-        onSaved={(id, values) => {
-          setOverrides((previous) => ({ ...previous, [id]: values }));
-          setEditing(false);
-        }}
+        onPrevious={previous ? () => selectPiece(previous.encodedFileId) : undefined}
+        onNext={next ? () => selectPiece(next.encodedFileId) : undefined}
+        onEdit={openEdit}
       />
+
+      <pieceEditModal.Component title="Modifier la pièce">
+        {/* Mounted on the first "Éditer" click only, so the hidden modal does not
+            duplicate the pièce fields in the page. */}
+        {current && editGeneration > 0 && (
+          <PieceEditForm
+            key={`${current.encodedFileId}-${editGeneration}`}
+            caseFileKey={caseFileKey}
+            piece={current}
+            onSaved={(id, values) => {
+              setOverrides((overridden) => ({ ...overridden, [id]: values }));
+              pieceEditModal.close();
+            }}
+          />
+        )}
+      </pieceEditModal.Component>
     </div>
   );
 }
@@ -348,88 +374,29 @@ function PiecesSidebar({
 }
 
 type DetailPaneProps = {
-  className?: string;
-  caseFileKey: CaseFileKey;
   piece: MergedPiece | null;
-  editing: boolean;
+  // Undefined at either end of the list: the matching arrow is disabled.
+  onPrevious?: () => void;
+  onNext?: () => void;
   onEdit: () => void;
-  onCancel: () => void;
-  onSaved: (id: string, values: Override) => void;
 };
 
-function PieceDetailPane({
-  className,
-  caseFileKey,
-  piece,
-  editing,
-  onEdit,
-  onCancel,
-  onSaved,
-}: DetailPaneProps) {
-  return (
-    <div className={clsx(fr.cx("fr-p-3w"), "flex", "min-h-0", "flex-1", "flex-col", className)}>
-      {piece ? (
-        <PieceDetail
-          key={piece.encodedFileId}
-          caseFileKey={caseFileKey}
-          piece={piece}
-          editing={editing}
-          onEdit={onEdit}
-          onCancel={onCancel}
-          onSaved={onSaved}
-        />
-      ) : (
+function PieceDetailPane({ piece, onPrevious, onNext, onEdit }: DetailPaneProps) {
+  if (!piece) {
+    return (
+      <div className={clsx(fr.cx("fr-p-3w"), "flex-1")}>
         <p className={fr.cx("fr-text--sm")}>Aucune pièce sélectionnée.</p>
-      )}
-    </div>
-  );
-}
-
-type DetailProps = {
-  caseFileKey: CaseFileKey;
-  piece: MergedPiece;
-  editing: boolean;
-  onEdit: () => void;
-  onCancel: () => void;
-  onSaved: (id: string, values: Override) => void;
-};
-
-function PieceDetail({ caseFileKey, piece, editing, onEdit, onCancel, onSaved }: DetailProps) {
-  const name = piece.dahliaName ?? piece.fileName;
+      </div>
+    );
+  }
 
   return (
-    <div className={clsx("flex", "h-full", "min-h-0", "flex-col")}>
-      {editing ? (
-        <PieceDetailForm
-          caseFileKey={caseFileKey}
-          piece={piece}
-          onCancel={onCancel}
-          onSaved={onSaved}
-        />
-      ) : (
-        <div className={clsx("shrink-0", fr.cx("fr-mb-3w"))}>
-          <div className={clsx("flex", "items-baseline", "gap-2", fr.cx("fr-mb-1w"))}>
-            <h2 className={fr.cx("fr-h5", "fr-mb-0")}>{name}</h2>
-          </div>
-          {piece.dahliaName && (
-            <p className={clsx(fr.cx("fr-text--sm", "fr-mb-1w"), "text-grey", "italic")}>
-              {piece.fileName}
-            </p>
-          )}
-          {piece.comment && <p className={fr.cx("fr-mb-2w")}>{piece.comment}</p>}
-          <Button
-            priority="secondary"
-            iconId="fr-icon-edit-line"
-            onClick={onEdit}
-            className={fr.cx("fr-btn--sm")}
-          >
-            Éditer
-          </Button>
-        </div>
-      )}
+    <div className={clsx("flex", "min-h-0", "min-w-0", "flex-1", "flex-col")}>
+      <PieceHeader piece={piece} onPrevious={onPrevious} onNext={onNext} onEdit={onEdit} />
 
-      <div className={clsx("flex", "flex-1", "flex-col")}>
+      <div className={clsx(fr.cx("fr-p-3w"), "flex", "min-h-0", "flex-1", "flex-col")}>
         <PieceViewer
+          key={piece.encodedFileId}
           dataUrl={piece.dataUrl}
           mimeType={piece.viewerMimeType}
           fileName={pieceDownloadFileName(piece)}
@@ -439,14 +406,121 @@ function PieceDetail({ caseFileKey, piece, editing, onEdit, onCancel, onSaved }:
   );
 }
 
+type HeaderProps = {
+  piece: MergedPiece;
+  onPrevious?: () => void;
+  onNext?: () => void;
+  onEdit: () => void;
+};
+
+// Viewed pièce header: previous/next arrows around the DAHLIA name (Télérecours
+// file name underneath), edit and new-tab actions, then the comment.
+function PieceHeader({ piece, onPrevious, onNext, onEdit }: HeaderProps) {
+  const label = pieceDisplayLabel(piece);
+  const comment = piece.comment?.trim();
+
+  return (
+    <div
+      className={clsx(
+        "shrink-0",
+        fr.cx("fr-px-2w", "fr-py-2w"),
+        "bg-(--background-alt-blue-france)",
+        "border-0",
+        "border-b-2",
+        "border-solid",
+        "border-(--border-active-blue-france)",
+      )}
+    >
+      <div className={clsx("flex", "items-start", "gap-3")}>
+        <div className={clsx("flex", "min-w-0", "flex-1", "items-start", "gap-1")}>
+          <Button
+            priority="tertiary"
+            size="small"
+            iconId="fr-icon-arrow-left-s-line"
+            title="Pièce précédente"
+            onClick={onPrevious}
+            disabled={!onPrevious}
+          />
+          <div className={clsx("min-w-0", "flex-1", fr.cx("fr-px-1v"))}>
+            <h2 className={clsx(fr.cx("fr-h6", "fr-mb-0"), "wrap-anywhere")}>{label}</h2>
+            <CaseFileTelerecoursTitle title={piece.fileName} displayName={label} singleLine />
+          </div>
+          <Button
+            priority="tertiary"
+            size="small"
+            iconId="fr-icon-arrow-right-s-line"
+            title="Pièce suivante"
+            onClick={onNext}
+            disabled={!onNext}
+          />
+        </div>
+
+        <div className={clsx("flex", "shrink-0", "flex-col", "items-stretch", "gap-2")}>
+          <Button
+            size="small"
+            iconId="fr-icon-edit-line"
+            onClick={onEdit}
+            className={clsx("w-full!", "justify-center")}
+          >
+            Éditer
+          </Button>
+          {/* `w-full!`: DSFR's unlayered `.fr-btn { width: fit-content }` beats
+              Tailwind's layered utilities, and both buttons must share one width.
+              DSFR appends the external-link icon to target="_blank" buttons. */}
+          <Button
+            priority="secondary"
+            size="small"
+            linkProps={{
+              href: piece.dataUrl,
+              target: "_blank",
+              rel: "noopener noreferrer",
+              title: "Afficher - nouvelle fenêtre",
+            }}
+            className={clsx("w-full!", "justify-center")}
+          >
+            Afficher
+          </Button>
+        </div>
+      </div>
+
+      <p
+        className={clsx(
+          "flex",
+          "items-start",
+          "gap-2",
+          fr.cx("fr-mt-1w", "fr-mb-0"),
+          "ml-9",
+          comment
+            ? "text-(--text-title-grey)"
+            : clsx(fr.cx("fr-text--sm"), "text-(--text-mention-grey)"),
+        )}
+      >
+        <span
+          className={clsx(
+            fr.cx("fr-icon-message-2-line", "fr-icon--sm"),
+            comment && "text-(--text-action-high-blue-france)",
+          )}
+          aria-hidden="true"
+        />
+        {comment ? (
+          <span className="whitespace-pre-line">
+            <b>Commentaire :</b> {comment}
+          </span>
+        ) : (
+          "Aucun commentaire"
+        )}
+      </p>
+    </div>
+  );
+}
+
 type FormProps = {
   caseFileKey: CaseFileKey;
   piece: MergedPiece;
-  onCancel: () => void;
   onSaved: (id: string, values: Override) => void;
 };
 
-function PieceDetailForm({ caseFileKey, piece, onCancel, onSaved }: FormProps) {
+function PieceEditForm({ caseFileKey, piece, onSaved }: FormProps) {
   const [dahliaName, setDahliaName] = useState(piece.dahliaName ?? piece.fileName);
   const [comment, setComment] = useState(piece.comment ?? "");
   const [isPending, startTransition] = useTransition();
@@ -475,31 +549,35 @@ function PieceDetailForm({ caseFileKey, piece, onCancel, onSaved }: FormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className={clsx("shrink-0", fr.cx("fr-mb-3w"))}>
+    <form onSubmit={handleSubmit}>
       <Input
         label="Nom sur DAHLIA"
         nativeInputProps={{
           value: dahliaName,
           onChange: (event) => setDahliaName(event.target.value),
         }}
-        className={fr.cx("fr-mb-1w")}
       />
       <Input
         label="Commentaire"
+        hintText="Visible par les agents en charge du dossier"
         textArea
         nativeTextAreaProps={{
           value: comment,
           onChange: (event) => setComment(event.target.value),
-          rows: 2,
+          rows: 4,
         }}
-        className={fr.cx("fr-mb-2w")}
       />
-      <div className={clsx("flex", "gap-2")}>
+      <div className={clsx("flex", "justify-end", "gap-2")}>
+        <Button
+          type="button"
+          priority="secondary"
+          onClick={() => pieceEditModal.close()}
+          disabled={isPending}
+        >
+          Annuler
+        </Button>
         <Button type="submit" disabled={isPending} iconId="fr-icon-save-line">
           {isPending ? "Enregistrement…" : "Enregistrer"}
-        </Button>
-        <Button type="button" priority="secondary" onClick={onCancel} disabled={isPending}>
-          Annuler
         </Button>
       </div>
       {error && (
