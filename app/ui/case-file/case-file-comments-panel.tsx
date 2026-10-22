@@ -68,7 +68,8 @@ function PieceComments({ pieceComments }: { pieceComments: PieceCommentView[] })
               priority="tertiary no outline"
               size="small"
               iconId="fr-icon-eye-line"
-              linkProps={{ href: piece.href }}
+              // Same page, other tab: keep the page scroll like the tab nav does.
+              linkProps={{ href: piece.href, scroll: false }}
             >
               Voir la pièce
             </Button>

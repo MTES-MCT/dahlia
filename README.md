@@ -367,6 +367,7 @@ data/
     parse-args.ts              # parseArgs / getEnv / parseDivisionIds (fonctions pures)
     classify-case-files.ts     # entrypoint du script de classification (pnpm classify:case-files)
     parse-classify-args.ts     # parseClassifyArgs (fonction pure)
+    flag-requete-favorites.ts  # rattrapage : marque en favori les pièces « Requête » (pnpm flag:requete-favorites)
   telerecours/
     client.ts                  # TelerecoursClient — méthodes typées (renvoient les DTO)
     client.interface.ts        # interface TelerecoursClient = le « seam » que les tests mockent
@@ -761,6 +762,9 @@ erDiagram
         string receiptAcknowledgmentType "nullable"
         string fileTypeLabel
         DateTime eventCreationDate
+        string dahliaName "nullable"
+        string comment "nullable"
+        boolean isFavorite
         string caseFileNumber FK
         int eventId FK
         string fileFamilyTypeCode FK

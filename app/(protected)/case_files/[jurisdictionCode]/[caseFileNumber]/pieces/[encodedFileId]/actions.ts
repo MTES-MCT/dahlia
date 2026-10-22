@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { Prisma } from "@prisma/client";
 import { caseFileHref, type CaseFileKey } from "@/app/lib/case-file-key";
 import { prisma } from "@/app/lib/prisma";
 import { fetchAttachedFile } from "@/app/lib/data/attached-files";
@@ -11,14 +12,16 @@ export type UpdatePieceResult = { ok: true } | { ok: false; error: string };
 type PieceMetadataInput = {
   dahliaName: string;
   comment: string;
+  // Left untouched when omitted.
+  isFavorite?: boolean;
 };
 
-// Persist the user-editable metadata (renamed name, comment) of a pièce.
-// All fields are optional: empty strings are stored as null.
-async function persistPieceMetadata(
+// Persist user-editable metadata (renamed name, comment, favorite) of a pièce,
+// after checking it lies within the caller's permission scope.
+async function persistPieceData(
   key: CaseFileKey,
   encodedFileId: string,
-  input: PieceMetadataInput,
+  data: Prisma.AttachedFileUpdateInput,
 ): Promise<UpdatePieceResult> {
   try {
     // Scoped read: null when the pièce is unknown, belongs to another case file
@@ -31,10 +34,7 @@ async function persistPieceMetadata(
       where: {
         jurisdictionCode_encodedFileId: { jurisdictionCode: key.jurisdictionCode, encodedFileId },
       },
-      data: {
-        dahliaName: input.dahliaName.trim() || null,
-        comment: input.comment.trim() || null,
-      },
+      data,
     });
 
     revalidatePath(caseFileHref(key));
@@ -55,5 +55,23 @@ export async function savePieceMetadataAction(
   if (!trimmed) {
     return { ok: false, error: "Identifiant de pièce manquant." };
   }
-  return persistPieceMetadata(key, trimmed, input);
+  // Empty strings are stored as null.
+  return persistPieceData(key, trimmed, {
+    dahliaName: input.dahliaName.trim() || null,
+    comment: input.comment.trim() || null,
+    ...(input.isFavorite === undefined ? {} : { isFavorite: input.isFavorite }),
+  });
+}
+
+// Star toggle of the pièces sidebar: only flips the favorite flag.
+export async function setPieceFavoriteAction(
+  key: CaseFileKey,
+  encodedFileId: string,
+  isFavorite: boolean,
+): Promise<UpdatePieceResult> {
+  const trimmed = encodedFileId.trim();
+  if (!trimmed) {
+    return { ok: false, error: "Identifiant de pièce manquant." };
+  }
+  return persistPieceData(key, trimmed, { isFavorite });
 }

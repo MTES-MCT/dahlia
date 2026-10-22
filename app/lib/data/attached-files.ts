@@ -17,6 +17,7 @@ const PIECES_LIST_SELECT = {
   fileName: true,
   dahliaName: true,
   comment: true,
+  isFavorite: true,
   mimeType: true,
   fileTypeLabel: true,
   fileFamilyTypeLabel: true,
