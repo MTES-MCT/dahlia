@@ -1,19 +1,19 @@
 {
   "jobs": [
     {
-      "command": "0 1 * * * pnpm scrape:telerecours -- --all --jurisdiction TA069",
+      "command": "0 1 * * * pnpm scrape:telerecours -- --all --jurisdiction TA069 --classify",
       "size": "XL"
     },
     {
-      "command": "0 2 * * * pnpm scrape:telerecours -- --all --jurisdiction TA069bis",
+      "command": "0 2 * * * pnpm scrape:telerecours -- --all --jurisdiction TA069bis --classify",
       "size": "XL"
     },
     {
-      "command": "0 3 * * * pnpm scrape:telerecours -- --all --jurisdiction TA034",
+      "command": "0 3 * * * pnpm scrape:telerecours -- --all --jurisdiction TA034 --classify",
       "size": "XL"
     },
     {
-      "command": "0 4 * * * pnpm scrape:telerecours -- --all --jurisdiction TA093",
+      "command": "0 4 * * * pnpm scrape:telerecours -- --all --jurisdiction TA093 --classify",
       "size": "XL"
     }
   ]
