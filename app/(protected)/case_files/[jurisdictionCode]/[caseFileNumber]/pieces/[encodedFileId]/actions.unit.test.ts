@@ -22,7 +22,7 @@ vi.mock("next/cache", () => ({
 
 import { savePieceMetadataAction } from "./actions";
 
-const INPUT = { dahliaName: "Requête", number: "002", comment: "" };
+const INPUT = { dahliaName: "Requête", comment: "" };
 const KEY = { jurisdictionCode: "TA069", caseFileNumber: "TA069-001" };
 
 describe("savePieceMetadataAction", () => {
@@ -44,7 +44,7 @@ describe("savePieceMetadataAction", () => {
       where: {
         jurisdictionCode_encodedFileId: { jurisdictionCode: "TA069", encodedFileId: "piece-1" },
       },
-      data: { dahliaName: "Requête", number: "002", comment: null },
+      data: { dahliaName: "Requête", comment: null },
     });
     expect(mockRevalidatePath).toHaveBeenCalledWith("/case_files/TA069/TA069-001");
   });
@@ -68,16 +68,6 @@ describe("savePieceMetadataAction", () => {
       error: "Identifiant de pièce manquant.",
     });
     expect(mockFetchAttachedFile).not.toHaveBeenCalled();
-  });
-
-  it("refuse un numéro non numérique", async () => {
-    const result = await savePieceMetadataAction(KEY, "piece-1", { ...INPUT, number: "2a" });
-
-    expect(result).toEqual({
-      ok: false,
-      error: "Le numéro ne doit contenir que des chiffres.",
-    });
-    expect(mockAttachedFileUpdate).not.toHaveBeenCalled();
   });
 
   it("masque le message Prisma brut en cas d'échec d'enregistrement", async () => {

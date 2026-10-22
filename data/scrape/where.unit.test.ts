@@ -10,7 +10,6 @@ const args = (over: Partial<Args> = {}): Args => ({
   legalEntityDivisionIds: [],
   anonymize: true,
   enrich: "ongoing",
-  updatePieceNumbers: false,
   updatePieceName: false,
   force: false,
   classify: false,

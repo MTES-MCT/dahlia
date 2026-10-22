@@ -16,10 +16,9 @@ describe("pieceDownloadFileName", () => {
     expect(
       pieceDownloadFileName({
         dahliaName: "Pièce introductive",
-        number: "1",
         fileName: "scan_requete.pdf",
       }),
-    ).toBe("1 - Pièce introductive.pdf");
+    ).toBe("Pièce introductive.pdf");
   });
 
   it("keeps fileName when dahliaName is unset", () => {

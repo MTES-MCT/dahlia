@@ -1,12 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { mockDeep, type DeepMockProxy } from "vitest-mock-extended";
 import type { PrismaClient } from "@prisma/client";
-import {
-  enrichCaseFile,
-  findLastProducerId,
-  leadingNumber,
-  pieceNameFromFileName,
-} from "./enrich-case-file";
+import { enrichCaseFile, findLastProducerId, pieceNameFromFileName } from "./enrich-case-file";
 import { fakeTelerecoursClient } from "../test-support/fake-client";
 import {
   attachedFileFixture,
@@ -47,18 +42,6 @@ describe("findLastProducerId", () => {
         eventFixture({ measure: { ...eventFixture().measure, label: "Autre" } }),
       ]),
     ).toBeNull();
-  });
-});
-
-describe("leadingNumber", () => {
-  it("extracts a leading digit sequence and preserves leading zeros", () => {
-    expect(leadingNumber("002_facture.pdf")).toBe("002");
-    expect(leadingNumber("12 - lettre.pdf")).toBe("12");
-  });
-
-  it("returns null when the file name does not start with a digit", () => {
-    expect(leadingNumber("facture.pdf")).toBeNull();
-    expect(leadingNumber("")).toBeNull();
   });
 });
 
@@ -300,7 +283,7 @@ describe("enrichCaseFile", () => {
     });
 
     it("renseigne dahliaName uniquement s'il est nul ou vide", async () => {
-      await enrichCaseFile(prisma, client(), "TA069-001", "TA069", true, false, false, true);
+      await enrichCaseFile(prisma, client(), "TA069-001", "TA069", true, false, true);
       expect(prisma.attachedFile.updateMany).toHaveBeenCalledWith({
         where: {
           jurisdictionCode: "TA069",
@@ -348,7 +331,6 @@ describe("enrichCaseFile", () => {
         "TA069-001",
         "TA069",
         true,
-        false,
         true,
       );
 
@@ -372,7 +354,7 @@ describe("enrichCaseFile", () => {
       });
 
       await expect(
-        enrichCaseFile(prisma, client, "TA069-001", "TA069", true, false, true),
+        enrichCaseFile(prisma, client, "TA069-001", "TA069", true, true),
       ).rejects.toThrow("502");
       expect(prisma.attachedFile.deleteMany).not.toHaveBeenCalled();
       expect(prisma.caseFileEvent.deleteMany).not.toHaveBeenCalled();

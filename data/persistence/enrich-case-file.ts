@@ -22,14 +22,6 @@ function parseDate(value: string | null | undefined): Date | undefined {
   return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
-// Extract the leading digit sequence of a file name, kept as a string so any
-// leading zeros are preserved (e.g. "002_facture.pdf" → "002"). Returns null
-// when the name does not start with a digit.
-export function leadingNumber(fileName: string): string | null {
-  const match = fileName.match(/^\d+/);
-  return match ? match[0] : null;
-}
-
 // A date at the head of a file name (2025-01-17, 18_05_18, 21.01.2025) is kept
 // as text rather than split into piece numbers.
 const LEADING_DATE =
@@ -225,7 +217,6 @@ async function upsertAttachedFile(
   prisma: PrismaClient,
   key: CaseFileKey,
   file: AttachedFile,
-  updatePieceNumbers: boolean,
   updatePieceName: boolean,
 ): Promise<{ upserted: boolean; reason?: string }> {
   const { jurisdictionCode } = key;
@@ -271,21 +262,14 @@ async function upsertAttachedFile(
     eventId: file.eventId,
     fileFamilyTypeCode: file.fileFamilyType,
   };
-  const pieceNumber = leadingNumber(file.fileName);
   await prisma.attachedFile.upsert({
     where: {
       jurisdictionCode_encodedFileId: { jurisdictionCode, encodedFileId: file.encodedFileId },
     },
-    // `update` leaves user-editable fields (dahliaName, number, comment)
-    // untouched so manual edits survive a re-scrape, unless --update-piece-numbers
-    // was passed. The number derived from the file name is always seeded on create.
-    update: updatePieceNumbers ? { ...data, number: pieceNumber } : data,
-    create: {
-      jurisdictionCode,
-      encodedFileId: file.encodedFileId,
-      ...data,
-      number: pieceNumber,
-    },
+    // `update` leaves user-editable fields (dahliaName, comment) untouched so
+    // manual edits survive a re-scrape. The deprecated `number` is never written.
+    update: data,
+    create: { jurisdictionCode, encodedFileId: file.encodedFileId, ...data },
   });
   // --update-piece-name: seed dahliaName from the file name, only when it is
   // still null or empty so a manual edit is never overwritten.
@@ -343,7 +327,6 @@ export async function enrichCaseFile(
   caseFileNumber: string,
   jurisdiction: string,
   anonymize: boolean,
-  updatePieceNumbers: boolean = false,
   force: boolean = false,
   updatePieceName: boolean = false,
 ): Promise<void> {
@@ -408,7 +391,7 @@ export async function enrichCaseFile(
   for await (const file of paginate<AttachedFile>((page) =>
     client.getCaseFileAttachedFiles(caseFileNumber, jurisdiction, page),
   )) {
-    const result = await upsertAttachedFile(prisma, key, file, updatePieceNumbers, updatePieceName);
+    const result = await upsertAttachedFile(prisma, key, file, updatePieceName);
     files.push(file);
     if (result.upserted) {
       filesCount++;

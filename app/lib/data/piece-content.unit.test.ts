@@ -102,12 +102,11 @@ describe("fetchPieceContent", () => {
       const result = await fetchPieceContent(
         attachedFile({
           dahliaName: "Pièce introductive",
-          number: "1",
           fileName: "scan_requete.pdf",
         }),
       );
 
-      expect(result.downloadName).toBe("1 - Pièce introductive.pdf");
+      expect(result.downloadName).toBe("Pièce introductive.pdf");
     });
   });
 
