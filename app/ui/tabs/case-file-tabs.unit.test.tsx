@@ -54,7 +54,6 @@ const pieces = [
     encodedFileId: "f1",
     fileName: "requete.pdf",
     dahliaName: null,
-    number: null,
     comment: null,
     mimeType: "application/pdf",
     fileTypeLabel: "Requête",

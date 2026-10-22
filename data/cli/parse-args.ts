@@ -34,7 +34,6 @@ export const SCRAPE_USAGE = `Usage: pnpm scrape:telerecours -- [options]
   --no-anonymize                   Désactive l'anonymisation.
   --enrich <all|ongoing|none>      Phases B et C : ongoing (défaut, hors « Terminé »),
                                    all (y compris terminés), none (saute B et C).
-  --update-piece-numbers           Met à jour les numéros de pièces des fichiers déjà en base.
   --update-piece-name              Renseigne le nom Dahlia des pièces sans nom à partir du
                                    nom de fichier (ex. P_34_requete.pdf → 00034 requete).
   --force                          Phases B et C : supprime les événements, pièces (et leurs
@@ -84,7 +83,6 @@ export function parseArgs(argv: string[] = process.argv): ScrapeCliArgs {
     // Default: anonymize unless running against the prod environment.
     anonymize: process.env.ENVIRONMENT !== "production",
     enrich: "ongoing",
-    updatePieceNumbers: false,
     updatePieceName: false,
     force: false,
     classify: false,
@@ -117,8 +115,6 @@ export function parseArgs(argv: string[] = process.argv): ScrapeCliArgs {
       args.anonymize = false;
     } else if (arg === "--enrich" && i + 1 < argv.length) {
       args.enrich = parseEnrichMode(argv[++i]);
-    } else if (arg === "--update-piece-numbers") {
-      args.updatePieceNumbers = true;
     } else if (arg === "--update-piece-name") {
       args.updatePieceName = true;
     } else if (arg === "--force") {
@@ -168,7 +164,6 @@ export function parseArgs(argv: string[] = process.argv): ScrapeCliArgs {
   console.log("  - legalEntityDivisionIds set to", args.legalEntityDivisionIds);
   console.log("  - anonymize set to", args.anonymize);
   console.log("  - enrich set to", args.enrich);
-  console.log("  - updatePieceNumbers set to", args.updatePieceNumbers);
   console.log("  - updatePieceName set to", args.updatePieceName);
   console.log("  - force set to", args.force);
   console.log("  - classify set to", args.classify);

@@ -39,7 +39,6 @@ export async function phaseB(
         caseFileNumber,
         args.jurisdiction,
         args.anonymize,
-        args.updatePieceNumbers,
         args.force,
         args.updatePieceName,
       );

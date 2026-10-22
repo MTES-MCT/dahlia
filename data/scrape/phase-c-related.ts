@@ -15,14 +15,12 @@ const DEFAULT_RATE_LIMIT_MS = 100;
 export interface RelatedImportOptions {
   anonymize: boolean;
   enrich: boolean;
-  updatePieceNumbers: boolean;
   updatePieceName: boolean;
 }
 
 const DEFAULT_RELATED_IMPORT: RelatedImportOptions = {
   anonymize: false,
   enrich: false,
-  updatePieceNumbers: false,
   updatePieceName: false,
 };
 
@@ -42,7 +40,6 @@ async function importRelatedCaseFile(
       caseFileNumber,
       jurisdiction,
       options.anonymize,
-      options.updatePieceNumbers,
       false,
       options.updatePieceName,
     );
@@ -150,7 +147,6 @@ export async function phaseC(
   const importOptions: RelatedImportOptions = {
     anonymize: args.anonymize,
     enrich: args.enrich === "all",
-    updatePieceNumbers: args.updatePieceNumbers,
     updatePieceName: args.updatePieceName,
   };
   const rateLimitMs = deps.rateLimitMs ?? DEFAULT_RATE_LIMIT_MS;

@@ -14,7 +14,6 @@ const baseArgs: Args = {
   legalEntityDivisionIds: [2488],
   anonymize: true,
   enrich: "none",
-  updatePieceNumbers: false,
   updatePieceName: false,
   force: false,
   classify: false,

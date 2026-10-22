@@ -21,7 +21,6 @@ export interface Args {
   // Phase B/C target set: ongoing (default, skip "Terminé"), all (include
   // closed), or none (skip phases B and C).
   enrich: EnrichMode;
-  updatePieceNumbers: boolean;
   // Phase B — seed attached files' empty dahliaName from their file name.
   updatePieceName: boolean;
   // Phases B/C — delete the events, attached files and related-case-file links

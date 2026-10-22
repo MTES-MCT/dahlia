@@ -37,7 +37,7 @@ model AttachedFile {
   fileFamilyTypeLabelNormalized String?
 
   // DAHLIA editable metadata (optional, set by users on the pièce edition page).
-  // `number` is a string so leading zeros are preserved (e.g. "002").
+  // `number` is deprecated: no longer displayed, edited nor written by the scraper.
   dahliaName String?
   number     String?
   comment    String?
