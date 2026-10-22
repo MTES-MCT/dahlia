@@ -40,6 +40,24 @@ function renderWorkspace() {
   );
 }
 
+// DSFR modals rely on window.dsfr(...).modal.disclose/conceal at runtime.
+function mockDsfrModalApi() {
+  (
+    window as unknown as {
+      dsfr: (element: HTMLElement) => { modal: { disclose: () => void; conceal: () => void } };
+    }
+  ).dsfr = (element: HTMLElement) => ({
+    modal: {
+      disclose: () => element.setAttribute("open", ""),
+      conceal: () => element.removeAttribute("open"),
+    },
+  });
+}
+
+function editModal(): HTMLElement {
+  return document.getElementById("piece-edit-modal") as HTMLElement;
+}
+
 function sidebar() {
   return screen.getByRole("navigation", { name: "Liste des pièces" });
 }
@@ -47,6 +65,7 @@ function sidebar() {
 describe("PiecesWorkspace", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockDsfrModalApi();
   });
 
   afterEach(() => {
@@ -110,17 +129,57 @@ describe("PiecesWorkspace", () => {
     expect(boxes.every((box) => box.checked)).toBe(true);
   });
 
-  it("passe en mode édition puis enregistre les métadonnées", async () => {
+  it("affiche le nom de fichier Télérecours sous le nom DAHLIA", () => {
+    renderWorkspace();
+    const heading = screen.getByRole("heading", { name: "Requête introductive" });
+    expect(heading.nextElementSibling?.textContent).toBe("requete.pdf");
+  });
+
+  it("navigue vers la pièce suivante puis précédente avec les flèches", () => {
+    renderWorkspace();
+    const previous = screen.getByRole("button", { name: "Pièce précédente" }) as HTMLButtonElement;
+    expect(previous.disabled).toBe(true);
+
+    fireEvent.click(screen.getByRole("button", { name: "Pièce suivante" }));
+    expect(screen.getByRole("heading", { name: "annexe.pdf" })).toBeTruthy();
+    expect(
+      (screen.getByRole("button", { name: "Pièce suivante" }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+
+    fireEvent.click(screen.getByRole("button", { name: "Pièce précédente" }));
+    expect(screen.getByRole("heading", { name: "Requête introductive" })).toBeTruthy();
+  });
+
+  it("ouvre la pièce dans un nouvel onglet", () => {
+    renderWorkspace();
+    const link = screen.getByRole("link", { name: /Afficher/ });
+    expect(link.getAttribute("href")).toBe("/data/f1");
+    expect(link.getAttribute("target")).toBe("_blank");
+  });
+
+  it("affiche « Aucun commentaire » quand la pièce n'en a pas", () => {
+    renderWorkspace();
+    expect(screen.queryByText("Aucun commentaire")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Pièce suivante" }));
+    expect(screen.getByText("Aucun commentaire")).toBeTruthy();
+  });
+
+  it("édite la pièce dans une modale puis enregistre les métadonnées", async () => {
     vi.mocked(savePieceMetadataAction).mockResolvedValue({ ok: true });
     renderWorkspace();
 
     fireEvent.click(screen.getByRole("button", { name: /Éditer/ }));
+    const dialog = editModal();
+    expect(dialog.hasAttribute("open")).toBe(true);
 
-    const input = screen.getByLabelText("Nom sur DAHLIA") as HTMLInputElement;
+    const input = within(dialog).getByLabelText("Nom sur DAHLIA") as HTMLInputElement;
+    expect(input.value).toBe("Requête introductive");
     fireEvent.change(input, { target: { value: "Nouveau nom" } });
-    fireEvent.click(screen.getByRole("button", { name: /Enregistrer/ }));
+    fireEvent.click(within(dialog).getByRole("button", { name: /Enregistrer/ }));
 
     await screen.findByRole("heading", { name: "Nouveau nom" });
+    expect(dialog.hasAttribute("open")).toBe(false);
     expect(savePieceMetadataAction).toHaveBeenCalledWith(
       { jurisdictionCode: "TA069", caseFileNumber: "TA069-2026-001" },
       "f1",
