@@ -1,14 +1,13 @@
 import ExcelJS from "exceljs";
 import { type NextRequest } from "next/server";
 import { fetchAllCaseFilesForExport } from "@/app/lib/data/case-files";
-import { fetchDashboardStatusFilterOptions } from "@/app/lib/data/statuses";
 import {
   CASE_FILES_EXPORT_COLUMNS,
   HEARING_CONVOCATION_SORT_KEY,
 } from "@/app/lib/case-files-dashboard-columns";
 import { DASHBOARD_TABLE_PARAMS } from "@/app/lib/case-file-search";
 import { parseTableQueryState } from "@/app/lib/table-query-state";
-import { resolveCurrentStatut, resolveDefaultStatut } from "@/app/lib/dashboard-filter";
+import { resolveStatusGroup } from "@/app/lib/dashboard-filter";
 
 // The export must read the live filter and run an unpaginated query, so it is
 // fully dynamic and runs on the Node.js runtime (ExcelJS relies on Node APIs).
@@ -27,15 +26,14 @@ export async function GET(request: NextRequest) {
     defaultSortBy: HEARING_CONVOCATION_SORT_KEY,
     defaultOrder: searchParams.sortBy ? "descending" : "ascending",
   });
-  const statusFilterOptions = await fetchDashboardStatusFilterOptions();
-  const defaultStatut = resolveDefaultStatut(statusFilterOptions);
-  const currentStatut = resolveCurrentStatut(searchParams.statut, defaultStatut);
+  const group = resolveStatusGroup(searchParams.groupe);
 
   const caseFiles = await fetchAllCaseFilesForExport(
     tableState.sortBy,
     tableState.sortOrder,
     tableState.query,
-    currentStatut,
+    null,
+    group,
   );
 
   const workbook = new ExcelJS.Workbook();

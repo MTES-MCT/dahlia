@@ -27,12 +27,47 @@ export const DOSSIER_FACET_FIELDS = [
 
 export type DossierFacetKey = (typeof DOSSIER_FACET_FIELDS)[number]["key"];
 
+// Status facet (`statut:<label>`): exact match on the last status label,
+// accent/case-insensitive. Its options come from the status catalogue.
+export const STATUS_FACET_FIELD = { key: "statut", label: "Statut" } as const;
+
+// Classification facets (`droit:<label>` / `recours:<label>`): exact match on
+// the French label of the RightType / LitigationType enums.
+export const RIGHT_TYPE_FACET_FIELD = { key: "droit", label: "Droit opposable" } as const;
+export const LITIGATION_TYPE_FACET_FIELD = { key: "recours", label: "Type de recours" } as const;
+
 export const FACET_KEYS = [
   ...DOSSIER_FACET_FIELDS.map((field) => field.key),
+  STATUS_FACET_FIELD.key,
   "producteur",
+  RIGHT_TYPE_FACET_FIELD.key,
+  LITIGATION_TYPE_FACET_FIELD.key,
 ] as const;
 
 export type FacetKey = (typeof FACET_KEYS)[number];
+
+export type FacetField = {
+  key: string;
+  label: string;
+  // When set, the value is picked from these options (select) instead of typed.
+  options?: readonly string[];
+  // Other accepted spellings of an option (alias → option), e.g. short labels.
+  optionAliases?: Readonly<Record<string, string>>;
+};
+
+// Map a facet value as typed in the search box (e.g. `statut:termine`) to the
+// select option it designates, accent/case-insensitively and aliases included.
+// Returns "" when no option matches. Free-text fields (no options) keep the value.
+export function resolveFacetFieldValue(field: FacetField, value: string): string {
+  if (!field.options || !value) return value;
+  const normalized = normalizeForSearch(value.trim());
+  const option = field.options.find((candidate) => normalizeForSearch(candidate) === normalized);
+  if (option) return option;
+  const alias = Object.entries(field.optionAliases ?? {}).find(
+    ([candidate]) => normalizeForSearch(candidate) === normalized,
+  );
+  return alias?.[1] ?? "";
+}
 
 export function isFacetKey(
   key: string,

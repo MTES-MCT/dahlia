@@ -1,7 +1,10 @@
 import { type Prisma } from "@prisma/client";
 import {
+  LITIGATION_TYPE_OPTIONS,
+  LITIGATION_TYPE_SHORT_LABELS,
   litigationTypeLabel,
   PRODUCTION_DEADLINE_TYPE_LABELS,
+  RIGHT_TYPE_OPTIONS,
   rightTypeLabel,
   type ProductionDeadlineType,
 } from "@/app/lib/case-file-enums";
@@ -16,7 +19,12 @@ import {
   getActorDisplayName,
   getCaseFileDisplayName,
 } from "@/app/lib/case-file-format";
-import { DOSSIER_FACET_FIELDS } from "@/app/lib/case-file-search";
+import {
+  DOSSIER_FACET_FIELDS,
+  LITIGATION_TYPE_FACET_FIELD,
+  RIGHT_TYPE_FACET_FIELD,
+  STATUS_FACET_FIELD,
+} from "@/app/lib/case-file-search";
 import { type SortOrder } from "@/app/lib/table-sort";
 
 export const CASE_FILES_DASHBOARD_INCLUDE = {
@@ -69,7 +77,12 @@ export type CaseFileDashboardColumnDef = {
   label: string;
   sortable?: boolean;
   defaultOrder?: SortOrder;
-  facetFields?: readonly { key: string; label: string }[];
+  facetFields?: readonly {
+    key: string;
+    label: string;
+    options?: readonly string[];
+    optionAliases?: Readonly<Record<string, string>>;
+  }[];
   width?: string;
   exportValue: (row: CaseFileDashboardRow) => string;
 };
@@ -79,7 +92,22 @@ export const CASE_FILES_DASHBOARD_COLUMNS: CaseFileDashboardColumnDef[] = [
     key: "caseFileNumber",
     label: "Dossier",
     sortable: true,
-    facetFields: DOSSIER_FACET_FIELDS,
+    facetFields: [
+      ...DOSSIER_FACET_FIELDS,
+      STATUS_FACET_FIELD,
+      { ...RIGHT_TYPE_FACET_FIELD, options: RIGHT_TYPE_OPTIONS.map((option) => option.label) },
+      {
+        ...LITIGATION_TYPE_FACET_FIELD,
+        options: LITIGATION_TYPE_OPTIONS.map((option) => option.label),
+        // `recours:REP` (short label) designates the « …(REP) » option.
+        optionAliases: Object.fromEntries(
+          LITIGATION_TYPE_OPTIONS.map((option) => [
+            LITIGATION_TYPE_SHORT_LABELS[option.value],
+            option.label,
+          ]),
+        ),
+      },
+    ],
     width: "50%",
     exportValue: (caseFile) => getCaseFileDisplayName(caseFile),
   },

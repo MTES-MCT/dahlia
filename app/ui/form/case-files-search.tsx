@@ -1,79 +1,57 @@
-import clsx from "clsx";
 import { DASHBOARD_TABLE_PARAMS } from "@/app/lib/case-file-search";
+import { type CaseFileTagView } from "@/app/lib/case-file-tags";
+import { type StatusGroup } from "@/app/lib/dashboard-filter";
 import { buildDashboardSortHiddenParams } from "@/app/lib/table-search-context";
-import { CaseFilesSearchByStatus } from "@/app/ui/form/case-files-search-by-status";
-import { TableSearchBar } from "@/app/ui/form/table-search-bar";
+import { type FacetField } from "@/app/ui/button/column-filter-button";
+import { CaseFilesSearchFields } from "@/app/ui/form/case-files-search-fields";
 import { type DataTableSearchConfig } from "@/app/ui/table/data-table";
 
 const PLACEHOLDER = "ex. « dupont » ou « dossier:TA069 requerant:prefet mc:urgent »";
 
 export type CaseFilesSearchProps = {
-  // Distinct status labels from the database, sorted for the filter dropdown.
-  statusFilterOptions: string[];
-  // Label preselected when `statut` is absent from the URL.
-  defaultStatut: string | null;
   // Current text query, used as the input default value.
   currentQuery: string;
-  // Raw `statut`/`sortBy`/`sortOrder` params: `statut` drives the select's selected
-  // value, the sort params are mirrored as hidden fields so a search keeps the
-  // current ordering.
-  statutParam?: string;
+  // Raw `sortBy`/`sortOrder` params, mirrored as hidden fields so a search keeps
+  // the current ordering.
   sortByParam?: string;
   sortOrderParam?: string;
+  // Status group selected by the toggle, mirrored as a hidden field so a search
+  // stays within the group.
+  statusGroup?: StatusGroup;
+  // Facets offered in the « Filtres avancés » panel (status options included).
+  facetFields?: readonly FacetField[];
+  // Tag catalogue offered by the « Mots-clés » combobox of the panel.
+  availableTags?: readonly CaseFileTagView[];
 };
 
-function caseFilesSearchSlot({
-  statusFilterOptions,
-  defaultStatut,
-  currentQuery,
-  statutParam,
-}: Pick<
-  CaseFilesSearchProps,
-  "statusFilterOptions" | "defaultStatut" | "currentQuery" | "statutParam"
->) {
-  return (
-    <div className={clsx("flex", "flex-row", "gap-2", "items-end")}>
-      <CaseFilesSearchByStatus
-        // Force a remount when the status param changes so the uncontrolled
-        // <select> picks up its new defaultValue on client navigation (e.g.
-        // the reset link); without this, React keeps the stale DOM value.
-        key={`statut-${statutParam ?? "__default__"}`}
-        options={statusFilterOptions}
-        defaultStatut={defaultStatut}
-        statutParam={statutParam}
-      />
-      <TableSearchBar
-        key={currentQuery}
-        name={DASHBOARD_TABLE_PARAMS.query}
-        label="Rechercher"
-        defaultValue={currentQuery}
-        placeholder={PLACEHOLDER}
-        className={clsx("fr-mb-3w", "flex-1")}
-      />
-    </div>
-  );
-}
-
 export function buildCaseFilesSearchConfig({
-  statusFilterOptions,
-  defaultStatut,
   currentQuery,
-  statutParam,
   sortByParam,
   sortOrderParam,
+  statusGroup,
+  facetFields = [],
+  availableTags,
 }: CaseFilesSearchProps): DataTableSearchConfig {
   return {
     action: "/case_files",
     currentQuery,
-    hiddenParams: buildDashboardSortHiddenParams(sortByParam, sortOrderParam),
+    hiddenParams: [
+      ...buildDashboardSortHiddenParams(sortByParam, sortOrderParam),
+      ...(statusGroup ? [{ name: "groupe", value: statusGroup }] : []),
+    ],
     resetHref: "/case_files",
     label: "Rechercher un dossier",
     placeholder: PLACEHOLDER,
-    searchSlot: caseFilesSearchSlot({
-      statusFilterOptions,
-      defaultStatut,
-      currentQuery,
-      statutParam,
-    }),
+    searchSlot: (
+      // Remount on navigation so the fields re-seed from the new URL query.
+      <CaseFilesSearchFields
+        key={currentQuery}
+        initialQuery={currentQuery}
+        facetFields={facetFields}
+        availableTags={availableTags}
+        name={DASHBOARD_TABLE_PARAMS.query}
+        placeholder={PLACEHOLDER}
+      />
+    ),
   };
 }

@@ -59,6 +59,25 @@ describe("ColumnFilterButton", () => {
     );
   });
 
+  it("affiche un select quand le champ a des options", () => {
+    render(
+      <ColumnFilterButton
+        label="Statut"
+        facetFields={[{ key: "statut", label: "Statut", options: ["Terminé", "En cours d'instruction"] }]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Filtrer par Statut/ }));
+
+    const select = screen.getByRole("combobox") as HTMLSelectElement;
+    expect(select.value).toBe("");
+    fireEvent.change(select, { target: { value: "Terminé" } });
+    fireEvent.click(screen.getByRole("button", { name: "Filtrer" }));
+
+    const pushedUrl = decodeURIComponent(mockPush.mock.calls[0][0] as string);
+    expect(pushedUrl).toContain("dahliaq=statut:Terminé");
+  });
+
   it("injecte la facette dans la recherche et réinitialise la page au submit", () => {
     setSearchParams("page=3");
     render(<ColumnFilterButton label="Requérant" facetFields={REQUERANT_FACET_FIELDS} />);

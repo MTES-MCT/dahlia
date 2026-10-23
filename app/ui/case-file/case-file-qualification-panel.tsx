@@ -296,7 +296,7 @@ export function CaseFileQualificationPanel(props: CaseFileQualificationPanelProp
         <TagPicker
           availableTags={availableTags}
           defaultSelectedIds={tags.map((tag) => tag.id)}
-          className={clsx("max-w-120")}
+          className={clsx(fr.cx("fr-mb-3w"), "max-w-120")}
         />
 
         {statusLabel === UNDER_INSTRUCTION_STATUS_LABEL && (

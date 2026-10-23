@@ -5,6 +5,7 @@ import {
   LITIGATION_TYPE_LABELS,
   LITIGATION_TYPE_SHORT_LABELS,
   RIGHT_TYPE_LABELS,
+  RIGHT_TYPE_UNDEFINED_LABEL,
 } from "@/app/lib/case-file-enums";
 import {
   CASE_FILES_DASHBOARD_COLUMNS,
@@ -25,6 +26,7 @@ import {
 } from "@/app/lib/case-file-scope";
 import { normalizeForSearch, parseSearchQuery, type FacetKey } from "@/app/lib/case-file-search";
 import { buildWordAndFilter, combineAnd, facetSearchWords } from "@/app/lib/search-where";
+import { TERMINATED_STATUS_LABELS, type StatusGroup } from "@/app/lib/dashboard-filter";
 
 export { HEARING_CONVOCATION_SORT_KEY } from "@/app/lib/case-files-dashboard-columns";
 
@@ -81,6 +83,30 @@ function matchingRightTypesForSearchWord(word: string): RightType[] {
     const fullLabel = normalizeForSearch(RIGHT_TYPE_LABELS[type]);
     return fullLabel.startsWith(word);
   });
+}
+
+// `recours:` facet: exact (accent/case-insensitive) match on the full or short label.
+function buildLitigationTypeFacetFilter(normalized: string): Prisma.CaseFileWhereInput {
+  const value = normalized.trim();
+  const types = (Object.keys(LITIGATION_TYPE_LABELS) as LitigationType[]).filter(
+    (type) =>
+      normalizeForSearch(LITIGATION_TYPE_LABELS[type]) === value ||
+      normalizeForSearch(LITIGATION_TYPE_SHORT_LABELS[type]) === value,
+  );
+  return { litigationType: { in: types } };
+}
+
+// `droit:` facet: exact (accent/case-insensitive) match on the label; the
+// « Non défini » label matches case files without right type.
+function buildRightTypeFacetFilter(normalized: string): Prisma.CaseFileWhereInput {
+  const value = normalized.trim();
+  if (value === normalizeForSearch(RIGHT_TYPE_UNDEFINED_LABEL)) {
+    return { rightType: null };
+  }
+  const types = (Object.keys(RIGHT_TYPE_LABELS) as RightType[]).filter(
+    (type) => normalizeForSearch(RIGHT_TYPE_LABELS[type]) === value,
+  );
+  return { rightType: { in: types } };
 }
 
 function buildTitreWordFilter(rawWord: string): Prisma.CaseFileWhereInput {
@@ -151,9 +177,26 @@ const FACET_BUILDERS: Record<
       lastProducer: { displayNameNormalized: { contains: word } },
     })),
   mc: (_normalized, raw) => buildTagFilter(raw.trim()),
+  statut: (normalized) => ({ lastStatus: { labelNormalized: normalized.trim() } }),
+  droit: (normalized) => buildRightTypeFacetFilter(normalized),
+  recours: (normalized) => buildLitigationTypeFacetFilter(normalized),
 };
 
-function buildWhere(query: string | null, statusLabel: string | null): Prisma.CaseFileWhereInput {
+function buildStatusGroupFilter(statusGroup: StatusGroup): Prisma.CaseFileWhereInput | null {
+  if (statusGroup === "termine") {
+    return { lastStatus: { label: { in: [...TERMINATED_STATUS_LABELS] } } };
+  }
+  if (statusGroup === "en_cours") {
+    return { lastStatus: { label: { notIn: [...TERMINATED_STATUS_LABELS] } } };
+  }
+  return null;
+}
+
+function buildWhere(
+  query: string | null,
+  statusLabel: string | null,
+  statusGroup: StatusGroup,
+): Prisma.CaseFileWhereInput {
   const conditions: Prisma.CaseFileWhereInput[] = [
     { isDeleted: false } as Prisma.CaseFileWhereInput,
   ];
@@ -176,6 +219,11 @@ function buildWhere(query: string | null, statusLabel: string | null): Prisma.Ca
     conditions.push({ lastStatus: { label: statusLabel } });
   }
 
+  const statusGroupFilter = buildStatusGroupFilter(statusGroup);
+  if (statusGroupFilter) {
+    conditions.push(statusGroupFilter);
+  }
+
   return combineAnd(conditions);
 }
 
@@ -187,8 +235,9 @@ function buildWhere(query: string | null, statusLabel: string | null): Prisma.Ca
 async function buildScopedWhere(
   query: string | null,
   statusLabel: string | null,
+  statusGroup: StatusGroup,
 ): Promise<Prisma.CaseFileWhereInput> {
-  return { ...buildWhere(query, statusLabel), ...(await caseFileScopeWhere()) };
+  return { ...buildWhere(query, statusLabel, statusGroup), ...(await caseFileScopeWhere()) };
 }
 
 async function fetchCaseFiles(
@@ -198,9 +247,10 @@ async function fetchCaseFiles(
   sortOrder: string | null = null,
   query: string | null = null,
   statusLabel: string | null = null,
+  statusGroup: StatusGroup = "tous",
 ): Promise<CaseFileWithRelations[]> {
   const direction: Prisma.SortOrder = sortOrder === "ascending" ? "asc" : "desc";
-  const where = await buildScopedWhere(query, statusLabel);
+  const where = await buildScopedWhere(query, statusLabel, statusGroup);
   const orderBy = sortBy ? buildOrderBy(sortBy, direction) : undefined;
 
   return prisma.caseFile.findMany({
@@ -215,8 +265,9 @@ async function fetchCaseFiles(
 async function fetchCaseFilesCount(
   query: string | null = null,
   statusLabel: string | null = null,
+  statusGroup: StatusGroup = "tous",
 ): Promise<number> {
-  const where = await buildScopedWhere(query, statusLabel);
+  const where = await buildScopedWhere(query, statusLabel, statusGroup);
   return prisma.caseFile.count({ where });
 }
 
@@ -332,9 +383,10 @@ export async function fetchAllCaseFilesForExport(
   sortOrder: string,
   query: string | null = null,
   statusLabel: string | null = null,
+  statusGroup: StatusGroup = "tous",
 ): Promise<CaseFileWithRelations[]> {
   const direction: Prisma.SortOrder = sortOrder === "ascending" ? "asc" : "desc";
-  const where = await buildScopedWhere(query, statusLabel);
+  const where = await buildScopedWhere(query, statusLabel, statusGroup);
   const orderBy = sortBy ? buildOrderBy(sortBy, direction) : undefined;
 
   return prisma.caseFile.findMany({
@@ -351,10 +403,11 @@ export async function fetchCaseFilesTableData(
   sortOrder: string,
   query: string | null = null,
   statusLabel: string | null = null,
+  statusGroup: StatusGroup = "tous",
 ): Promise<CaseFilesTableData> {
   const [caseFiles, totalCount] = await Promise.all([
-    fetchCaseFiles(page, numberOfCaseFiles, sortBy, sortOrder, query, statusLabel),
-    fetchCaseFilesCount(query, statusLabel),
+    fetchCaseFiles(page, numberOfCaseFiles, sortBy, sortOrder, query, statusLabel, statusGroup),
+    fetchCaseFilesCount(query, statusLabel, statusGroup),
   ]);
   return {
     rows: caseFiles,
