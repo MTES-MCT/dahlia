@@ -148,7 +148,9 @@ export function CaseFilesSearchFields({
     return () => form.removeEventListener("submit", close);
   }, []);
 
-  const activeFilterCount = parseSearchQuery(query, facetKeys).facets.length;
+  const parsedQuery = parseSearchQuery(query, facetKeys);
+  const activeFilterCount =
+    parsedQuery.facets.length + (parsedQuery.freeText?.trim() ? 1 : 0);
 
   function handleQueryChange(nextQuery: string) {
     setQuery(nextQuery);
