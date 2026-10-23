@@ -10,6 +10,8 @@ ignoredBuiltDependencies:
   - unrs-resolver
 confirmModulesPurge: false
 verifyDepsBeforeRun: false
+minimumReleaseAgeExclude:
+  - caniuse-lite@1.0.30001819
 overrides:
   "brace-expansion@<1.1.20": ">=1.1.20 <2.0.0"
   "brace-expansion@>=2.0.0 <2.1.7": ">=2.1.7 <3.0.0"
