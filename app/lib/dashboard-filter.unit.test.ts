@@ -1,44 +1,68 @@
 import { describe, expect, it } from "vitest";
 import {
-  PREFERRED_DEFAULT_STATUT,
-  resolveCurrentStatut,
-  resolveDefaultStatut,
+  filterStatusOptionsByGroup,
+  isTerminatedStatusLabel,
+  resolveStatusGroup,
+  statusLabelBelongsToGroup,
 } from "@/app/lib/dashboard-filter";
 
-describe("resolveDefaultStatut", () => {
-  it("prefers the configured default when present in the catalogue", () => {
-    expect(
-      resolveDefaultStatut(["Terminé", PREFERRED_DEFAULT_STATUT, "En cours d'instruction"]),
-    ).toBe(PREFERRED_DEFAULT_STATUT);
-  });
+const CATALOGUE = [
+  "Dossier rayé",
+  "En cours d'instruction",
+  "Inscrit au rôle d'une audience",
+  "Terminé",
+];
 
-  it("falls back to the first non-terminated label", () => {
-    expect(resolveDefaultStatut(["Terminé", "En cours d'instruction"])).toBe(
-      "En cours d'instruction",
-    );
-  });
-
-  it("returns null when the catalogue is empty", () => {
-    expect(resolveDefaultStatut([])).toBeNull();
+describe("isTerminatedStatusLabel", () => {
+  it("matches catalogue labels accent/case-insensitively", () => {
+    expect(isTerminatedStatusLabel("Terminé")).toBe(true);
+    expect(isTerminatedStatusLabel("termine")).toBe(true);
+    expect(isTerminatedStatusLabel("Dossier rayé")).toBe(true);
+    expect(isTerminatedStatusLabel("En cours d'instruction")).toBe(false);
   });
 });
 
-describe("resolveCurrentStatut", () => {
-  it("uses the resolved default when the param is absent", () => {
-    expect(resolveCurrentStatut(undefined, "En cours d'instruction")).toBe(
+describe("resolveStatusGroup", () => {
+  it("defaults to « en cours » when absent or unknown", () => {
+    expect(resolveStatusGroup(undefined)).toBe("en_cours");
+    expect(resolveStatusGroup("inconnu")).toBe("en_cours");
+  });
+
+  it("keeps a known group", () => {
+    expect(resolveStatusGroup("termine")).toBe("termine");
+    expect(resolveStatusGroup("tous")).toBe("tous");
+  });
+});
+
+describe("filterStatusOptionsByGroup", () => {
+  it("keeps « Terminé » and « Dossier rayé » in the « terminé » group", () => {
+    expect(filterStatusOptionsByGroup(CATALOGUE, "termine")).toEqual(["Dossier rayé", "Terminé"]);
+  });
+
+  it("keeps every other status in the « en cours » group", () => {
+    expect(filterStatusOptionsByGroup(CATALOGUE, "en_cours")).toEqual([
       "En cours d'instruction",
-    );
+      "Inscrit au rôle d'une audience",
+    ]);
   });
 
-  it("returns null when the param is absent and there is no default", () => {
-    expect(resolveCurrentStatut(undefined, null)).toBeNull();
+  it("keeps every status in the « tous » group", () => {
+    expect(filterStatusOptionsByGroup(CATALOGUE, "tous")).toEqual(CATALOGUE);
+  });
+});
+
+describe("statusLabelBelongsToGroup", () => {
+  it("matches terminated labels accent/case-insensitively", () => {
+    expect(statusLabelBelongsToGroup("termine", "termine")).toBe(true);
+    expect(statusLabelBelongsToGroup("Dossier rayé", "en_cours")).toBe(false);
   });
 
-  it("returns null for an explicit empty param", () => {
-    expect(resolveCurrentStatut("", "En cours d'instruction")).toBeNull();
+  it("puts every other label in « en cours »", () => {
+    expect(statusLabelBelongsToGroup("En cours d'instruction", "en_cours")).toBe(true);
+    expect(statusLabelBelongsToGroup("En cours d'instruction", "termine")).toBe(false);
   });
 
-  it("trims a non-empty param", () => {
-    expect(resolveCurrentStatut("  Terminé  ", "En cours d'instruction")).toBe("Terminé");
+  it("accepts any label in « tous »", () => {
+    expect(statusLabelBelongsToGroup("Terminé", "tous")).toBe(true);
   });
 });

@@ -847,6 +847,82 @@ describe("case-files", () => {
       );
     });
 
+    it("restreint au groupe « en cours » (statuts non terminés)", async () => {
+      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
+      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
+
+      await fetchCaseFilesTableData(1, 10, null, "descending", null, null, "en_cours");
+
+      const expectedWhere = {
+        AND: [
+          { isDeleted: false },
+          { lastStatus: { label: { notIn: ["Terminé", "Dossier rayé"] } } },
+        ],
+      };
+      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expectedWhere }),
+      );
+    });
+
+    it("restreint au groupe « terminé »", async () => {
+      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
+      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
+
+      await fetchCaseFilesTableData(1, 10, null, "descending", null, null, "termine");
+
+      const expectedWhere = {
+        AND: [{ isDeleted: false }, { lastStatus: { label: { in: ["Terminé", "Dossier rayé"] } } }],
+      };
+      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expectedWhere }),
+      );
+    });
+
+    it("filtre par facette statut sur labelNormalized", async () => {
+      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
+      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
+
+      await fetchCaseFilesTableData(1, 10, null, "descending", "statut:Terminé", null, "tous");
+
+      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            AND: [{ isDeleted: false }, { lastStatus: { labelNormalized: "termine" } }],
+          },
+        }),
+      );
+    });
+
+    it("filtre par facette droit opposable", async () => {
+      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
+      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
+
+      await fetchCaseFilesTableData(1, 10, null, "descending", "droit:DALO", null, "tous");
+
+      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            AND: [{ isDeleted: false }, { rightType: { in: ["DALO"] } }],
+          },
+        }),
+      );
+    });
+
+    it("filtre par facette recours (libellé court REP)", async () => {
+      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
+      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
+
+      await fetchCaseFilesTableData(1, 10, null, "descending", "recours:REP", null, "tous");
+
+      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            AND: [{ isDeleted: false }, { litigationType: { in: ["EXCES_DE_POUVOIR"] } }],
+          },
+        }),
+      );
+    });
+
     it("ajoute le périmètre de droit à la liste et à son décompte", async () => {
       mockCaseFileScopeWhere.mockResolvedValue({ jurisdictionId: { in: [3, 8] } });
       vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);

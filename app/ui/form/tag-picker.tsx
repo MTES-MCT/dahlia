@@ -15,13 +15,53 @@ import { TagBadge } from "@/app/ui/case-file/tag-badge";
 export type TagPickerProps = {
   // Every existing tag, already sorted by label. Users pick from this list only:
   // creating a tag is reserved to administrators.
-  availableTags: CaseFileTagView[];
+  availableTags: readonly CaseFileTagView[];
   defaultSelectedIds: number[];
   className?: string;
 };
 
+// Tag picker of a form: the selection is submitted as hidden `tagIds` fields.
 export function TagPicker({ availableTags, defaultSelectedIds, className }: TagPickerProps) {
   const [selectedIds, setSelectedIds] = useState<number[]>(defaultSelectedIds);
+
+  return (
+    <>
+      {/* autoComplete="off": Firefox restores hidden inputs on reload, by
+          position, which could submit another selection than the one shown. */}
+      <input type="hidden" name={HAS_TAGS_FIELD_NAME} value="true" autoComplete="off" />
+      {selectedIds.map((id) => (
+        <input key={id} type="hidden" name={TAG_IDS_FIELD_NAME} value={id} autoComplete="off" />
+      ))}
+      <TagCombobox
+        availableTags={availableTags}
+        selectedIds={selectedIds}
+        onChange={setSelectedIds}
+        className={className}
+      />
+    </>
+  );
+}
+
+export type TagComboboxProps = {
+  availableTags: readonly CaseFileTagView[];
+  selectedIds: readonly number[];
+  onChange: (selectedIds: number[]) => void;
+  label?: string;
+  className?: string;
+  // Classes of the text input itself (e.g. to cap its width).
+  inputClassName?: string;
+};
+
+// Controlled tag combobox: type to filter the existing tags, pick them with the
+// mouse or the keyboard; the selection is shown as removable badges below.
+export function TagCombobox({
+  availableTags,
+  selectedIds,
+  onChange,
+  label = "Mots-clés",
+  className,
+  inputClassName,
+}: TagComboboxProps) {
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
@@ -78,7 +118,7 @@ export function TagPicker({ availableTags, defaultSelectedIds, className }: TagP
   }
 
   function selectTag(tag: CaseFileTagView) {
-    setSelectedIds((ids) => (ids.includes(tag.id) ? ids : [...ids, tag.id]));
+    if (!selectedIds.includes(tag.id)) onChange([...selectedIds, tag.id]);
     // Clearing the query empties the list, so it closes with it.
     setQuery("");
     setIsOpen(false);
@@ -86,7 +126,7 @@ export function TagPicker({ availableTags, defaultSelectedIds, className }: TagP
   }
 
   function removeTag(tagId: number) {
-    setSelectedIds((ids) => ids.filter((id) => id !== tagId));
+    onChange(selectedIds.filter((id) => id !== tagId));
   }
 
   function onKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
@@ -131,21 +171,15 @@ export function TagPicker({ availableTags, defaultSelectedIds, className }: TagP
 
   return (
     <div className={clsx(fr.cx("fr-mb-1w"), className)} ref={containerRef}>
-      {/* autoComplete="off": Firefox restores hidden inputs on reload, by
-          position, which could submit another selection than the one shown. */}
-      <input type="hidden" name={HAS_TAGS_FIELD_NAME} value="true" autoComplete="off" />
-      {selectedIds.map((id) => (
-        <input key={id} type="hidden" name={TAG_IDS_FIELD_NAME} value={id} autoComplete="off" />
-      ))}
-
       <div className="relative">
         {/* DSFR adds 1.5rem under `.fr-input-group:not(:last-child)`. Opening the
             list inserts a sibling, which would otherwise gap the popover and
             shove the selected tags down. */}
         <Input
-          label="Mots-clés"
+          label={label}
           hintText="Saisissez au moins une lettre pour rechercher parmi les mots-clés existants."
           className={fr.cx("fr-mb-0")}
+          classes={{ nativeInputOrTextArea: inputClassName }}
           nativeInputProps={{
             type: "text",
             value: query,

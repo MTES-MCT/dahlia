@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+/* DSFR propagates `border-box` with `*, *::before, *::after { box-sizing: inherit }`,
+   which does not match the `<details>` content pseudo-element (Chromium): it keeps
+   `content-box`, and so does everything inside an open `<details>`. DSFR grid
+   columns then overflow their row (e.g. `fr-col-lg-4` wraps 2 per row). */
+::details-content {
+  box-sizing: inherit;
+}
+
 /* Full-height pièces workspace.
    The DSFR Tabs component lays its parts out as a wrap row with a JS-driven
    `--tabs-height`, which prevents the panel from filling a bounded height.
