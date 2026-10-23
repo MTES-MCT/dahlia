@@ -91,14 +91,25 @@ describe("CaseFilesSearchFields", () => {
   it("affiche le nombre de filtres actifs sur le lien « Filtres avancés »", () => {
     renderFields("dupont requerant:prefet statut:Terminé");
 
-    expect(screen.getByText("Filtres avancés").textContent).toContain("2");
+    expect(screen.getByText("Filtres avancés").textContent).toContain("3");
     expect(screen.getByText("filtres actifs", { exact: false })).toBeTruthy();
   });
 
-  it("n'affiche pas de compteur sans filtre", () => {
+  it("incrémente le compteur quand on ajoute du texte libre dans les filtres avancés", () => {
+    renderFields("requerant:prefet statut:Terminé");
+
+    expect(screen.getByText("Filtres avancés").textContent).toContain("2");
+
+    fireEvent.change(field("Recherché dans toutes les colonnes"), { target: { value: "dupont" } });
+
+    expect(screen.getByText("Filtres avancés").textContent).toContain("3");
+  });
+
+  it("affiche un compteur pour une recherche en texte libre seul", () => {
     renderFields("dupont");
 
-    expect(screen.queryByText("filtre actif", { exact: false })).toBeNull();
+    expect(screen.getByText("Filtres avancés").textContent).toContain("1");
+    expect(screen.getByText("filtre actif", { exact: false })).toBeTruthy();
   });
 
   it("referme les filtres avancés à la soumission du formulaire", () => {
