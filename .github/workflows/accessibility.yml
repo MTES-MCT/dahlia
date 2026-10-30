@@ -1,0 +1,91 @@
+name: Accessibility
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lighthouse:
+    name: ♿ Lighthouse accessibility
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine3.23
+        env:
+          POSTGRES_USER: dahlia
+          POSTGRES_PASSWORD: dahlia # pragma: allowlist secret
+          POSTGRES_DB: dahlia
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://dahlia:dahlia@localhost:5432/dahlia?schema=public
+      # Dummy secret: only public pages are audited, no session is ever created.
+      BETTER_AUTH_SECRET: lighthouse-ci-dummy-secret # pragma: allowlist secret
+      BETTER_AUTH_URL: http://localhost:3000
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup env file
+        run: cp .env.example .env
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .tools-version
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply migrations
+        run: pnpm db:migrate:deploy
+
+      - name: Build
+        run: pnpm build
+
+      # Starts the app, audits the URLs listed in lighthouserc.json and fails
+      # the job when the accessibility score is below the configured threshold.
+      - name: Run Lighthouse CI
+        run: pnpm dlx @lhci/cli@0.15.1 autorun
+
+      - name: Write job summary
+        if: always()
+        run: |
+          manifest=.lighthouseci/reports/manifest.json
+          [ -f "$manifest" ] || exit 0
+          {
+            echo "## ♿ Lighthouse accessibility"
+            echo
+            echo "| Page | Score |"
+            echo "| --- | --- |"
+            jq -r '.[] | "| \(.url) | \((.summary.accessibility * 100) | round) |"' "$manifest"
+            echo
+            echo "### Failing audits"
+            for report in $(jq -r '.[].jsonPath' "$manifest"); do
+              jq -r '.finalDisplayedUrl as $url
+                | .categories.accessibility.auditRefs[].id as $id
+                | .audits[$id]
+                | select(.scoreDisplayMode == "binary" and .score == 0)
+                | "- `\($url)`: **\(.id)** — \(.title)"' "$report"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Lighthouse reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-accessibility-reports
+          path: .lighthouseci/reports
+          retention-days: 14
