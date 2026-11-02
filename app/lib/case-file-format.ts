@@ -91,7 +91,6 @@ export function getActorDisplayName(actor: ActorForDisplay): string {
 
 export type CaseFileDisplayNameSource = {
   caseFileNumber: string;
-  title: string | null;
   litigationType: LitigationType | null;
   rightType: RightType | null;
 };

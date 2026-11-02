@@ -6,6 +6,7 @@ import { caseFileHref, type CaseFileKey } from "@/app/lib/case-file-key";
 import { prisma } from "@/app/lib/prisma";
 import { fetchAttachedFile } from "@/app/lib/data/attached-files";
 import { describePrismaError } from "@/app/lib/form-actions";
+import { PIECE_COMMENT_MAX_LENGTH } from "@/app/lib/piece-comment";
 
 export type UpdatePieceResult = { ok: true } | { ok: false; error: string };
 
@@ -55,10 +56,14 @@ export async function savePieceMetadataAction(
   if (!trimmed) {
     return { ok: false, error: "Identifiant de pièce manquant." };
   }
+  const comment = input.comment.trim();
+  if (comment.length > PIECE_COMMENT_MAX_LENGTH) {
+    return { ok: false, error: "Commentaire trop long." };
+  }
   // Empty strings are stored as null.
   return persistPieceData(key, trimmed, {
     dahliaName: input.dahliaName.trim() || null,
-    comment: input.comment.trim() || null,
+    comment: comment || null,
     ...(input.isFavorite === undefined ? {} : { isFavorite: input.isFavorite }),
   });
 }

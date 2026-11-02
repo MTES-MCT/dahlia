@@ -43,7 +43,6 @@ const RELATED: RelatedCaseFileLink[] = [
   {
     accessible: true,
     key: { jurisdictionCode: "TA069", caseFileNumber: "2500010" },
-    title: "M. Dupont c/ Préfet",
     displayName: null,
   },
   { accessible: false, key: { jurisdictionCode: "TA069", caseFileNumber: "2500020" } },
@@ -100,6 +99,28 @@ describe("CaseFileInfoPanel", () => {
     expect(facts.queryByText("Dispositif")).toBeNull();
   });
 
+  it("affiche le titre Télérecours en premier, sur toute la largeur", () => {
+    render(
+      <CaseFileInfoPanel
+        caseFile={caseFileFixture({ title: "M. Dupont c/ Préfet du Rhône" })}
+        relatedCaseFiles={[]}
+      />,
+    );
+
+    const firstTerm = document.querySelector("dl dt");
+    expect(firstTerm?.textContent).toBe("Titre donné par le greffe");
+    expect(firstTerm?.parentElement?.className).toContain("col-span-full");
+    expect(getFacts().getByText("M. Dupont c/ Préfet du Rhône")).toBeTruthy();
+  });
+
+  it("n'affiche pas le titre Télérecours quand il est vide", () => {
+    render(
+      <CaseFileInfoPanel caseFile={caseFileFixture({ title: "   " })} relatedCaseFiles={[]} />,
+    );
+
+    expect(getFacts().queryByText("Titre Télérecours")).toBeNull();
+  });
+
   it("affiche la décision et son dispositif quand ils existent", () => {
     render(
       <CaseFileInfoPanel
@@ -137,7 +158,7 @@ describe("CaseFileInfoPanel", () => {
     expect(items).toHaveLength(2);
 
     const accessible = within(items[0]);
-    expect(accessible.getByText("M. Dupont c/ Préfet")).toBeTruthy();
+    expect(accessible.getByText("2500010")).toBeTruthy();
     expect(
       accessible.getByRole("link", { name: "Ouvrir", hidden: true }).getAttribute("href"),
     ).toBe("/case_files/TA069/2500010");
@@ -151,7 +172,7 @@ describe("CaseFileInfoPanel", () => {
     ).toBe(true);
   });
 
-  it("affiche le libellé du dossier lié et son titre Télérecours en dessous", () => {
+  it("affiche le libellé du dossier lié sans son titre Télérecours", () => {
     render(
       <CaseFileInfoPanel
         caseFile={caseFileFixture()}
@@ -159,7 +180,6 @@ describe("CaseFileInfoPanel", () => {
           {
             accessible: true,
             key: { jurisdictionCode: "TA069", caseFileNumber: "2500010" },
-            title: "M. Dupont c/ Préfet",
             displayName: "2500010 - Dupont Jean - Injonction",
           },
         ]}
@@ -168,34 +188,7 @@ describe("CaseFileInfoPanel", () => {
 
     const item = within(screen.getByRole("listitem", { hidden: true }));
     expect(item.getByText("2500010 - Dupont Jean - Injonction")).toBeTruthy();
-    expect(item.getByText("M. Dupont c/ Préfet").className).toContain("italic");
+    expect(item.queryByText("M. Dupont c/ Préfet")).toBeNull();
     expect(item.queryByText("2500010")).toBeNull();
-  });
-
-  it("n'affiche pas le titre Télérecours quand il est identique au libellé", () => {
-    render(
-      <CaseFileInfoPanel
-        caseFile={caseFileFixture()}
-        relatedCaseFiles={[
-          {
-            accessible: true,
-            key: { jurisdictionCode: "TA069", caseFileNumber: "2500010" },
-            title: "2500010",
-            displayName: null,
-          },
-        ]}
-      />,
-    );
-
-    const item = within(screen.getByRole("listitem", { hidden: true }));
-    expect(item.getAllByText("2500010")).toHaveLength(1);
-  });
-
-  it("tronque le titre Télérecours d'un dossier lié sur une seule ligne", () => {
-    render(<CaseFileInfoPanel caseFile={caseFileFixture()} relatedCaseFiles={RELATED} />);
-
-    const title = screen.getByText("M. Dupont c/ Préfet");
-    expect(title.className).toContain("truncate");
-    expect(title.getAttribute("title")).toBe("M. Dupont c/ Préfet");
   });
 });

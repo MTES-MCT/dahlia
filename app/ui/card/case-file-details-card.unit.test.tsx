@@ -97,12 +97,11 @@ describe("CaseFileDetailsCard", () => {
     expect(screen.getByRole("heading", { level: 1, name: "Dossier TA069-2026-001" })).toBeTruthy();
   });
 
-  it("affiche le titre Télérecours en sous-titre dans l'en-tête", () => {
+  // The Télérecours title is shown in the "Informations du dossier" panel instead.
+  it("n'affiche pas le titre Télérecours dans l'en-tête", () => {
     render(<CaseFileDetailsCard caseFile={caseFileFixture()} />);
 
-    const subtitle = screen.getByText("Requête DALO");
-    expect(subtitle.tagName).toBe("P");
-    expect(subtitle.className).toContain("italic");
+    expect(screen.queryByText("Requête DALO")).toBeNull();
   });
 
   it("affiche le statut, puis la synchronisation Télérecours en dessous", async () => {

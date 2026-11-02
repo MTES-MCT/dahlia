@@ -11,7 +11,6 @@ import {
 } from "@/app/lib/case-file-actors";
 import { type CaseFileDetail } from "@/app/lib/data/case-files";
 import { type RelatedCaseFileLink } from "@/app/lib/data/related-case-files";
-import { CaseFileTelerecoursTitle } from "@/app/ui/case-file/case-file-telerecours-title";
 import { CollapsiblePanel } from "@/app/ui/panel/collapsible-panel";
 import { ExpandableText } from "@/app/ui/text/expandable-text";
 
@@ -20,7 +19,8 @@ type Props = {
   relatedCaseFiles: RelatedCaseFileLink[];
 };
 
-type Fact = { key: string; label: string; value: string };
+// `fullWidth` facts span every column of the grid (e.g. long free text).
+type Fact = { key: string; label: string; value: string; fullWidth?: boolean };
 
 // "-" is what getActorDisplayName returns for a missing actor.
 function actorName(actor: Parameters<typeof getActorDisplayName>[0]): string {
@@ -33,6 +33,12 @@ function actorName(actor: Parameters<typeof getActorDisplayName>[0]): string {
 // Empty values are dropped rather than shown as "—".
 function buildFacts(caseFile: NonNullable<CaseFileDetail>): Fact[] {
   const facts: Fact[] = [
+    {
+      key: "title",
+      label: "Titre donné par le greffe",
+      value: caseFile.title ?? "",
+      fullWidth: true,
+    },
     { key: "claimant", label: "Requérant", value: actorName(getMainClaimantActor(caseFile)) },
     { key: "defender", label: "Défendeur", value: actorName(getMainDefenderActor(caseFile)) },
     { key: "deposit", label: "Déposé le", value: formatDateFr(caseFile.depositDate) },
@@ -62,6 +68,19 @@ const termClassName = clsx(
   "uppercase",
   "tracking-wide",
 );
+
+// Facts: term and value share the DSFR "md" font size and are left-aligned.
+// `fr-m-0` / `fr-p-0` (not Tailwind `m-0` / `p-0`) because the unlayered DSFR
+// styles (`fr-text--md` margin, `dl, dd { padding-inline-start }`, `dt, dd
+// { padding-bottom }`) would win over Tailwind utilities.
+const factTermClassName = clsx(
+  fr.cx("fr-p-0"),
+  //  "text-(--text-mention-grey)",
+  "uppercase",
+  "tracking-wide",
+);
+
+const factValueClassName = clsx(fr.cx("fr-p-0"), "font-medium");
 
 function RelatedCaseFiles({ relatedCaseFiles }: { relatedCaseFiles: RelatedCaseFileLink[] }) {
   return (
@@ -93,24 +112,14 @@ function RelatedCaseFiles({ relatedCaseFiles }: { relatedCaseFiles: RelatedCaseF
               !related.accessible && "bg-(--background-alt-grey)",
             )}
           >
-            {/* flex-1 + min-w-0 give the text column a bounded width, so the
-                single-line Télérecours title can ellipse next to the button. */}
+            {/* flex-1 + min-w-0 give the text column a bounded width next to the button. */}
             <div className={clsx("min-w-0", "flex-1")}>
               {related.accessible ? (
-                <>
-                  {/* The display name already starts with the case file number. */}
-                  <span className={fr.cx("fr-text--bold")}>
-                    {related.displayName ?? related.key.caseFileNumber}
-                  </span>
-                  <CaseFileTelerecoursTitle
-                    title={related.title}
-                    displayName={related.displayName ?? related.key.caseFileNumber}
-                    singleLine
-                  />
-                </>
+                // The display name already starts with the case file number.
+                <span>{related.displayName ?? related.key.caseFileNumber}</span>
               ) : (
                 <>
-                  <span className={fr.cx("fr-text--bold")}>{related.key.caseFileNumber}</span>
+                  <span>{related.key.caseFileNumber}</span>
                   <p
                     className={clsx(fr.cx("fr-text--sm", "fr-mb-0"), "text-(--text-mention-grey)")}
                   >
@@ -204,7 +213,7 @@ export function CaseFileInfoPanel({ caseFile, relatedCaseFiles }: Props) {
       {(facts.length > 0 || operativePart) && (
         <dl
           className={clsx(
-            fr.cx("fr-m-0"),
+            fr.cx("fr-m-0", "fr-p-0"),
             "grid",
             "grid-cols-1",
             "md:grid-cols-2",
@@ -214,16 +223,25 @@ export function CaseFileInfoPanel({ caseFile, relatedCaseFiles }: Props) {
           )}
         >
           {facts.map((fact) => (
-            <div key={fact.key} className={clsx("flex", "min-w-0", "flex-col", "gap-1")}>
-              <dt className={termClassName}>{fact.label}</dt>
-              <dd className={clsx("m-0", "font-medium")}>{fact.value}</dd>
+            <div
+              key={fact.key}
+              className={clsx(
+                "flex",
+                "min-w-0",
+                "flex-col",
+                "gap-1",
+                fact.fullWidth && "col-span-full",
+              )}
+            >
+              <dt className={factTermClassName}>{fact.label}</dt>
+              <dd className={factValueClassName}>{fact.value}</dd>
             </div>
           ))}
           {operativePart && (
             <div className={clsx("col-span-full", "flex", "min-w-0", "flex-col", "gap-1")}>
-              <dt className={termClassName}>Dispositif</dt>
-              <dd className={clsx("m-0")}>
-                <ExpandableText text={operativePart} className={clsx("font-medium")} />
+              <dt className={factTermClassName}>Dispositif</dt>
+              <dd className={factValueClassName}>
+                <ExpandableText text={operativePart} />
               </dd>
             </div>
           )}

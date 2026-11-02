@@ -10,16 +10,15 @@ import {
 import { prisma } from "@/app/lib/prisma";
 
 // A related case file the user may open, or only the fact that it exists: its
-// title and display name carry the parties' names, which must not leak outside
+// display name carries the parties' names, which must not leak outside
 // the user's scope. `displayName` is null when it would only repeat the number.
 export type RelatedCaseFileLink =
-  | { accessible: true; key: CaseFileKey; title: string | null; displayName: string | null }
+  | { accessible: true; key: CaseFileKey; displayName: string | null }
   | { accessible: false; key: CaseFileKey };
 
 const RELATED_CASE_FILE_SELECT = {
   jurisdictionCode: true,
   caseFileNumber: true,
-  title: true,
   jurisdictionId: true,
   litigationType: true,
   rightType: true,
@@ -75,7 +74,6 @@ export async function fetchRelatedCaseFiles(key: CaseFileKey): Promise<RelatedCa
       return {
         accessible: true,
         key: relatedKey,
-        title: caseFile.title,
         displayName: displayName === caseFile.caseFileNumber ? null : displayName,
       };
     });

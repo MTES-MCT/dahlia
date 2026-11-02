@@ -48,14 +48,25 @@ describe("CaseFileQualificationPanel", () => {
       expect(screen.getByRole("button", { name: "Enregistrer" })).toBeTruthy();
     });
 
-    it("propose dans l'avertissement un bouton qui soumet le formulaire", () => {
-      renderPanel();
+    it("libelle le bouton « Valider et enregistrer » quand un champ est à valider", () => {
+      renderPanel({ fieldsToReview: ["litigationType"] });
 
-      const validate = screen.getByRole("button", {
-        name: "Valider la qualification du dossier",
+      const submit = screen.getByRole("button", {
+        name: "Valider et enregistrer",
       }) as HTMLButtonElement;
-      expect(validate.type).toBe("submit");
-      expect(validate.form).toBe(document.querySelector("form"));
+      expect(submit.type).toBe("submit");
+      expect(screen.queryByRole("button", { name: "Enregistrer" })).toBeNull();
+      // The warning banner no longer carries its own validation button.
+      expect(
+        screen.queryByRole("button", { name: "Valider la qualification du dossier" }),
+      ).toBeNull();
+    });
+
+    it("garde le libellé « Enregistrer » quand aucun champ n'est à valider", () => {
+      renderPanel({ fieldsToReview: [] });
+
+      expect(screen.getByRole("button", { name: "Enregistrer" })).toBeTruthy();
+      expect(screen.queryByRole("button", { name: "Valider et enregistrer" })).toBeNull();
     });
   });
 
@@ -223,10 +234,25 @@ describe("CaseFileQualificationPanel", () => {
       .getByRole("combobox", { name: /Droit opposable/ })
       .closest(".fr-select-group") as HTMLElement;
 
-    expect(litigationGroup.className).toContain("fr-select-group--error");
-    expect(litigationGroup.textContent).toContain("Qualification automatique à valider");
+    // A warning notice, not a validation error: no field is in error state.
+    expect(litigationGroup.className).not.toContain("fr-select-group--error");
     expect(rightGroup.className).not.toContain("fr-select-group--error");
-    expect(rightGroup.textContent).not.toContain("Qualification automatique à valider");
+
+    const [warning, ...others] = screen.getAllByText("Qualification automatique à valider");
+    expect(others).toHaveLength(0);
+    expect(warning.className).toContain("fr-message--warning");
+    // Shown under the litigation type field and announced with it.
+    expect(
+      litigationGroup.compareDocumentPosition(warning) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      screen
+        .getByRole("combobox", { name: /Type de contentieux/ })
+        .getAttribute("aria-describedby"),
+    ).toContain(warning.id);
+    expect(
+      screen.getByRole("combobox", { name: /Droit opposable/ }).getAttribute("aria-describedby"),
+    ).toBeFalsy();
   });
 
   it("n'affiche aucun statut de champ quand rien n'est à revoir", () => {

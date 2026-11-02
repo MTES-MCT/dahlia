@@ -9,8 +9,8 @@ type Props = {
   caseFile: NonNullable<CaseFileDetail>;
 };
 
-// Sticky header of the case-file page: title, Télérecours title, status and the
-// Télérecours sync notice. Qualification and comments are edited from the
+// Sticky header of the case-file page: title, status and the Télérecours sync
+// notice. The Télérecours title is shown in the "Informations du dossier" panel. Qualification and comments are edited from the
 // synthèse tab.
 export function CaseFileDetailsCard({ caseFile }: Props) {
   return (
@@ -26,7 +26,6 @@ export function CaseFileDetailsCard({ caseFile }: Props) {
     >
       <CaseFileIdentity
         displayName={getCaseFileDisplayName(caseFile)}
-        title={caseFile.title}
         statusLabel={caseFile.lastStatus.label}
         name={{ kind: "heading" }}
         footer={

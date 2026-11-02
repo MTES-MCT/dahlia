@@ -198,17 +198,20 @@ describe("PiecesWorkspace", () => {
   it("ignore les flèches du clavier pendant la saisie dans un champ", () => {
     vi.mocked(savePieceMetadataAction).mockResolvedValue({ ok: true });
     renderWorkspace();
-    fireEvent.click(screen.getByRole("button", { name: /Éditer/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Modifier/ }));
 
     fireEvent.keyDown(within(editModal()).getByLabelText("Nom sur DAHLIA"), { key: "ArrowDown" });
     expect(screen.getByRole("heading", { name: "Requête introductive" })).toBeTruthy();
   });
 
-  it("ouvre la pièce dans un nouvel onglet", () => {
+  it("ouvre la pièce en plein écran dans un nouvel onglet, via un lien", () => {
     renderWorkspace();
-    const link = screen.getByRole("link", { name: /Afficher/ });
+    const link = screen.getByRole("link", { name: /Plein écran/ });
     expect(link.getAttribute("href")).toBe("/data/f1");
     expect(link.getAttribute("target")).toBe("_blank");
+    // A plain DSFR link, not a button.
+    expect(link.className).toContain("fr-link");
+    expect(link.className).not.toContain("fr-btn");
   });
 
   it("affiche « Aucun commentaire » quand la pièce n'en a pas", () => {
@@ -223,7 +226,7 @@ describe("PiecesWorkspace", () => {
     vi.mocked(savePieceMetadataAction).mockResolvedValue({ ok: true });
     renderWorkspace();
 
-    fireEvent.click(screen.getByRole("button", { name: /Éditer/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Modifier/ }));
     const dialog = editModal();
     expect(dialog.hasAttribute("open")).toBe(true);
 
@@ -309,7 +312,7 @@ describe("PiecesWorkspace", () => {
     renderWorkspace();
     expect(screen.queryByText("Favori")).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: /Éditer/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Modifier/ }));
     const checkbox = within(editModal()).getByLabelText(/^Favori/) as HTMLInputElement;
     expect(checkbox.checked).toBe(false);
     fireEvent.click(checkbox);

@@ -32,7 +32,9 @@ type CaseFileIdentityName =
 
 export type CaseFileIdentityProps = {
   displayName: string;
-  title: string | null;
+  // Omitted on the detail page, where the Télérecours title lives in the
+  // "Informations du dossier" panel instead.
+  title?: string | null;
   statusLabel: string;
   // Shown in the dashboard cell only; the detail page header has no tags.
   tags?: CaseFileTagView[];
@@ -47,7 +49,7 @@ export type CaseFileIdentityProps = {
 // header so the two can no longer drift apart.
 export function CaseFileIdentity({
   displayName,
-  title,
+  title = null,
   statusLabel,
   tags = [],
   name,
