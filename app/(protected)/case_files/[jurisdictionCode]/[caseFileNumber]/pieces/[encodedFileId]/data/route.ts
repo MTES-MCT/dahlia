@@ -2,6 +2,8 @@ import { clientErrorMessage } from "@/app/lib/client-error";
 import { caseFileKeyFromParams } from "@/app/lib/case-file-key";
 import { fetchAttachedFile } from "@/app/lib/data/attached-files";
 import { fetchPieceContent } from "@/app/lib/data/piece-content";
+import { rateLimitedHttpResponse } from "@/app/lib/piece-download-rate-limit-response";
+import { TelerecoursUserRateLimitedError } from "@/app/lib/telerecours-user-rate-limited-error";
 
 type RouteContext = {
   params: Promise<{ jurisdictionCode: string; caseFileNumber: string; encodedFileId: string }>;
@@ -37,6 +39,9 @@ export async function GET(_request: Request, { params }: RouteContext) {
       },
     });
   } catch (error) {
+    if (error instanceof TelerecoursUserRateLimitedError) {
+      return rateLimitedHttpResponse(error);
+    }
     return new Response(clientErrorMessage(error, "Échec du téléchargement de la pièce"), {
       status: 502,
     });

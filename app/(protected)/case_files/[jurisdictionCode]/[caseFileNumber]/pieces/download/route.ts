@@ -5,6 +5,12 @@ import { fetchAttachedFile } from "@/app/lib/data/attached-files";
 import { fetchCaseFileDetail } from "@/app/lib/data/case-files";
 import { clientErrorMessage } from "@/app/lib/client-error";
 import { fetchPieceContent } from "@/app/lib/data/piece-content";
+import {
+  normalizePieceDownloadIds,
+  PIECE_BULK_DOWNLOAD_MAX_COUNT,
+} from "@/app/lib/piece-bulk-download";
+import { rateLimitedHttpResponse } from "@/app/lib/piece-download-rate-limit-response";
+import { TelerecoursUserRateLimitedError } from "@/app/lib/telerecours-user-rate-limited-error";
 
 // The download reads live per-user content and relies on Node.js APIs, so it is
 // fully dynamic and runs on the Node.js runtime.
@@ -42,10 +48,19 @@ export function uniqueName(name: string, used: Set<string>): string {
 export async function GET(request: Request, { params }: RouteContext) {
   const key = caseFileKeyFromParams(await params);
 
-  const encodedFileIds = new URL(request.url).searchParams.getAll("id");
+  const encodedFileIds = normalizePieceDownloadIds(
+    new URL(request.url).searchParams.getAll("id"),
+  );
 
   if (encodedFileIds.length === 0) {
     return new Response("Aucune pièce sélectionnée", { status: 400 });
+  }
+
+  if (encodedFileIds.length > PIECE_BULK_DOWNLOAD_MAX_COUNT) {
+    return new Response(
+      `Trop de pièces sélectionnées (maximum ${PIECE_BULK_DOWNLOAD_MAX_COUNT})`,
+      { status: 400 },
+    );
   }
 
   const caseFile = await fetchCaseFileDetail(key.jurisdictionCode, key.caseFileNumber);
@@ -85,6 +100,9 @@ export async function GET(request: Request, { params }: RouteContext) {
       },
     });
   } catch (error) {
+    if (error instanceof TelerecoursUserRateLimitedError) {
+      return rateLimitedHttpResponse(error);
+    }
     return new Response(clientErrorMessage(error, "Échec du téléchargement des pièces"), {
       status: 502,
     });
