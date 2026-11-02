@@ -37,6 +37,26 @@ describe("GET /case_files/[jurisdictionCode]/[caseFileNumber]/pieces/[encodedFil
     vi.restoreAllMocks();
   });
 
+  it("streams the piece with a sanitized Content-Disposition filename", async () => {
+    mockedFetchAttachedFile.mockResolvedValue({
+      encodedFileId: "file-1",
+      caseFileNumber: CASE_FILE_NUMBER,
+    } as never);
+    mockedFetchPieceContent.mockResolvedValue({
+      data: new Uint8Array([0x25, 0x50, 0x44, 0x46]),
+      mimeType: "application/pdf",
+      downloadName: "../../Pièce.pdf",
+    });
+
+    const response = await GET(new Request("https://dahlia.example/data"), routeContext());
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Type")).toBe("application/pdf");
+    expect(response.headers.get("Content-Disposition")).toBe(
+      "inline; filename=\".._.._Pi_ce.pdf\"; filename*=UTF-8''.._.._Pi%C3%A8ce.pdf",
+    );
+  });
+
   it("looks the piece up within the requested case file and returns 404 when absent", async () => {
     // `fetchAttachedFile` answers null (and records the miss) for a piece of
     // another case file, an unknown piece or an out-of-scope one.

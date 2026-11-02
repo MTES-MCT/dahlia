@@ -3,6 +3,7 @@ import { caseFileKeyFromParams } from "@/app/lib/case-file-key";
 import { fetchAttachedFile } from "@/app/lib/data/attached-files";
 import { fetchPieceContent } from "@/app/lib/data/piece-content";
 import { rateLimitedHttpResponse } from "@/app/lib/piece-download-rate-limit-response";
+import { sanitizeFileName } from "@/app/lib/sanitize-file-name";
 import { TelerecoursUserRateLimitedError } from "@/app/lib/telerecours-user-rate-limited-error";
 
 type RouteContext = {
@@ -27,13 +28,14 @@ export async function GET(_request: Request, { params }: RouteContext) {
   try {
     const { data, mimeType, downloadName } = await fetchPieceContent(file);
 
+    const safeDownloadName = sanitizeFileName(downloadName);
     // RFC 5987-encoded filename so accented names survive the header.
-    const asciiName = downloadName.replace(/[^\x20-\x7e]/g, "_").replace(/"/g, "'");
+    const asciiName = safeDownloadName.replace(/[^\x20-\x7e]/g, "_").replace(/"/g, "'");
 
     return new Response(data, {
       headers: {
         "Content-Type": mimeType,
-        "Content-Disposition": `inline; filename="${asciiName}"; filename*=UTF-8''${encodeURIComponent(downloadName)}`,
+        "Content-Disposition": `inline; filename="${asciiName}"; filename*=UTF-8''${encodeURIComponent(safeDownloadName)}`,
         // Per-user content: cache in the browser only, briefly.
         "Cache-Control": "private, max-age=300",
       },

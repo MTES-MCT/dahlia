@@ -39,6 +39,15 @@ describe("pieceDownloadFileName", () => {
       }),
     ).toBe("Pièce sans extension");
   });
+
+  it("sanitizes path segments in the download name", () => {
+    expect(
+      pieceDownloadFileName({
+        dahliaName: "../../.ssh/authorized_keys",
+        fileName: "doc.pdf",
+      }),
+    ).toBe(".._.._.ssh_authorized_keys.pdf");
+  });
 });
 
 describe("comparePiecesByDateDescThenName", () => {

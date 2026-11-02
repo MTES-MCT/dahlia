@@ -216,6 +216,20 @@ describe("GET /case_files/[jurisdictionCode]/[caseFileNumber]/pieces/download", 
     );
   });
 
+  it("sanitizes zip entry names that contain path separators", async () => {
+    mockedFetchCaseFileDetail.mockResolvedValue(CASE_FILE as never);
+    mockedFetchAttachedFile.mockResolvedValue(attachedFile("file-1") as never);
+    mockedFetchPieceContent.mockResolvedValue(
+      pieceContent("../../.ssh/authorized_keys.pdf", 0x51),
+    );
+
+    const response = await GET(downloadRequest(["file-1"]), routeContext());
+
+    expect(response.status).toBe(200);
+    const entries = await zipEntries(response);
+    expect(Object.keys(entries)).toEqual([".._.._.ssh_authorized_keys.pdf"]);
+  });
+
   it("deduplicates entry names inside the zip when download names collide", async () => {
     mockedFetchCaseFileDetail.mockResolvedValue(CASE_FILE as never);
     mockedFetchAttachedFile
