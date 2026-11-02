@@ -65,6 +65,19 @@ const termClassName = clsx(
   "tracking-wide",
 );
 
+// Facts: term and value share the DSFR "md" font size and are left-aligned.
+// `fr-m-0` / `fr-p-0` (not Tailwind `m-0` / `p-0`) because the unlayered DSFR
+// styles (`fr-text--md` margin, `dl, dd { padding-inline-start }`, `dt, dd
+// { padding-bottom }`) would win over Tailwind utilities.
+const factTermClassName = clsx(
+  fr.cx("fr-p-0"),
+  //  "text-(--text-mention-grey)",
+  "uppercase",
+  "tracking-wide",
+);
+
+const factValueClassName = clsx(fr.cx("fr-p-0"), "font-medium");
+
 function RelatedCaseFiles({ relatedCaseFiles }: { relatedCaseFiles: RelatedCaseFileLink[] }) {
   return (
     <div className={fr.cx("fr-mt-5v")}>
@@ -206,7 +219,7 @@ export function CaseFileInfoPanel({ caseFile, relatedCaseFiles }: Props) {
       {(facts.length > 0 || operativePart) && (
         <dl
           className={clsx(
-            fr.cx("fr-m-0"),
+            fr.cx("fr-m-0", "fr-p-0"),
             "grid",
             "grid-cols-1",
             "md:grid-cols-2",
@@ -226,15 +239,15 @@ export function CaseFileInfoPanel({ caseFile, relatedCaseFiles }: Props) {
                 fact.fullWidth && "col-span-full",
               )}
             >
-              <dt className={termClassName}>{fact.label}</dt>
-              <dd className={clsx("m-0", "font-medium")}>{fact.value}</dd>
+              <dt className={factTermClassName}>{fact.label}</dt>
+              <dd className={factValueClassName}>{fact.value}</dd>
             </div>
           ))}
           {operativePart && (
             <div className={clsx("col-span-full", "flex", "min-w-0", "flex-col", "gap-1")}>
-              <dt className={termClassName}>Dispositif</dt>
-              <dd className={clsx("m-0")}>
-                <ExpandableText text={operativePart} className={clsx("font-medium")} />
+              <dt className={factTermClassName}>Dispositif</dt>
+              <dd className={factValueClassName}>
+                <ExpandableText text={operativePart} />
               </dd>
             </div>
           )}
