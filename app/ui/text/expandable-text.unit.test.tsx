@@ -56,6 +56,19 @@ describe("ExpandableText", () => {
     expect(screen.queryByRole("button")).toBeNull();
   });
 
+  it("affiche le préfixe dans le paragraphe tronqué, avant le texte", () => {
+    setHeights(120, 40);
+    render(<ExpandableText text={TEXT} prefix={<b>Commentaire : </b>} />);
+
+    const prefix = screen.getByText("Commentaire :");
+    const paragraph = prefix.closest("p") as HTMLElement;
+    expect(paragraph.classList.contains("line-clamp-2")).toBe(true);
+    expect(paragraph.textContent).toBe(`Commentaire : ${TEXT}`);
+    expect(screen.getByRole("button", { name: "Voir plus" }).getAttribute("aria-controls")).toBe(
+      paragraph.id,
+    );
+  });
+
   it("affiche « Voir plus » quand le texte déborde", () => {
     setHeights(120, 40);
     render(<ExpandableText text={TEXT} />);

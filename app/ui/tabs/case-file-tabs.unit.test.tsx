@@ -200,7 +200,7 @@ describe("CaseFileTabs", () => {
     // Le nom apparaît dans la sidebar et dans le panneau de détail.
     expect(screen.getAllByText("requete.pdf").length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "Télécharger" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /Éditer/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Modifier/ })).toBeTruthy();
   });
 
   it("affiche l'historique des événements quand tab=historique", async () => {
