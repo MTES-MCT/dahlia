@@ -223,10 +223,25 @@ describe("CaseFileQualificationPanel", () => {
       .getByRole("combobox", { name: /Droit opposable/ })
       .closest(".fr-select-group") as HTMLElement;
 
-    expect(litigationGroup.className).toContain("fr-select-group--error");
-    expect(litigationGroup.textContent).toContain("Qualification automatique à valider");
+    // A warning notice, not a validation error: no field is in error state.
+    expect(litigationGroup.className).not.toContain("fr-select-group--error");
     expect(rightGroup.className).not.toContain("fr-select-group--error");
-    expect(rightGroup.textContent).not.toContain("Qualification automatique à valider");
+
+    const [warning, ...others] = screen.getAllByText("Qualification automatique à valider");
+    expect(others).toHaveLength(0);
+    expect(warning.className).toContain("fr-message--warning");
+    // Shown under the litigation type field and announced with it.
+    expect(
+      litigationGroup.compareDocumentPosition(warning) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      screen
+        .getByRole("combobox", { name: /Type de contentieux/ })
+        .getAttribute("aria-describedby"),
+    ).toContain(warning.id);
+    expect(
+      screen.getByRole("combobox", { name: /Droit opposable/ }).getAttribute("aria-describedby"),
+    ).toBeFalsy();
   });
 
   it("n'affiche aucun statut de champ quand rien n'est à revoir", () => {

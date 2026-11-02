@@ -41,7 +41,7 @@ export function ProductionDeadlineFields({
 
       <div
         className={clsx(
-          fr.cx("fr-mb-1w"),
+          fr.cx("fr-mb-3w"),
           "flex flex-wrap items-start justify-start gap-x-4 gap-y-2",
         )}
       >

@@ -3,7 +3,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import { fr } from "@codegouvfr/react-dsfr";
-import { Input } from "@codegouvfr/react-dsfr/Input";
 import { normalizeForSearch } from "@/app/lib/case-file-search";
 import {
   HAS_TAGS_FIELD_NAME,
@@ -27,6 +26,7 @@ export function TagPicker({ availableTags, defaultSelectedIds, className }: TagP
   const [highlightedIndex, setHighlightedIndex] = useState(0);
 
   const baseId = useId();
+  const inputId = `${baseId}-input`;
   const listboxId = `${baseId}-listbox`;
   const optionId = (index: number) => `${baseId}-option-${index}`;
   const containerRef = useRef<HTMLDivElement>(null);
@@ -130,7 +130,10 @@ export function TagPicker({ availableTags, defaultSelectedIds, className }: TagP
   }
 
   return (
-    <div className={clsx(fr.cx("fr-mb-1w"), className)} ref={containerRef}>
+    // One DSFR input group for the whole block (label, field, suggestions and
+    // selected tags). The markup mirrors react-dsfr's `Input`, which cannot hold
+    // the popover nor the selected tags inside its own group.
+    <div className={clsx(fr.cx("fr-input-group", "fr-mb-3w"), className)} ref={containerRef}>
       {/* autoComplete="off": Firefox restores hidden inputs on reload, by
           position, which could submit another selection than the one shown. */}
       <input type="hidden" name={HAS_TAGS_FIELD_NAME} value="true" autoComplete="off" />
@@ -138,32 +141,35 @@ export function TagPicker({ availableTags, defaultSelectedIds, className }: TagP
         <input key={id} type="hidden" name={TAG_IDS_FIELD_NAME} value={id} autoComplete="off" />
       ))}
 
-      <div className="relative">
-        {/* DSFR adds 1.5rem under `.fr-input-group:not(:last-child)`. Opening the
-            list inserts a sibling, which would otherwise gap the popover and
-            shove the selected tags down. */}
-        <Input
-          label="Mots-clés"
-          hintText="Saisissez au moins une lettre pour rechercher parmi les mots-clés existants."
-          className={fr.cx("fr-mb-0")}
-          nativeInputProps={{
-            type: "text",
-            value: query,
-            autoComplete: "off",
-            role: "combobox",
-            "aria-expanded": isOpen,
-            "aria-controls": listboxId,
-            "aria-autocomplete": "list",
-            "aria-activedescendant": isOpen && activeIndex >= 0 ? optionId(activeIndex) : undefined,
-            onFocus: () => syncOpenState(query),
-            onClick: () => syncOpenState(query),
-            onChange: (event) => {
-              const nextQuery = event.currentTarget.value;
-              setQuery(nextQuery);
-              syncOpenState(nextQuery);
-            },
-            onKeyDown,
+      <label className={fr.cx("fr-label")} htmlFor={inputId}>
+        Mots-clés
+        <span className={fr.cx("fr-hint-text")}>
+          Saisissez au moins une lettre pour rechercher parmi les mots-clés existants.
+        </span>
+      </label>
+
+      {/* `fr-input-wrap` keeps DSFR's label/field spacing and positions the
+          suggestion popover right under the field. */}
+      <div className={fr.cx("fr-input-wrap")}>
+        <input
+          id={inputId}
+          className={fr.cx("fr-input")}
+          type="text"
+          value={query}
+          autoComplete="off"
+          role="combobox"
+          aria-expanded={isOpen}
+          aria-controls={listboxId}
+          aria-autocomplete="list"
+          aria-activedescendant={isOpen && activeIndex >= 0 ? optionId(activeIndex) : undefined}
+          onFocus={() => syncOpenState(query)}
+          onClick={() => syncOpenState(query)}
+          onChange={(event) => {
+            const nextQuery = event.currentTarget.value;
+            setQuery(nextQuery);
+            syncOpenState(nextQuery);
           }}
+          onKeyDown={onKeyDown}
         />
 
         {isOpen && (

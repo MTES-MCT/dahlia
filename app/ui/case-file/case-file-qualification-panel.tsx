@@ -43,18 +43,23 @@ export type CaseFileQualificationPanelProps = {
   tags: CaseFileTagView[];
   availableTags: CaseFileTagView[];
   reviewState: QualificationReviewState;
-  // Fields whose classifier value awaits review (shown with a field status).
+  // Fields whose classifier value awaits review (shown with a warning notice).
   fieldsToReview?: ClassifierQualificationField[];
   // Formatted on the server, in the court's time zone.
   validatedAtLabel: string;
 };
 
-// Field status of a classifier value awaiting review. This DSFR version has no
-// "warning" field state, hence "error".
-function reviewFieldState(needsReview: boolean) {
-  return needsReview
-    ? { state: "error" as const, stateRelatedMessage: "Qualification automatique à valider" }
-    : {};
+const REVIEW_MESSAGE = "Qualification automatique à valider";
+
+// Notice under a field whose classifier value awaits review. It is a warning,
+// not a validation error: the field keeps its default state (react-dsfr's
+// Select has no "warning" state), and the DSFR warning message adds the icon.
+function ReviewWarning({ id }: { id: string }) {
+  return (
+    <p id={id} className={fr.cx("fr-message", "fr-message--warning", "fr-mt-1v", "fr-mb-0")}>
+      {REVIEW_MESSAGE}
+    </p>
+  );
 }
 
 // DSFR `.fr-select` forces `width: 100%`; size selects to their longest option.
@@ -148,6 +153,10 @@ export function CaseFileQualificationPanel(props: CaseFileQualificationPanelProp
   );
   const formId = useId();
   const isToReview = reviewState === "toReview";
+  const litigationTypeToReview = fieldsToReview.includes("litigationType");
+  const rightTypeToReview = fieldsToReview.includes("rightType");
+  const litigationTypeReviewId = `${formId}-litigation-type-review`;
+  const rightTypeReviewId = `${formId}-right-type-review`;
 
   // The success notice is a feedback on the save the agent just made, not a
   // persistent state: it only follows a save that settled a pending review, and
@@ -223,51 +232,57 @@ export function CaseFileQualificationPanel(props: CaseFileQualificationPanelProp
         <input type="hidden" name="jurisdictionCode" value={jurisdictionCode} autoComplete="off" />
         <input type="hidden" name="caseFileNumber" value={caseFileNumber} autoComplete="off" />
 
-        <div className={fr.cx("fr-grid-row", "fr-grid-row--gutters")}>
-          <Select
-            label="Type de contentieux"
-            {...reviewFieldState(fieldsToReview.includes("litigationType"))}
-            className={fr.cx("fr-col-12", "fr-col-md-6", "fr-mb-1w")}
-            nativeSelectProps={{
-              autoComplete: "off",
-              name: "litigationType",
-              defaultValue: litigationType ?? "",
-              className: SELECT_WIDTH_CLASSNAME,
-            }}
-          >
-            <option value=""></option>
-            {LITIGATION_TYPE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </Select>
-
-          <Select
-            label="Droit opposable"
-            {...reviewFieldState(fieldsToReview.includes("rightType"))}
-            className={fr.cx("fr-col-12", "fr-col-md-6", "fr-mb-1w")}
-            nativeSelectProps={{
-              autoComplete: "off",
-              name: "rightType",
-              defaultValue: rightType ?? RIGHT_TYPE_UNDEFINED_VALUE,
-              className: SELECT_WIDTH_CLASSNAME,
-            }}
-          >
-            {/* "Non défini" is the empty option. */}
-            <option value={RIGHT_TYPE_UNDEFINED_VALUE}></option>
-            {RIGHT_TYPE_OPTIONS.filter((option) => option.value !== RIGHT_TYPE_UNDEFINED_VALUE).map(
-              (option) => (
+        <div className={fr.cx("fr-grid-row")}>
+          <div className={fr.cx("fr-col-12", "fr-col-md-6", "fr-mb-3w")}>
+            <Select
+              label="Type de contentieux"
+              className={fr.cx("fr-mb-0")}
+              nativeSelectProps={{
+                autoComplete: "off",
+                name: "litigationType",
+                defaultValue: litigationType ?? "",
+                className: SELECT_WIDTH_CLASSNAME,
+                "aria-describedby": litigationTypeToReview ? litigationTypeReviewId : undefined,
+              }}
+            >
+              <option value=""></option>
+              {LITIGATION_TYPE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
-              ),
-            )}
-          </Select>
+              ))}
+            </Select>
+            {litigationTypeToReview && <ReviewWarning id={litigationTypeReviewId} />}
+          </div>
+
+          <div className={fr.cx("fr-col-12", "fr-col-md-6", "fr-mb-3w")}>
+            <Select
+              label="Droit opposable"
+              className={fr.cx("fr-mb-0")}
+              nativeSelectProps={{
+                autoComplete: "off",
+                name: "rightType",
+                defaultValue: rightType ?? RIGHT_TYPE_UNDEFINED_VALUE,
+                className: SELECT_WIDTH_CLASSNAME,
+                "aria-describedby": rightTypeToReview ? rightTypeReviewId : undefined,
+              }}
+            >
+              {/* "Non défini" is the empty option. */}
+              <option value={RIGHT_TYPE_UNDEFINED_VALUE}></option>
+              {RIGHT_TYPE_OPTIONS.filter(
+                (option) => option.value !== RIGHT_TYPE_UNDEFINED_VALUE,
+              ).map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </Select>
+            {rightTypeToReview && <ReviewWarning id={rightTypeReviewId} />}
+          </div>
 
           <Input
             label="Numéro ComDalo"
-            className={fr.cx("fr-col-12", "fr-col-md-6", "fr-mb-1w")}
+            className={fr.cx("fr-col-12", "fr-col-md-6", "fr-mb-3w")}
             nativeInputProps={{
               autoComplete: "off",
               name: "comDaloNumber",
@@ -280,7 +295,7 @@ export function CaseFileQualificationPanel(props: CaseFileQualificationPanelProp
 
           <Input
             label="Date de la décision de la COMED"
-            className={fr.cx("fr-col-12", "fr-col-md-6", "fr-mb-1w")}
+            className={fr.cx("fr-col-12", "fr-col-md-6", "fr-mb-3w")}
             nativeInputProps={{
               autoComplete: "off",
               type: "date",
