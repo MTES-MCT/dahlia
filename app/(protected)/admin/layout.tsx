@@ -9,11 +9,18 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
   const requestHeaders = await headers();
   const session = await auth.api.getSession({ headers: requestHeaders });
 
-  if (!session?.user?.isAdmin) {
+  // Validation is required in addition to the admin role, matching requireAdmin,
+  // the protected layout, and case-file scope (defense in depth).
+  if (!session?.user?.isValidated || !session.user.isAdmin) {
+    const reason = !session?.user
+      ? "unauthenticated"
+      : !session.user.isValidated
+        ? "not_validated"
+        : "not_admin";
     logSecurityDenial({
       action: "auth.admin.denied",
       actorId: session?.user?.id ?? null,
-      reason: session?.user ? "not_admin" : "unauthenticated",
+      reason,
       ip: clientIpFrom(requestHeaders),
     });
     notFound();
