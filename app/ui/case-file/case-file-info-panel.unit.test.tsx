@@ -108,7 +108,7 @@ describe("CaseFileInfoPanel", () => {
     );
 
     const firstTerm = document.querySelector("dl dt");
-    expect(firstTerm?.textContent).toBe("Titre Télérecours");
+    expect(firstTerm?.textContent).toBe("Titre donné par le greffe");
     expect(firstTerm?.parentElement?.className).toContain("col-span-full");
     expect(getFacts().getByText("M. Dupont c/ Préfet du Rhône")).toBeTruthy();
   });

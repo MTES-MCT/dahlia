@@ -136,7 +136,7 @@ export const CASE_FILES_EXPORT_COLUMNS: CaseFileDashboardColumnDef[] = [
   },
   {
     key: "title",
-    label: "Titre Télérecours",
+    label: "Titre donné par le greffe",
     exportValue: (caseFile) => caseFile.title?.trim() ?? "",
   },
   {

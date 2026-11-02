@@ -33,7 +33,12 @@ function actorName(actor: Parameters<typeof getActorDisplayName>[0]): string {
 // Empty values are dropped rather than shown as "—".
 function buildFacts(caseFile: NonNullable<CaseFileDetail>): Fact[] {
   const facts: Fact[] = [
-    { key: "title", label: "Titre Télérecours", value: caseFile.title ?? "", fullWidth: true },
+    {
+      key: "title",
+      label: "Titre donné par le greffe",
+      value: caseFile.title ?? "",
+      fullWidth: true,
+    },
     { key: "claimant", label: "Requérant", value: actorName(getMainClaimantActor(caseFile)) },
     { key: "defender", label: "Défendeur", value: actorName(getMainDefenderActor(caseFile)) },
     { key: "deposit", label: "Déposé le", value: formatDateFr(caseFile.depositDate) },
