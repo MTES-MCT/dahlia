@@ -291,7 +291,7 @@ export async function fetchCaseFileDebugSnapshot(key: CaseFileKey) {
       ...CASE_FILE_DETAIL_INCLUDE,
       attachedFiles: { include: { fileFamilyType: true } },
       // Unscoped on purpose: admin-only dump. The page goes through
-      // `fetchRelatedCaseFiles`, which hides out-of-scope titles.
+      // `fetchRelatedCaseFiles`, which hides out-of-scope display names.
       relatedSources: { include: { relatedCaseFile: true } },
       relatedTargets: { include: { caseFile: true } },
     },

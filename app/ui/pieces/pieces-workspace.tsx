@@ -16,6 +16,8 @@ import {
 } from "@/app/(protected)/case_files/[jurisdictionCode]/[caseFileNumber]/pieces/[encodedFileId]/actions";
 import { PieceViewer } from "@/app/ui/piece-viewer";
 import { CaseFileTelerecoursTitle } from "@/app/ui/case-file/case-file-telerecours-title";
+import { ExpandableText } from "@/app/ui/text/expandable-text";
+import { PIECE_COMMENT_MAX_LENGTH } from "@/app/lib/piece-comment";
 
 const pieceEditModal = createModal({
   isOpenedByDefault: false,
@@ -110,7 +112,7 @@ export function PiecesWorkspace({ caseFileKey, pieces, initialPieceId }: Props) 
   useEffect(() => {
     if (initialId) revealPieceInList(initialId, "center");
   }, [initialId]);
-  // Bumped on each "Éditer" click so the modal form remounts with fresh values.
+  // Bumped on each "Modifier" click so the modal form remounts with fresh values.
   const [editGeneration, setEditGeneration] = useState(0);
   const [favoriteError, setFavoriteError] = useState<string | null>(null);
   // Star toggled last: its button moves to the other group (remount), so focus
@@ -236,7 +238,7 @@ export function PiecesWorkspace({ caseFileKey, pieces, initialPieceId }: Props) 
       />
 
       <pieceEditModal.Component title="Modifier la pièce">
-        {/* Mounted on the first "Éditer" click only, so the hidden modal does not
+        {/* Mounted on the first "Modifier" click only, so the hidden modal does not
             duplicate the pièce fields in the page. */}
         {current && editGeneration > 0 && (
           <PieceEditForm
@@ -612,7 +614,9 @@ type HeaderProps = {
 };
 
 // Viewed pièce header: previous/next arrows around the DAHLIA name (Télérecours
-// file name underneath), favorite badge, edit and new-tab actions, then the comment.
+// file name and comment underneath), favorite badge, edit and new-tab actions.
+// The comment lives in the title column, so the stacked action buttons on the
+// right never push it down.
 function PieceHeader({ piece, onPrevious, onNext, onEdit }: HeaderProps) {
   const label = pieceDisplayLabel(piece);
   const comment = piece.comment?.trim();
@@ -643,6 +647,7 @@ function PieceHeader({ piece, onPrevious, onNext, onEdit }: HeaderProps) {
           <div className={clsx("min-w-0", "flex-1", fr.cx("fr-px-1v"))}>
             <h2 className={clsx(fr.cx("fr-h6", "fr-mb-0"), "wrap-anywhere")}>{label}</h2>
             <CaseFileTelerecoursTitle title={piece.fileName} displayName={label} singleLine />
+            <PieceComment comment={comment} />
           </div>
           <Button
             priority="tertiary"
@@ -668,61 +673,65 @@ function PieceHeader({ piece, onPrevious, onNext, onEdit }: HeaderProps) {
           </span>
         )}
 
-        <div className={clsx("flex", "shrink-0", "flex-col", "items-stretch", "gap-2")}>
-          <Button
-            size="small"
-            iconId="fr-icon-edit-line"
-            onClick={onEdit}
-            className={clsx("w-full!", "justify-center")}
-          >
-            Éditer
+        <div className={clsx("flex", "shrink-0", "flex-col", "items-end", "gap-2")}>
+          <Button size="small" iconId="fr-icon-edit-line" onClick={onEdit}>
+            Modifier
           </Button>
-          {/* `w-full!`: DSFR's unlayered `.fr-btn { width: fit-content }` beats
-              Tailwind's layered utilities, and both buttons must share one width.
-              DSFR appends the external-link icon to target="_blank" buttons. */}
-          <Button
-            priority="secondary"
-            size="small"
-            linkProps={{
-              href: piece.dataUrl,
-              target: "_blank",
-              rel: "noopener noreferrer",
-              title: "Afficher - nouvelle fenêtre",
-            }}
-            className={clsx("w-full!", "justify-center")}
+          {/* Plain DSFR link (not a button). DSFR appends the external-link icon
+              to target="_blank" links. */}
+          <a
+            href={piece.dataUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Plein écran - nouvelle fenêtre"
+            className={fr.cx("fr-link", "fr-link--sm")}
           >
-            Afficher
-          </Button>
+            Plein écran
+          </a>
         </div>
       </div>
+    </div>
+  );
+}
 
-      <p
+// Comment of the viewed pièce, clamped to two lines with a "Voir plus" toggle.
+function PieceComment({ comment }: { comment: string | undefined }) {
+  return (
+    <div
+      className={clsx(
+        "flex",
+        "items-start",
+        "gap-2",
+        fr.cx("fr-mt-1v"),
+        comment
+          ? "text-(--text-title-grey)"
+          : clsx(fr.cx("fr-text--sm", "fr-mb-0"), "text-(--text-mention-grey)"),
+      )}
+    >
+      <span
         className={clsx(
-          "flex",
-          "items-start",
-          "gap-2",
-          fr.cx("fr-mt-1w", "fr-mb-0"),
-          "ml-9",
-          comment
-            ? "text-(--text-title-grey)"
-            : clsx(fr.cx("fr-text--sm"), "text-(--text-mention-grey)"),
+          fr.cx("fr-icon-message-2-line", "fr-icon--sm"),
+          "shrink-0",
+          comment && "text-(--text-action-high-blue-france)",
         )}
-      >
-        <span
-          className={clsx(
-            fr.cx("fr-icon-message-2-line", "fr-icon--sm"),
-            comment && "text-(--text-action-high-blue-france)",
-          )}
-          aria-hidden="true"
-        />
-        {comment ? (
-          <span className="whitespace-pre-line">
-            <b>Commentaire :</b> {comment}
-          </span>
-        ) : (
-          "Aucun commentaire"
-        )}
-      </p>
+        aria-hidden="true"
+      />
+      {comment ? (
+        <div className={clsx("min-w-0", "flex-1")}>
+          <ExpandableText
+            text={comment}
+            prefix={
+              <>
+                <b>Commentaire :</b>{" "}
+              </>
+            }
+            // About 10 lines (DSFR body line-height: 1.5rem), then a vertical scrollbar.
+            expandedClassName={clsx("max-h-60", "overflow-y-auto")}
+          />
+        </div>
+      ) : (
+        <p className={fr.cx("fr-mb-0")}>Aucun commentaire</p>
+      )}
     </div>
   );
 }
@@ -781,6 +790,7 @@ function PieceEditForm({ caseFileKey, piece, onSaved }: FormProps) {
           value: comment,
           onChange: (event) => setComment(event.target.value),
           rows: 4,
+          maxLength: PIECE_COMMENT_MAX_LENGTH,
         }}
       />
       <Checkbox
@@ -794,6 +804,7 @@ function PieceEditForm({ caseFileKey, piece, onSaved }: FormProps) {
             },
           },
         ]}
+        classes={{ inputGroup: fr.cx("fr-mb-3w") }}
       />
       <div className={clsx("flex", "justify-end", "gap-2")}>
         <Button

@@ -6,12 +6,16 @@ import { fr } from "@codegouvfr/react-dsfr";
 
 type Props = {
   text: string;
+  // Rendered inline before the text, inside the clamped paragraph (e.g. a bold label).
+  prefix?: React.ReactNode;
   className?: string;
+  // Extra classes applied once expanded, e.g. a max height with a scrollbar.
+  expandedClassName?: string;
 };
 
 // Long text clamped to two lines, with a "Voir plus" toggle that only appears
 // when the text actually overflows.
-export function ExpandableText({ text, className }: Props) {
+export function ExpandableText({ text, prefix, className, expandedClassName }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [overflows, setOverflows] = useState(false);
   const textRef = useRef<HTMLParagraphElement>(null);
@@ -38,10 +42,11 @@ export function ExpandableText({ text, className }: Props) {
         className={clsx(
           fr.cx("fr-mb-1v"),
           "whitespace-pre-line",
-          !isOpen && "line-clamp-2",
+          isOpen ? expandedClassName : "line-clamp-2",
           className,
         )}
       >
+        {prefix}
         {text}
       </p>
       {(overflows || isOpen) && (
@@ -50,7 +55,12 @@ export function ExpandableText({ text, className }: Props) {
           className={fr.cx("fr-link", "fr-link--sm")}
           aria-expanded={isOpen}
           aria-controls={textId}
-          onClick={() => setIsOpen((open) => !open)}
+          onClick={() => {
+            // Collapsing keeps the scroll offset of a scrollable expanded text
+            // (see `expandedClassName`): reset it so the clamped lines show the start.
+            if (isOpen && textRef.current) textRef.current.scrollTop = 0;
+            setIsOpen(!isOpen);
+          }}
         >
           {isOpen ? "Voir moins" : "Voir plus"}
         </button>
