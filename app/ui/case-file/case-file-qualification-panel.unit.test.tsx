@@ -48,14 +48,25 @@ describe("CaseFileQualificationPanel", () => {
       expect(screen.getByRole("button", { name: "Enregistrer" })).toBeTruthy();
     });
 
-    it("propose dans l'avertissement un bouton qui soumet le formulaire", () => {
-      renderPanel();
+    it("libelle le bouton « Valider et enregistrer » quand un champ est à valider", () => {
+      renderPanel({ fieldsToReview: ["litigationType"] });
 
-      const validate = screen.getByRole("button", {
-        name: "Valider la qualification du dossier",
+      const submit = screen.getByRole("button", {
+        name: "Valider et enregistrer",
       }) as HTMLButtonElement;
-      expect(validate.type).toBe("submit");
-      expect(validate.form).toBe(document.querySelector("form"));
+      expect(submit.type).toBe("submit");
+      expect(screen.queryByRole("button", { name: "Enregistrer" })).toBeNull();
+      // The warning banner no longer carries its own validation button.
+      expect(
+        screen.queryByRole("button", { name: "Valider la qualification du dossier" }),
+      ).toBeNull();
+    });
+
+    it("garde le libellé « Enregistrer » quand aucun champ n'est à valider", () => {
+      renderPanel({ fieldsToReview: [] });
+
+      expect(screen.getByRole("button", { name: "Enregistrer" })).toBeTruthy();
+      expect(screen.queryByRole("button", { name: "Valider et enregistrer" })).toBeNull();
     });
   });
 

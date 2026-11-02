@@ -157,6 +157,8 @@ export function CaseFileQualificationPanel(props: CaseFileQualificationPanelProp
   const rightTypeToReview = fieldsToReview.includes("rightType");
   const litigationTypeReviewId = `${formId}-litigation-type-review`;
   const rightTypeReviewId = `${formId}-right-type-review`;
+  // Saving also validates the classifier values when at least one field awaits review.
+  const submitLabel = fieldsToReview.length > 0 ? "Valider et enregistrer" : "Enregistrer";
 
   // The success notice is a feedback on the save the agent just made, not a
   // persistent state: it only follows a save that settled a pending review, and
@@ -187,22 +189,7 @@ export function CaseFileQualificationPanel(props: CaseFileQualificationPanelProp
       <Alert
         severity="warning"
         small
-        description={
-          <>
-            Données générées automatiquement : vérification par un agent de l’État indispensable
-            <span className={clsx("block", "mt-2")}>
-              <Button
-                priority="secondary"
-                size="small"
-                type="submit"
-                disabled={isPending}
-                nativeButtonProps={{ form: formId }}
-              >
-                Valider la qualification du dossier
-              </Button>
-            </span>
-          </>
-        }
+        description="Données générées automatiquement : vérification par un agent de l’État indispensable"
       />
     ) : showValidated && reviewState === "validated" ? (
       <Alert
@@ -321,7 +308,7 @@ export function CaseFileQualificationPanel(props: CaseFileQualificationPanelProp
 
         <div className={fr.cx("fr-mt-2w")}>
           <Button type="submit" disabled={isPending} iconId="fr-icon-save-line">
-            {isPending ? "Enregistrement…" : "Enregistrer"}
+            {isPending ? "Enregistrement…" : submitLabel}
           </Button>
           {isToReview && (
             <p className={fr.cx("fr-hint-text", "fr-mt-1w", "fr-mb-0")}>{SAVE_HINT}</p>
