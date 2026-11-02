@@ -100,6 +100,28 @@ describe("CaseFileInfoPanel", () => {
     expect(facts.queryByText("Dispositif")).toBeNull();
   });
 
+  it("affiche le titre Télérecours en premier, sur toute la largeur", () => {
+    render(
+      <CaseFileInfoPanel
+        caseFile={caseFileFixture({ title: "M. Dupont c/ Préfet du Rhône" })}
+        relatedCaseFiles={[]}
+      />,
+    );
+
+    const firstTerm = document.querySelector("dl dt");
+    expect(firstTerm?.textContent).toBe("Titre Télérecours");
+    expect(firstTerm?.parentElement?.className).toContain("col-span-full");
+    expect(getFacts().getByText("M. Dupont c/ Préfet du Rhône")).toBeTruthy();
+  });
+
+  it("n'affiche pas le titre Télérecours quand il est vide", () => {
+    render(
+      <CaseFileInfoPanel caseFile={caseFileFixture({ title: "   " })} relatedCaseFiles={[]} />,
+    );
+
+    expect(getFacts().queryByText("Titre Télérecours")).toBeNull();
+  });
+
   it("affiche la décision et son dispositif quand ils existent", () => {
     render(
       <CaseFileInfoPanel

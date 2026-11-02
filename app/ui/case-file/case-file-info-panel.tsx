@@ -20,7 +20,8 @@ type Props = {
   relatedCaseFiles: RelatedCaseFileLink[];
 };
 
-type Fact = { key: string; label: string; value: string };
+// `fullWidth` facts span every column of the grid (e.g. long free text).
+type Fact = { key: string; label: string; value: string; fullWidth?: boolean };
 
 // "-" is what getActorDisplayName returns for a missing actor.
 function actorName(actor: Parameters<typeof getActorDisplayName>[0]): string {
@@ -33,6 +34,7 @@ function actorName(actor: Parameters<typeof getActorDisplayName>[0]): string {
 // Empty values are dropped rather than shown as "—".
 function buildFacts(caseFile: NonNullable<CaseFileDetail>): Fact[] {
   const facts: Fact[] = [
+    { key: "title", label: "Titre Télérecours", value: caseFile.title ?? "", fullWidth: true },
     { key: "claimant", label: "Requérant", value: actorName(getMainClaimantActor(caseFile)) },
     { key: "defender", label: "Défendeur", value: actorName(getMainDefenderActor(caseFile)) },
     { key: "deposit", label: "Déposé le", value: formatDateFr(caseFile.depositDate) },
@@ -214,7 +216,16 @@ export function CaseFileInfoPanel({ caseFile, relatedCaseFiles }: Props) {
           )}
         >
           {facts.map((fact) => (
-            <div key={fact.key} className={clsx("flex", "min-w-0", "flex-col", "gap-1")}>
+            <div
+              key={fact.key}
+              className={clsx(
+                "flex",
+                "min-w-0",
+                "flex-col",
+                "gap-1",
+                fact.fullWidth && "col-span-full",
+              )}
+            >
               <dt className={termClassName}>{fact.label}</dt>
               <dd className={clsx("m-0", "font-medium")}>{fact.value}</dd>
             </div>
