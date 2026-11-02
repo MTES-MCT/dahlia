@@ -10,8 +10,8 @@ import {
 } from "../comed/find-comed-decisions";
 import { COMED_USAGE, parseComedArgs } from "./parse-comed-args";
 
-// CLI entrypoint: load attached files (and their case file) through Prisma,
-// classify COMED decisions in JS, optionally write the CSV export.
+// CLI entrypoint: load attached files through Prisma, classify COMED decisions
+// in JS, then attach case-file titles and optionally write the CSV export.
 async function main(): Promise<number> {
   const args = parseComedArgs();
   if (args.help) {
