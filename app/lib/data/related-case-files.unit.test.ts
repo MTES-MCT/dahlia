@@ -37,13 +37,11 @@ const KEY = { jurisdictionCode: "TA069", caseFileNumber: "2600001" };
 function related(
   caseFileNumber: string,
   jurisdictionId: number | null,
-  title = "Titre",
   caseFileActors: ReturnType<typeof caseFileActorFixture>[] = [],
 ) {
   return {
     jurisdictionCode: "TA069",
     caseFileNumber,
-    title,
     jurisdictionId,
     litigationType: null,
     rightType: null,
@@ -98,8 +96,8 @@ describe("fetchRelatedCaseFiles", () => {
     expect(result.map((link) => link.key.caseFileNumber)).toEqual(["2500010", "2500030"]);
   });
 
-  it("hides the title of case files outside the user's scope", async () => {
-    mockRows([related("2500010", 1, "Visible"), related("2500020", 2, "Secret")], []);
+  it("only exposes the key of case files outside the user's scope", async () => {
+    mockRows([related("2500010", 1), related("2500020", 2)], []);
 
     const result = await fetchRelatedCaseFiles(KEY);
 
@@ -107,7 +105,6 @@ describe("fetchRelatedCaseFiles", () => {
       {
         accessible: true,
         key: { jurisdictionCode: "TA069", caseFileNumber: "2500010" },
-        title: "Visible",
         displayName: null,
       },
       { accessible: false, key: { jurisdictionCode: "TA069", caseFileNumber: "2500020" } },
@@ -132,7 +129,7 @@ describe("fetchRelatedCaseFiles", () => {
         actor: actorFixture({ id: 1, firstName: "Jean", lastName: "Dupont" }),
       }),
     ];
-    mockRows([related("2500010", 1, "T1", claimant), related("2500020", 2, "T2", claimant)], []);
+    mockRows([related("2500010", 1, claimant), related("2500020", 2, claimant)], []);
 
     const [accessible, locked] = await fetchRelatedCaseFiles(KEY);
 

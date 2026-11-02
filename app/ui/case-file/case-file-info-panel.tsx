@@ -11,7 +11,6 @@ import {
 } from "@/app/lib/case-file-actors";
 import { type CaseFileDetail } from "@/app/lib/data/case-files";
 import { type RelatedCaseFileLink } from "@/app/lib/data/related-case-files";
-import { CaseFileTelerecoursTitle } from "@/app/ui/case-file/case-file-telerecours-title";
 import { CollapsiblePanel } from "@/app/ui/panel/collapsible-panel";
 import { ExpandableText } from "@/app/ui/text/expandable-text";
 
@@ -108,24 +107,14 @@ function RelatedCaseFiles({ relatedCaseFiles }: { relatedCaseFiles: RelatedCaseF
               !related.accessible && "bg-(--background-alt-grey)",
             )}
           >
-            {/* flex-1 + min-w-0 give the text column a bounded width, so the
-                single-line Télérecours title can ellipse next to the button. */}
+            {/* flex-1 + min-w-0 give the text column a bounded width next to the button. */}
             <div className={clsx("min-w-0", "flex-1")}>
               {related.accessible ? (
-                <>
-                  {/* The display name already starts with the case file number. */}
-                  <span className={fr.cx("fr-text--bold")}>
-                    {related.displayName ?? related.key.caseFileNumber}
-                  </span>
-                  <CaseFileTelerecoursTitle
-                    title={related.title}
-                    displayName={related.displayName ?? related.key.caseFileNumber}
-                    singleLine
-                  />
-                </>
+                // The display name already starts with the case file number.
+                <span>{related.displayName ?? related.key.caseFileNumber}</span>
               ) : (
                 <>
-                  <span className={fr.cx("fr-text--bold")}>{related.key.caseFileNumber}</span>
+                  <span>{related.key.caseFileNumber}</span>
                   <p
                     className={clsx(fr.cx("fr-text--sm", "fr-mb-0"), "text-(--text-mention-grey)")}
                   >
