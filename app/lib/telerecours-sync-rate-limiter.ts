@@ -1,9 +1,10 @@
 import { RateLimiterPostgres } from "rate-limiter-flexible";
 import type { Pool } from "pg";
 
-// One sync per case-file page view. 20 per minute leaves room to browse
-// dossiers one after another, and cuts off a parallel script before it can
-// hammer the jurisdiction's shared Télérecours credentials or the database.
+// Manual sync and pièce downloads share this budget (one point per call). 20
+// per minute leaves room to browse dossiers one after another, and cuts off a
+// parallel script before it can hammer the jurisdiction's shared Télérecours
+// credentials or the database.
 // The public message says "une minute", so this window stays 60 seconds.
 export const TELERECOURS_SYNC_RATE_LIMIT_POINTS = 20;
 export const TELERECOURS_SYNC_RATE_LIMIT_DURATION_SECONDS = 60;

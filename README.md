@@ -416,10 +416,13 @@ Trois principes guident cette organisation :
 La webapp réutilise une partie de ce code : `enrichCaseFile`
 (`data/persistence/enrich-case-file.ts`), `getTelerecoursCaseFileClient` et
 `describeError` (`data/telerecours/`) servent au rafraîchissement d'un dossier et
-au téléchargement de pièces depuis l'UI. Le rafraîchissement manuel est plafonné
-à 20 appels par utilisateur et par minute (`telerecours_sync_rate_limits`,
-`rate-limiter-flexible`) : au-delà, la route répond `429` avec `Retry-After`
-et Télérecours n'est pas appelé.
+au téléchargement de pièces depuis l'UI. Les appels Télérecours déclenchés
+depuis l'UI (rafraîchissement manuel d'un dossier et téléchargement de pièces,
+y compris les archives ZIP) partagent un budget de 20 points par utilisateur et
+par minute (`telerecours_sync_rate_limits`, `rate-limiter-flexible`, un point
+par synchronisation ou par pièce récupérée) : au-delà, la route répond `429`
+avec `Retry-After` et Télérecours n'est pas appelé. Une archive ZIP ne peut
+pas demander plus de 20 pièces distinctes en une seule requête.
 
 ### Tests
 

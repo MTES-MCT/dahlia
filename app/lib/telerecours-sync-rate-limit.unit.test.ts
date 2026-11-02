@@ -46,7 +46,10 @@ vi.mock("next/headers", () => ({
 }));
 
 import { TELERECOURS_SYNC_RATE_LIMIT_MESSAGE } from "@/app/lib/telerecours-sync-rate-limit-message";
-import { consumeTelerecoursSyncRateLimit } from "@/app/lib/telerecours-sync-rate-limit";
+import {
+  consumeTelerecoursPieceDownloadRateLimit,
+  consumeTelerecoursSyncRateLimit,
+} from "@/app/lib/telerecours-sync-rate-limit";
 import { TELERECOURS_SYNC_RATE_LIMIT_DURATION_SECONDS } from "@/app/lib/telerecours-sync-rate-limiter";
 
 const TARGET = { jurisdictionCode: "TA069", caseFileNumber: "TA069/2024/001" };
@@ -69,7 +72,31 @@ describe("consumeTelerecoursSyncRateLimit", () => {
 
   it("consomme un point pour l'utilisateur validé", async () => {
     await expect(consumeTelerecoursSyncRateLimit(TARGET)).resolves.toEqual({ allowed: true });
-    expect(consumeMock).toHaveBeenCalledWith("user-1");
+    expect(consumeMock).toHaveBeenCalledWith("user-1", 1);
+  });
+
+  it("consomme plusieurs points pour un téléchargement groupé de pièces", async () => {
+    await expect(consumeTelerecoursPieceDownloadRateLimit(TARGET, 3)).resolves.toEqual({
+      allowed: true,
+    });
+    expect(consumeMock).toHaveBeenCalledWith("user-1", 3);
+  });
+
+  it("trace le refus de débit pièce avec la ressource dédiée", async () => {
+    consumeMock.mockRejectedValue(new RateLimiterRes(0, 1500, 21, false));
+
+    await expect(consumeTelerecoursPieceDownloadRateLimit(TARGET)).resolves.toEqual({
+      allowed: false,
+      limited: true,
+      retryAfterSeconds: 2,
+      error: TELERECOURS_SYNC_RATE_LIMIT_MESSAGE,
+    });
+    expect(JSON.parse(String(info.mock.calls[0]?.[0]))).toEqual(
+      expect.objectContaining({
+        action: "telerecours.piece_download.rate_limited",
+        target: expect.objectContaining({ resource: "telerecours_piece_download" }),
+      }),
+    );
   });
 
   it("refuse sans consommer de point quand il n'y a pas d'utilisateur validé", async () => {
@@ -118,7 +145,7 @@ describe("consumeTelerecoursSyncRateLimit", () => {
       error: "Échec de la synchronisation",
     });
     expect(errorLog).toHaveBeenCalledWith(
-      "Télérecours sync rate limiter failed",
+      "Télérecours user rate limiter failed",
       "connection refused",
     );
     expect(info).not.toHaveBeenCalled();
