@@ -1,3 +1,5 @@
+import { sanitizeFileName } from "@/app/lib/sanitize-file-name";
+
 export type PieceLabelInput = {
   fileName: string;
   dahliaName?: string | null;
@@ -40,7 +42,7 @@ function fileExtension(fileName: string): string {
 
 // Suggested filename when downloading: display label + extension from the original file.
 export function pieceDownloadFileName(piece: PieceLabelInput): string {
-  const label = pieceDisplayLabel(piece);
+  const label = sanitizeFileName(pieceDisplayLabel(piece));
   const ext = fileExtension(piece.fileName);
   if (!ext || label.toLowerCase().endsWith(ext.toLowerCase())) {
     return label;

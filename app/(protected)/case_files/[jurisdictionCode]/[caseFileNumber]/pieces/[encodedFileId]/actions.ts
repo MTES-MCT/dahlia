@@ -7,6 +7,7 @@ import { prisma } from "@/app/lib/prisma";
 import { fetchAttachedFile } from "@/app/lib/data/attached-files";
 import { describePrismaError } from "@/app/lib/form-actions";
 import { PIECE_COMMENT_MAX_LENGTH } from "@/app/lib/piece-comment";
+import { dahliaNameValidationError } from "@/app/lib/sanitize-file-name";
 
 export type UpdatePieceResult = { ok: true } | { ok: false; error: string };
 
@@ -60,9 +61,16 @@ export async function savePieceMetadataAction(
   if (comment.length > PIECE_COMMENT_MAX_LENGTH) {
     return { ok: false, error: "Commentaire trop long." };
   }
+  const trimmedDahliaName = input.dahliaName.trim();
+  if (trimmedDahliaName) {
+    const dahliaNameError = dahliaNameValidationError(trimmedDahliaName);
+    if (dahliaNameError) {
+      return { ok: false, error: dahliaNameError };
+    }
+  }
   // Empty strings are stored as null.
   return persistPieceData(key, trimmed, {
-    dahliaName: input.dahliaName.trim() || null,
+    dahliaName: trimmedDahliaName || null,
     comment: comment || null,
     ...(input.isFavorite === undefined ? {} : { isFavorite: input.isFavorite }),
   });

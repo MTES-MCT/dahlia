@@ -10,6 +10,7 @@ import {
   PIECE_BULK_DOWNLOAD_MAX_COUNT,
 } from "@/app/lib/piece-bulk-download";
 import { rateLimitedHttpResponse } from "@/app/lib/piece-download-rate-limit-response";
+import { sanitizeFileName } from "@/app/lib/sanitize-file-name";
 import { TelerecoursUserRateLimitedError } from "@/app/lib/telerecours-user-rate-limited-error";
 
 // The download reads live per-user content and relies on Node.js APIs, so it is
@@ -80,7 +81,7 @@ export async function GET(request: Request, { params }: RouteContext) {
         return new Response(`Pièce introuvable : ${encodedFileId}`, { status: 404 });
       }
       const { data, downloadName } = await fetchPieceContent(file);
-      entries[uniqueName(downloadName, usedNames)] = data;
+      entries[uniqueName(sanitizeFileName(downloadName), usedNames)] = data;
     }
 
     // PDFs are already compressed; skip deflate to keep the response fast.
@@ -88,7 +89,7 @@ export async function GET(request: Request, { params }: RouteContext) {
 
     // Same label as the case-file page; strip characters that browsers treat as
     // path separators or that are illegal in file names (`c/` in "A c/ B", …).
-    const zipBaseName = getCaseFileDisplayName(caseFile).replace(/[/\\:*?"<>|]/g, "_");
+    const zipBaseName = sanitizeFileName(getCaseFileDisplayName(caseFile));
     const zipName = `${zipBaseName}-${new Date().toISOString().slice(0, 10)}.zip`;
     const asciiZipName = zipName.replace(/[^\x20-\x7e]/g, "_").replace(/"/g, "'");
 
