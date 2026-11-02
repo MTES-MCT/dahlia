@@ -8,7 +8,7 @@ import { type RefreshCaseFileResult } from "@/app/(protected)/case_files/[jurisd
 import { formatDateTimeFr } from "@/app/lib/case-file-format";
 import { caseFileHref } from "@/app/lib/case-file-key";
 import { withDevelopmentDetail } from "@/app/lib/development-detail";
-import { TELERECOURS_SYNC_RATE_LIMIT_MESSAGE } from "@/app/lib/telerecours-sync-rate-limit-message";
+import { TELERECOURS_USER_RATE_LIMIT_MESSAGE } from "@/app/lib/telerecours-sync-rate-limit-message";
 
 type Props = {
   jurisdictionCode: string;
@@ -23,7 +23,7 @@ const SYNC_FAILURE = "Échec de la synchronisation";
 // prefixed here. Outside development every message collapses to SYNC_FAILURE,
 // even if a caller forgot to strip the upstream detail.
 export function formatTelerecoursSyncError(error: string): string {
-  if (error === TELERECOURS_SYNC_RATE_LIMIT_MESSAGE) {
+  if (error === TELERECOURS_USER_RATE_LIMIT_MESSAGE) {
     return error;
   }
   if (error === SYNC_FAILURE || error.startsWith(`${SYNC_FAILURE} : `)) {

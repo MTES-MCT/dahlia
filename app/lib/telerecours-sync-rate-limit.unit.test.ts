@@ -45,7 +45,7 @@ vi.mock("next/headers", () => ({
   headers: async () => new Headers({ "x-forwarded-for": "203.0.113.4" }),
 }));
 
-import { TELERECOURS_SYNC_RATE_LIMIT_MESSAGE } from "@/app/lib/telerecours-sync-rate-limit-message";
+import { TELERECOURS_USER_RATE_LIMIT_MESSAGE } from "@/app/lib/telerecours-sync-rate-limit-message";
 import {
   consumeTelerecoursPieceDownloadRateLimit,
   consumeTelerecoursSyncRateLimit,
@@ -67,7 +67,7 @@ describe("consumeTelerecoursSyncRateLimit", () => {
 
   it("associe le message public à une fenêtre d'une minute", () => {
     expect(TELERECOURS_SYNC_RATE_LIMIT_DURATION_SECONDS).toBe(60);
-    expect(TELERECOURS_SYNC_RATE_LIMIT_MESSAGE).toContain("une minute");
+    expect(TELERECOURS_USER_RATE_LIMIT_MESSAGE).toContain("une minute");
   });
 
   it("consomme un point pour l'utilisateur validé", async () => {
@@ -89,7 +89,7 @@ describe("consumeTelerecoursSyncRateLimit", () => {
       allowed: false,
       limited: true,
       retryAfterSeconds: 2,
-      error: TELERECOURS_SYNC_RATE_LIMIT_MESSAGE,
+      error: TELERECOURS_USER_RATE_LIMIT_MESSAGE,
     });
     expect(JSON.parse(String(info.mock.calls[0]?.[0]))).toEqual(
       expect.objectContaining({
@@ -117,7 +117,7 @@ describe("consumeTelerecoursSyncRateLimit", () => {
       allowed: false,
       limited: true,
       retryAfterSeconds: 2,
-      error: TELERECOURS_SYNC_RATE_LIMIT_MESSAGE,
+      error: TELERECOURS_USER_RATE_LIMIT_MESSAGE,
     });
     expect(JSON.parse(String(info.mock.calls[0]?.[0]))).toEqual(
       expect.objectContaining({
