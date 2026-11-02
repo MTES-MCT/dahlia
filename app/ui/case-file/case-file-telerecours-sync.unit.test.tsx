@@ -5,7 +5,7 @@ import {
   formatTelerecoursSyncError,
   telerecoursSyncPath,
 } from "./case-file-telerecours-sync";
-import { TELERECOURS_SYNC_RATE_LIMIT_MESSAGE } from "@/app/lib/telerecours-sync-rate-limit-message";
+import { TELERECOURS_USER_RATE_LIMIT_MESSAGE } from "@/app/lib/telerecours-sync-rate-limit-message";
 
 const mockRouterRefresh = vi.fn();
 const mockFetch = vi.fn();
@@ -98,7 +98,7 @@ describe("CaseFileTelerecoursSync", () => {
 
   it("affiche le refus de débit renvoyé en 429", async () => {
     mockFetch.mockResolvedValue(
-      jsonResponse({ ok: false, error: TELERECOURS_SYNC_RATE_LIMIT_MESSAGE }, false, 429),
+      jsonResponse({ ok: false, error: TELERECOURS_USER_RATE_LIMIT_MESSAGE }, false, 429),
     );
 
     render(
@@ -110,14 +110,14 @@ describe("CaseFileTelerecoursSync", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(TELERECOURS_SYNC_RATE_LIMIT_MESSAGE)).toBeTruthy();
+      expect(screen.getByText(TELERECOURS_USER_RATE_LIMIT_MESSAGE)).toBeTruthy();
     });
     expect(mockRouterRefresh).not.toHaveBeenCalled();
   });
 
   it("laisse visible le message de débit en dehors du développement", () => {
-    expect(formatTelerecoursSyncError(TELERECOURS_SYNC_RATE_LIMIT_MESSAGE)).toBe(
-      TELERECOURS_SYNC_RATE_LIMIT_MESSAGE,
+    expect(formatTelerecoursSyncError(TELERECOURS_USER_RATE_LIMIT_MESSAGE)).toBe(
+      TELERECOURS_USER_RATE_LIMIT_MESSAGE,
     );
   });
 
