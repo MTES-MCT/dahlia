@@ -1,3 +1,4 @@
+import { appBaseUrl } from "@/app/lib/app-base-url";
 import { auth, getProconnectDiscovery } from "@/app/lib/auth";
 import { prisma } from "@/app/lib/prisma";
 import { headers } from "next/headers";
@@ -24,7 +25,7 @@ export async function GET(request: Request) {
     return new NextResponse(null, { status: 204 });
   }
 
-  const baseUrl = process.env.BETTER_AUTH_URL ?? new URL(request.url).origin;
+  const baseUrl = appBaseUrl(request);
 
   const session = await auth.api.getSession({ headers: requestHeaders });
 
