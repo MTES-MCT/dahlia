@@ -62,6 +62,19 @@ describe("savePieceMetadataAction", () => {
     expect(mockRevalidatePath).not.toHaveBeenCalled();
   });
 
+  it("refuse un nom Dahlia contenant des séparateurs de chemin", async () => {
+    expect(
+      await savePieceMetadataAction(KEY, "piece-1", {
+        dahliaName: "../../etc/passwd",
+        comment: "",
+      }),
+    ).toEqual({
+      ok: false,
+      error: "Le nom ne peut pas contenir / \\ : * ? \" < > |.",
+    });
+    expect(mockFetchAttachedFile).not.toHaveBeenCalled();
+  });
+
   it("refuse un identifiant de pièce vide sans interroger la base", async () => {
     expect(await savePieceMetadataAction(KEY, "  ", INPUT)).toEqual({
       ok: false,
