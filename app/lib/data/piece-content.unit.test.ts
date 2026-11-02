@@ -16,6 +16,10 @@ vi.mock("@/app/lib/telerecours", () => ({
   })),
 }));
 
+vi.mock("@/app/lib/telerecours-sync-rate-limit", () => ({
+  consumeTelerecoursPieceDownloadRateLimit: vi.fn(async () => ({ allowed: true })),
+}));
+
 import { fetchPieceContent } from "./piece-content";
 import { getTelerecoursClientForCaseFile } from "@/app/lib/telerecours";
 

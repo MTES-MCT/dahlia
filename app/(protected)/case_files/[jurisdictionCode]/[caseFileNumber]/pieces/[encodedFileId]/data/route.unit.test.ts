@@ -52,6 +52,25 @@ describe("GET /case_files/[jurisdictionCode]/[caseFileNumber]/pieces/[encodedFil
     expect(mockedFetchPieceContent).not.toHaveBeenCalled();
   });
 
+  it("returns 429 with Retry-After when the Télérecours budget is spent", async () => {
+    const { TelerecoursUserRateLimitedError } = await import(
+      "@/app/lib/telerecours-user-rate-limited-error"
+    );
+    mockedFetchAttachedFile.mockResolvedValue({
+      encodedFileId: "file-1",
+      caseFileNumber: CASE_FILE_NUMBER,
+    } as never);
+    mockedFetchPieceContent.mockRejectedValue(
+      new TelerecoursUserRateLimitedError("Trop d'appels Télérecours. Réessayez dans une minute.", 42),
+    );
+
+    const response = await GET(new Request("https://dahlia.example/data"), routeContext());
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).toBe("42");
+    expect(await response.text()).toBe("Trop d'appels Télérecours. Réessayez dans une minute.");
+  });
+
   it("returns 502 without the upstream diagnostic outside development", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     mockedFetchAttachedFile.mockResolvedValue({

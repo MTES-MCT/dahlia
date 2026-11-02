@@ -20,7 +20,8 @@ export type SecurityAuditAction =
   | "auth.access.denied"
   | "auth.admin.denied"
   | "auth.scope.denied"
-  | "telerecours.sync.rate_limited";
+  | "telerecours.sync.rate_limited"
+  | "telerecours.piece_download.rate_limited";
 
 export type AdminAuditEvent = {
   actorId: string;

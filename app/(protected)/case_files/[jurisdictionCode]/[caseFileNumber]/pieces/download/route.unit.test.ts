@@ -118,6 +118,15 @@ describe("GET /case_files/[jurisdictionCode]/[caseFileNumber]/pieces/download", 
     vi.restoreAllMocks();
   });
 
+  it("returns 400 when too many piece ids are provided", async () => {
+    const ids = Array.from({ length: 21 }, (_, index) => `file-${index}`);
+    const response = await GET(downloadRequest(ids), routeContext());
+
+    expect(response.status).toBe(400);
+    expect(await response.text()).toBe("Trop de pièces sélectionnées (maximum 20)");
+    expect(mockedFetchCaseFileDetail).not.toHaveBeenCalled();
+  });
+
   it("returns 400 when no piece id is provided", async () => {
     const response = await GET(downloadRequest([]), routeContext());
 
@@ -224,6 +233,23 @@ describe("GET /case_files/[jurisdictionCode]/[caseFileNumber]/pieces/download", 
     expect(Object.keys(entries).sort()).toEqual(["requete (1).pdf", "requete.pdf"]);
     expect(Array.from(entries["requete.pdf"]!)).toEqual([0x01]);
     expect(Array.from(entries["requete (1).pdf"]!)).toEqual([0x02]);
+  });
+
+  it("returns 429 with Retry-After when the Télérecours budget is spent", async () => {
+    const { TelerecoursUserRateLimitedError } = await import(
+      "@/app/lib/telerecours-user-rate-limited-error"
+    );
+    mockedFetchCaseFileDetail.mockResolvedValue(CASE_FILE as never);
+    mockedFetchAttachedFile.mockResolvedValue(attachedFile("file-1") as never);
+    mockedFetchPieceContent.mockRejectedValue(
+      new TelerecoursUserRateLimitedError("Trop d'appels Télérecours. Réessayez dans une minute.", 9),
+    );
+
+    const response = await GET(downloadRequest(["file-1"]), routeContext());
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).toBe("9");
+    expect(await response.text()).toBe("Trop d'appels Télérecours. Réessayez dans une minute.");
   });
 
   it("returns 502 without the upstream diagnostic outside development", async () => {
