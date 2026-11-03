@@ -20,6 +20,9 @@ vi.mock("@/app/lib/prisma", () => ({
       count: vi.fn(),
       findFirst: vi.fn(),
     },
+    fieldChange: {
+      findMany: vi.fn(),
+    },
   },
 }));
 
@@ -223,10 +226,22 @@ describe("case-files", () => {
     // detail route share one query; it must still behave like a plain lookup.
     it("charge le dossier par son numéro avec ses relations", async () => {
       vi.mocked(prisma.caseFile.findFirst).mockResolvedValue(mockCaseFile as never);
+      vi.mocked(prisma.fieldChange.findMany).mockResolvedValue([]);
 
       const result = await fetchCaseFileDetail("TA069", "CF-2024-001");
 
-      expect(result).toBe(mockCaseFile);
+      expect(result).toEqual({ ...mockCaseFile, fieldChanges: [] });
+      // Only the case file's own classifier history, never pièce renames.
+      expect(vi.mocked(prisma.fieldChange.findMany)).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            jurisdictionCode: "TA069",
+            model: "CaseFile",
+            modelId: "CF-2024-001",
+            field: { in: ["litigationType", "rightType"] },
+          },
+        }),
+      );
       expect(vi.mocked(prisma.caseFile.findFirst)).toHaveBeenCalledWith({
         where: { jurisdictionCode: "TA069", caseFileNumber: "CF-2024-001" },
         include: expect.objectContaining({ caseFileActors: expect.anything() }),

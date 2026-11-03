@@ -23,6 +23,9 @@ export interface Args {
   enrich: EnrichMode;
   // Phase B — seed attached files' empty dahliaName from their file name.
   updatePieceName: boolean;
+  // Phase B/C — also rename named pièces, unless a user renamed them.
+  // Implies updatePieceName.
+  forceUpdatePieceName: boolean;
   // Phases B/C — delete the events, attached files and related-case-file links
   // stored for a case file but no longer returned by Telerecours.
   force: boolean;

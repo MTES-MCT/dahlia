@@ -14,6 +14,7 @@ import {
 } from "@/app/lib/case-file-qualification";
 import { HAS_TAGS_FIELD_NAME, TAG_IDS_FIELD_NAME } from "@/app/lib/case-file-tags";
 import { clientErrorMessage } from "@/app/lib/client-error";
+import { fieldChangeTargetCaseFile } from "@/app/lib/field-change";
 import { describePrismaError } from "@/app/lib/form-actions";
 import { getTelerecoursClientForCaseFile } from "@/app/lib/telerecours";
 import { consumeTelerecoursSyncRateLimit } from "@/app/lib/telerecours-sync-rate-limit";
@@ -306,23 +307,26 @@ async function parseQualificationFields(
 // True when a classifier change is more recent than the last validation, i.e.
 // when saving the block is an actual review of automatically proposed values.
 async function isQualificationReviewPending(key: CaseFileKey): Promise<boolean> {
-  const caseFile = await prisma.caseFile.findUnique({
-    where: caseFileUniqueWhere(key),
-    select: {
-      qualificationValidatedAt: true,
-      classificationFieldChanges: {
-        where: { field: { in: [...CLASSIFIER_QUALIFICATION_FIELDS] } },
-        orderBy: { changedAt: "desc" },
-        take: 1,
-        select: { changedAt: true },
+  const [caseFile, lastClassifierChange] = await Promise.all([
+    prisma.caseFile.findUnique({
+      where: caseFileUniqueWhere(key),
+      select: { qualificationValidatedAt: true },
+    }),
+    // Case-file rows only: pièce renames share the history table.
+    prisma.fieldChange.findFirst({
+      where: {
+        ...fieldChangeTargetCaseFile(key),
+        field: { in: [...CLASSIFIER_QUALIFICATION_FIELDS] },
       },
-    },
-  });
+      orderBy: { changedAt: "desc" },
+      select: { changedAt: true },
+    }),
+  ]);
   if (!caseFile) return false;
   return (
     getQualificationReviewState(
       caseFile.qualificationValidatedAt,
-      caseFile.classificationFieldChanges[0]?.changedAt ?? null,
+      lastClassifierChange?.changedAt ?? null,
     ) === "toReview"
   );
 }

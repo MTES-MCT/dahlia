@@ -162,11 +162,11 @@ export async function CaseFileTabs({
               availableTags={availableTags}
               reviewState={getQualificationReviewState(
                 caseFile.qualificationValidatedAt,
-                getLastClassifierChangeAt(caseFile.classificationFieldChanges),
+                getLastClassifierChangeAt(caseFile.fieldChanges),
               )}
               fieldsToReview={getFieldsToReview(
                 caseFile.qualificationValidatedAt,
-                caseFile.classificationFieldChanges,
+                caseFile.fieldChanges,
               )}
               validatedAtLabel={formatDateTimeFr(caseFile.qualificationValidatedAt)}
             />

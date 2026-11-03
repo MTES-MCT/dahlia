@@ -11,6 +11,34 @@ import {
   page,
 } from "../test-support/fixtures";
 
+// Stored attached_files row matching attachedFileFixture() once upserted for
+// case file TA069-001 (family label "Requête").
+function storedPiece(over: Record<string, unknown> = {}) {
+  const file = attachedFileFixture();
+  return {
+    jurisdictionCode: "TA069",
+    encodedFileId: file.encodedFileId,
+    originalFileName: file.originalFileName,
+    fileName: file.fileName,
+    mimeType: file.mimeType,
+    documentType: file.documentType,
+    subEventId: file.subEventId,
+    receiptAcknowledgmentId: file.receiptAcknowledgmentId,
+    receiptAcknowledgmentType: file.receiptAcknowledgmentType,
+    fileTypeLabel: file.fileTypeLabel,
+    fileFamilyTypeLabel: "Requête",
+    eventCreationDate: new Date(file.eventCreationDate),
+    caseFileNumber: "TA069-001",
+    eventId: file.eventId,
+    fileFamilyTypeCode: file.fileFamilyType,
+    dahliaName: null,
+    comment: null,
+    isFavorite: false,
+    telerecoursUpdatedAt: null,
+    ...over,
+  };
+}
+
 describe("findLastProducerId", () => {
   it("returns the actor of the most recent 'reception…' event", () => {
     const events = [
@@ -46,21 +74,19 @@ describe("findLastProducerId", () => {
 });
 
 describe("pieceNameFromFileName", () => {
-  it("zero-pads the leading number to 5 digits and replaces underscores", () => {
-    expect(pieceNameFromFileName("034_memoire_en_defense.pdf")).toBe("00034 memoire en defense");
-    expect(pieceNameFromFileName("34-_requete_introductive.PDF")).toBe(
-      "00034 requete introductive",
-    );
+  it("zero-pads the leading number to 3 digits and replaces underscores", () => {
+    expect(pieceNameFromFileName("034_memoire_en_defense.pdf")).toBe("034 memoire en defense");
+    expect(pieceNameFromFileName("34-_requete_introductive.PDF")).toBe("034 requete introductive");
     expect(pieceNameFromFileName("100034_piece.pdf")).toBe("100034 piece");
   });
 
   it("normalizes every leading number", () => {
-    expect(pieceNameFromFileName("20261021_34_requête.pdf")).toBe("20261021 00034 requête");
+    expect(pieceNameFromFileName("20261021_34_requête.pdf")).toBe("20261021 034 requête");
   });
 
   it("drops a P_ prefix before the number", () => {
-    expect(pieceNameFromFileName("P_34_requete.pdf")).toBe("00034 requete");
-    expect(pieceNameFromFileName("P_20261021_34_requete.pdf")).toBe("20261021 00034 requete");
+    expect(pieceNameFromFileName("P_34_requete.pdf")).toBe("034 requete");
+    expect(pieceNameFromFileName("P_20261021_34_requete.pdf")).toBe("20261021 034 requete");
   });
 
   it("keeps names without leading number, only replacing underscores", () => {
@@ -69,18 +95,18 @@ describe("pieceNameFromFileName", () => {
   });
 
   it("drops piece prefixes (PJ, P, Piece, piece n°) before the number", () => {
-    expect(pieceNameFromFileName("PJ5_Mail_OPAC_20180329.pdf")).toBe("00005 Mail OPAC 20180329");
+    expect(pieceNameFromFileName("PJ5_Mail_OPAC_20180329.pdf")).toBe("005 Mail OPAC 20180329");
     expect(pieceNameFromFileName("1141718428_P12_-_COPIE_TITRE.pdf")).toBe(
-      "1141718428 00012 COPIE TITRE",
+      "1141718428 012 COPIE TITRE",
     );
     expect(pieceNameFromFileName("41818856_piece_n_4_Attestation.pdf")).toBe(
-      "41818856 00004 Attestation",
+      "41818856 004 Attestation",
     );
     expect(pieceNameFromFileName("1118543015_Piece_33_Commandement.pdf")).toBe(
-      "1118543015 00033 Commandement",
+      "1118543015 033 Commandement",
     );
-    expect(pieceNameFromFileName("Pièce n°3 bail.pdf")).toBe("00003 bail");
-    expect(pieceNameFromFileName("Pièce_3.pdf")).toBe("00003");
+    expect(pieceNameFromFileName("Pièce n°3 bail.pdf")).toBe("003 bail");
+    expect(pieceNameFromFileName("Pièce_3.pdf")).toBe("003");
   });
 
   it("keeps leading dates as text", () => {
@@ -90,17 +116,17 @@ describe("pieceNameFromFileName", () => {
     expect(pieceNameFromFileName("100764654_18_05_18_memoire.pdf")).toBe(
       "100764654 18 05 18 memoire",
     );
-    expect(pieceNameFromFileName("001_21.01.2025_rejet.pdf")).toBe("00001 21.01.2025 rejet");
+    expect(pieceNameFromFileName("001_21.01.2025_rejet.pdf")).toBe("001 21.01.2025 rejet");
   });
 
   it("collapses repeated underscores into a single space", () => {
     expect(pieceNameFromFileName("015_Moisissures__ds_les_sanitaires__1159052506.pdf")).toBe(
-      "00015 Moisissures ds les sanitaires 1159052506",
+      "015 Moisissures ds les sanitaires 1159052506",
     );
   });
 
   it("handles a number alone and empty names", () => {
-    expect(pieceNameFromFileName("034.pdf")).toBe("00034");
+    expect(pieceNameFromFileName("034.pdf")).toBe("034");
     expect(pieceNameFromFileName(".pdf")).toBeNull();
   });
 });
@@ -150,7 +176,7 @@ describe("enrichCaseFile", () => {
     expect(prisma.caseFileHearing.upsert).toHaveBeenCalledOnce();
     expect(prisma.caseFileHearing.deleteMany).toHaveBeenCalledOnce();
     expect(prisma.caseFileEvent.upsert).toHaveBeenCalledOnce();
-    expect(prisma.attachedFile.upsert).toHaveBeenCalledOnce();
+    expect(prisma.attachedFile.create).toHaveBeenCalledOnce();
     // lastProducer derived from the "Réception mémoire" event (actor 1001).
     expect(prisma.caseFile.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ lastProducerId: 1001 }) }),
@@ -174,10 +200,14 @@ describe("enrichCaseFile", () => {
       });
 
       await enrichCaseFile(prisma, client, "TA069-001", "TA069", true);
+      expect(prisma.attachedFile.create.mock.calls[0][0].data).toMatchObject({ isFavorite });
 
-      const upsert = prisma.attachedFile.upsert.mock.calls[0][0];
-      expect(upsert.create).toMatchObject({ isFavorite });
-      expect(upsert.update).not.toHaveProperty("isFavorite");
+      // Re-scrape of a stored pièce whose Telerecours data changed.
+      prisma.attachedFile.findUnique.mockResolvedValue(
+        storedPiece({ fileName: "ancien.pdf", isFavorite: !isFavorite }) as never,
+      );
+      await enrichCaseFile(prisma, client, "TA069-001", "TA069", true);
+      expect(prisma.attachedFile.update.mock.calls[0][0].data).not.toHaveProperty("isFavorite");
     },
   );
 
@@ -239,7 +269,8 @@ describe("enrichCaseFile", () => {
 
     await enrichCaseFile(prisma, client, "TA069-001", "TA069", true);
 
-    expect(prisma.attachedFile.upsert).not.toHaveBeenCalled();
+    expect(prisma.attachedFile.create).not.toHaveBeenCalled();
+    expect(prisma.attachedFile.update).not.toHaveBeenCalled();
   });
 
   it("keys every row by the court of the Dahlia instance (TA069bis → TA069)", async () => {
@@ -270,11 +301,9 @@ describe("enrichCaseFile", () => {
         where: { jurisdictionCode_id: { jurisdictionCode: "TA069", id: 90001 } },
       }),
     );
-    expect(prisma.attachedFile.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        create: expect.objectContaining({ jurisdictionCode: "TA069", caseFileNumber: "TA069-001" }),
-      }),
-    );
+    expect(prisma.attachedFile.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ jurisdictionCode: "TA069", caseFileNumber: "TA069-001" }),
+    });
     expect(prisma.caseFile.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
@@ -287,10 +316,55 @@ describe("enrichCaseFile", () => {
     );
   });
 
-  describe("--update-piece-name", () => {
+  describe("pièces : mise à jour conditionnelle", () => {
     beforeEach(() => {
       prisma.caseFileEvent.findUnique.mockResolvedValue({ id: 90001 } as never);
-      prisma.fileFamilyType.upsert.mockResolvedValue({ code: "REQ", label: "Requête" } as never);
+      prisma.fileFamilyType.upsert.mockResolvedValue({ code: "FAM", label: "Requête" } as never);
+    });
+
+    const client = () =>
+      fakeTelerecoursClient({
+        getCaseFileDetail: vi.fn().mockResolvedValue(caseFileDetailFixture()),
+        getCaseFileAttachedFiles: vi.fn().mockResolvedValue(page([attachedFileFixture()])),
+      });
+
+    it("crée une nouvelle pièce avec ses horodatages", async () => {
+      await enrichCaseFile(prisma, client(), "TA069-001", "TA069", true);
+
+      const data = prisma.attachedFile.create.mock.calls[0][0].data;
+      expect(data.createdAt).toBeInstanceOf(Date);
+      expect(data.updatedAt).toBe(data.createdAt);
+      expect(data.telerecoursUpdatedAt).toBe(data.createdAt);
+    });
+
+    it("n'écrit pas une pièce dont les données Télérecours sont inchangées", async () => {
+      prisma.attachedFile.findUnique.mockResolvedValue(storedPiece() as never);
+
+      await enrichCaseFile(prisma, client(), "TA069-001", "TA069", true);
+
+      expect(prisma.attachedFile.create).not.toHaveBeenCalled();
+      expect(prisma.attachedFile.update).not.toHaveBeenCalled();
+    });
+
+    it("met à jour une pièce modifiée et horodate telerecoursUpdatedAt", async () => {
+      prisma.attachedFile.findUnique.mockResolvedValue(
+        storedPiece({ fileTypeLabel: "Ancien libellé" }) as never,
+      );
+
+      await enrichCaseFile(prisma, client(), "TA069-001", "TA069", true);
+
+      const data = prisma.attachedFile.update.mock.calls[0][0].data;
+      expect(data).toMatchObject({ fileTypeLabel: "Mémoire" });
+      expect(data.telerecoursUpdatedAt).toBeInstanceOf(Date);
+      expect(data.updatedAt).toBe(data.telerecoursUpdatedAt);
+      expect(data).not.toHaveProperty("dahliaName");
+    });
+  });
+
+  describe("--update-piece-name / --force-update-piece-name", () => {
+    beforeEach(() => {
+      prisma.caseFileEvent.findUnique.mockResolvedValue({ id: 90001 } as never);
+      prisma.fileFamilyType.upsert.mockResolvedValue({ code: "FAM", label: "Requête" } as never);
     });
 
     const client = () =>
@@ -301,21 +375,91 @@ describe("enrichCaseFile", () => {
           .mockResolvedValue(page([attachedFileFixture({ fileName: "P_34_requete.pdf" })])),
       });
 
+    // Stored pièce identical to the scraped one, except for its Dahlia name.
+    function named(dahliaName: string | null) {
+      prisma.attachedFile.findUnique.mockResolvedValue(
+        storedPiece({ fileName: "P_34_requete.pdf", dahliaName }) as never,
+      );
+    }
+
+    // Whether the history holds a user rename of the pièce.
+    function renamedByUser(value: boolean) {
+      prisma.fieldChange.findFirst.mockResolvedValue((value ? { id: 1 } : null) as never);
+    }
+
+    const renamedTo = () =>
+      prisma.attachedFile.update.mock.calls.map((call) => call[0].data.dahliaName);
+
     it("ne touche pas dahliaName sans le flag", async () => {
+      named(null);
       await enrichCaseFile(prisma, client(), "TA069-001", "TA069", true);
-      expect(prisma.attachedFile.updateMany).not.toHaveBeenCalled();
+      expect(prisma.attachedFile.update).not.toHaveBeenCalled();
+      expect(prisma.fieldChange.create).not.toHaveBeenCalled();
     });
 
-    it("renseigne dahliaName uniquement s'il est nul ou vide", async () => {
+    it("nomme une pièce sans nom et historise le renommage (origine scraper)", async () => {
+      named(null);
       await enrichCaseFile(prisma, client(), "TA069-001", "TA069", true, false, true);
-      expect(prisma.attachedFile.updateMany).toHaveBeenCalledWith({
+
+      expect(prisma.$transaction).toHaveBeenCalledOnce();
+      expect(renamedTo()).toEqual(["034 requete"]);
+      expect(prisma.fieldChange.create).toHaveBeenCalledWith({
+        data: {
+          jurisdictionCode: "TA069",
+          model: "AttachedFile",
+          modelId: "ENC-001",
+          field: "dahliaName",
+          previousValue: null,
+          newValue: "034 requete",
+          origin: "scraper",
+          changedAt: expect.any(Date),
+        },
+      });
+    });
+
+    it("nomme aussi une pièce nouvellement créée", async () => {
+      await enrichCaseFile(prisma, client(), "TA069-001", "TA069", true, false, true);
+      expect(prisma.attachedFile.create).toHaveBeenCalledOnce();
+      expect(renamedTo()).toEqual(["034 requete"]);
+    });
+
+    it("n'écrase jamais un nom saisi sans --force-update-piece-name", async () => {
+      named("Nom saisi");
+      await enrichCaseFile(prisma, client(), "TA069-001", "TA069", true, false, true);
+      expect(prisma.attachedFile.update).not.toHaveBeenCalled();
+      expect(prisma.fieldChange.findFirst).not.toHaveBeenCalled();
+    });
+
+    it("--force-update-piece-name renomme une pièce nommée par un script ou le scraper", async () => {
+      named("00034 requete");
+      renamedByUser(false);
+      await enrichCaseFile(prisma, client(), "TA069-001", "TA069", true, false, false, true);
+      expect(prisma.fieldChange.findFirst).toHaveBeenCalledWith({
         where: {
           jurisdictionCode: "TA069",
-          encodedFileId: expect.any(String),
-          OR: [{ dahliaName: null }, { dahliaName: "" }],
+          model: "AttachedFile",
+          modelId: "ENC-001",
+          field: "dahliaName",
+          origin: "user",
         },
-        data: { dahliaName: "00034 requete" },
+        select: { id: true },
       });
+      expect(renamedTo()).toEqual(["034 requete"]);
+    });
+
+    it("--force-update-piece-name préserve une pièce renommée par un utilisateur", async () => {
+      named("Nom saisi");
+      renamedByUser(true);
+      await enrichCaseFile(prisma, client(), "TA069-001", "TA069", true, false, false, true);
+      expect(prisma.attachedFile.update).not.toHaveBeenCalled();
+      expect(prisma.fieldChange.create).not.toHaveBeenCalled();
+    });
+
+    it("n'écrit rien quand le nom dérivé est déjà le nom actuel", async () => {
+      named("034 requete");
+      renamedByUser(false);
+      await enrichCaseFile(prisma, client(), "TA069-001", "TA069", true, false, false, true);
+      expect(prisma.attachedFile.update).not.toHaveBeenCalled();
     });
   });
 
@@ -337,8 +481,26 @@ describe("enrichCaseFile", () => {
     beforeEach(() => {
       prisma.caseFileEvent.findUnique.mockResolvedValue({ id: 90001 } as never);
       prisma.fileFamilyType.upsert.mockResolvedValue({ code: "REQ", label: "Requête" } as never);
+      prisma.attachedFile.findMany.mockResolvedValue([]);
       prisma.attachedFile.deleteMany.mockResolvedValue({ count: 0 });
       prisma.caseFileEvent.deleteMany.mockResolvedValue({ count: 0 });
+    });
+
+    it("supprime l'historique des pièces supprimées (pas de clé étrangère)", async () => {
+      prisma.attachedFile.findMany.mockResolvedValue([{ encodedFileId: "ENC-OLD" }] as never);
+
+      await enrichCaseFile(
+        prisma,
+        clientReturning([90001], ["ENC-1"]),
+        "TA069-001",
+        "TA069",
+        true,
+        true,
+      );
+
+      expect(prisma.fieldChange.deleteMany).toHaveBeenCalledWith({
+        where: { jurisdictionCode: "TA069", model: "AttachedFile", modelId: { in: ["ENC-OLD"] } },
+      });
     });
 
     it("ne supprime rien sans --force", async () => {

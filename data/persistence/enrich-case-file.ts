@@ -8,6 +8,14 @@ import {
   Hearing,
   LastDecisionReading,
 } from "../telerecours/types";
+import {
+  applyDahliaNameUpdate,
+  hasTelerecoursChanges,
+  wasRenamedByUser,
+  pieceNameFromFileName,
+  plannedAutoRename,
+  type AttachedFileTelerecoursData,
+} from "./attached-file-dahlia-name";
 import type { CaseFileKey } from "./case-file-key";
 import { computeContentHash } from "./content-hash";
 import { paginate } from "./paginate";
@@ -22,34 +30,8 @@ function parseDate(value: string | null | undefined): Date | undefined {
   return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
-// A date at the head of a file name (2025-01-17, 18_05_18, 21.01.2025) is kept
-// as text rather than split into piece numbers.
-const LEADING_DATE =
-  /^(?:\d{4}-\d{2}-\d{2}|\d{1,2}[_.-]\d{1,2}[_.-](?:\d{4}|\d{2}))(?=[^\p{L}\p{N}]|$)/u;
-// Piece label before its number (P_34, PJ5, PJ_1, Piece_33, piece_n_4, Pièce n°3).
-const PIECE_PREFIX = /^(?:PJ|P|Pi[eè]ces?)[^\p{L}\p{N}]*(?:n[°o]?[^\p{L}\p{N}]*)?(?=\d)/iu;
-const LEADING_NUMBER = /^(\d+)[^\p{L}\p{N}]*/u;
-
-// Derive a Dahlia display name from a Telerecours file name: drop the ".pdf"
-// extension and piece prefixes (P_, PJ, Pièce n°…), zero-pad every leading
-// number to at least 5 digits, keep leading dates as text, then replace
-// underscores with single spaces in the remaining text.
-// e.g. "P_20261021_34_requête.pdf" → "20261021 00034 requête". Returns null
-// when nothing is left.
-export function pieceNameFromFileName(fileName: string): string | null {
-  let rest = fileName.replace(/\.pdf$/i, "");
-  const numbers: string[] = [];
-  while (!LEADING_DATE.test(rest)) {
-    rest = rest.replace(PIECE_PREFIX, "");
-    const match = rest.match(LEADING_NUMBER);
-    if (!match) break;
-    numbers.push(match[1].padStart(5, "0"));
-    rest = rest.slice(match[0].length);
-  }
-  const text = rest.replace(/_/g, " ").replace(/\s+/g, " ").trim();
-  const name = [...numbers, text].filter(Boolean).join(" ");
-  return name || null;
-}
+// Re-exported for the callers and tests that used to import it from here.
+export { pieceNameFromFileName };
 
 // Normalize a string for case- and accent-insensitive comparison.
 function normalizeLabel(value: string): string {
@@ -217,13 +199,23 @@ async function upsertCaseFileEvent(
 // first imported (scrape or case-file sync).
 export const FAVORITE_ON_CREATE_FAMILY_TYPE = "REQ";
 
+// How the scraper derives pièce names from Telerecours file names.
+export type PieceNameOptions = {
+  // --update-piece-name: fill empty Dahlia names.
+  updatePieceName: boolean;
+  // --force-update-piece-name: also rename named pièces, unless a user renamed
+  // them (names set by the scraper or a script are recomputed).
+  forceUpdatePieceName: boolean;
+};
+
 async function upsertAttachedFile(
   prisma: PrismaClient,
   key: CaseFileKey,
   file: AttachedFile,
-  updatePieceName: boolean,
+  pieceNameOptions: PieceNameOptions,
 ): Promise<{ upserted: boolean; reason?: string }> {
   const { jurisdictionCode } = key;
+  const { encodedFileId } = file;
   // The corresponding event must already have been created by phase B/measures.
   const event = await prisma.caseFileEvent.findUnique({
     where: { jurisdictionCode_id: { jurisdictionCode, id: file.eventId } },
@@ -251,7 +243,7 @@ async function upsertAttachedFile(
     },
   });
 
-  const data = {
+  const data: AttachedFileTelerecoursData = {
     originalFileName: file.originalFileName,
     fileName: file.fileName,
     mimeType: file.mimeType,
@@ -266,34 +258,62 @@ async function upsertAttachedFile(
     eventId: file.eventId,
     fileFamilyTypeCode: file.fileFamilyType,
   };
-  await prisma.attachedFile.upsert({
-    where: {
-      jurisdictionCode_encodedFileId: { jurisdictionCode, encodedFileId: file.encodedFileId },
-    },
-    // `update` leaves user-editable fields (dahliaName, comment, isFavorite)
-    // untouched so manual edits survive a re-scrape. The deprecated `number` is
-    // never written.
-    update: data,
+  const where = { jurisdictionCode_encodedFileId: { jurisdictionCode, encodedFileId } };
+  const now = new Date();
+  const existing = await prisma.attachedFile.findUnique({ where });
+
+  let dahliaName: string | null = null;
+  if (!existing) {
     // A new "Requête" pièce starts as a favorite; agents may unflag it later.
-    create: {
-      jurisdictionCode,
-      encodedFileId: file.encodedFileId,
-      ...data,
-      isFavorite: file.fileFamilyType === FAVORITE_ON_CREATE_FAMILY_TYPE,
-    },
-  });
-  // --update-piece-name: seed dahliaName from the file name, only when it is
-  // still null or empty so a manual edit is never overwritten.
-  const pieceName = updatePieceName ? pieceNameFromFileName(file.fileName) : null;
-  if (pieceName) {
-    await prisma.attachedFile.updateMany({
-      where: {
+    await prisma.attachedFile.create({
+      data: {
         jurisdictionCode,
-        encodedFileId: file.encodedFileId,
-        OR: [{ dahliaName: null }, { dahliaName: "" }],
+        encodedFileId,
+        ...data,
+        isFavorite: file.fileFamilyType === FAVORITE_ON_CREATE_FAMILY_TYPE,
+        createdAt: now,
+        updatedAt: now,
+        telerecoursUpdatedAt: now,
       },
-      data: { dahliaName: pieceName },
     });
+  } else {
+    dahliaName = existing.dahliaName;
+    // Only the Telerecours fields are written, and only when they changed, so
+    // `updatedAt` / `telerecoursUpdatedAt` reflect actual changes. User-editable
+    // fields (dahliaName, comment, isFavorite) survive a re-scrape; the
+    // deprecated `number` is never written.
+    if (hasTelerecoursChanges(existing, data)) {
+      await prisma.attachedFile.update({
+        where,
+        data: { ...data, updatedAt: now, telerecoursUpdatedAt: now },
+      });
+    }
+  }
+
+  if (pieceNameOptions.updatePieceName) {
+    const force = pieceNameOptions.forceUpdatePieceName;
+    // The history is only needed to arbitrate the rename of a named pièce.
+    const renamedByUser =
+      force && dahliaName ? await wasRenamedByUser(prisma, jurisdictionCode, encodedFileId) : false;
+    const newName = plannedAutoRename(
+      {
+        dahliaName,
+        fileName: data.fileName,
+        fileTypeLabel: data.fileTypeLabel,
+        fileFamilyTypeCode: data.fileFamilyTypeCode,
+      },
+      renamedByUser,
+      force,
+    );
+    if (newName) {
+      await applyDahliaNameUpdate(
+        prisma,
+        { jurisdictionCode, encodedFileId, dahliaName },
+        newName,
+        "scraper",
+        { now },
+      );
+    }
   }
   return { upserted: true };
 }
@@ -302,16 +322,34 @@ async function upsertAttachedFile(
 // no longer returned by Telerecours (e.g. rows of another court's case file
 // merged under this number before ids were scoped by court). Attached files go
 // first: an event still referenced by a kept attached file is kept too (FK).
-// Deleted attached files lose their Dahlia metadata (name, number, comment).
+// Deleted attached files lose their Dahlia metadata (name, number, comment)
+// and their dahliaName history.
 async function deleteStaleEventsAndFiles(
   prisma: PrismaClient,
   key: CaseFileKey,
   events: CaseFileEvent[],
   files: AttachedFile[],
 ): Promise<void> {
-  const deletedFiles = await prisma.attachedFile.deleteMany({
-    where: { ...key, encodedFileId: { notIn: files.map((file) => file.encodedFileId) } },
+  const staleFilesWhere = {
+    ...key,
+    encodedFileId: { notIn: files.map((file) => file.encodedFileId) },
+  };
+  // No foreign key on the polymorphic history: drop the rows of the deleted
+  // pièces explicitly (application-level cascade).
+  const staleFiles = await prisma.attachedFile.findMany({
+    where: staleFilesWhere,
+    select: { encodedFileId: true },
   });
+  if (staleFiles.length > 0) {
+    await prisma.fieldChange.deleteMany({
+      where: {
+        jurisdictionCode: key.jurisdictionCode,
+        model: "AttachedFile",
+        modelId: { in: staleFiles.map((file) => file.encodedFileId) },
+      },
+    });
+  }
+  const deletedFiles = await prisma.attachedFile.deleteMany({ where: staleFilesWhere });
   const deletedEvents = await prisma.caseFileEvent.deleteMany({
     where: {
       ...key,
@@ -340,7 +378,13 @@ export async function enrichCaseFile(
   anonymize: boolean,
   force: boolean = false,
   updatePieceName: boolean = false,
+  forceUpdatePieceName: boolean = false,
 ): Promise<void> {
+  // --force-update-piece-name implies --update-piece-name.
+  const pieceNameOptions: PieceNameOptions = {
+    updatePieceName: updatePieceName || forceUpdatePieceName,
+    forceUpdatePieceName,
+  };
   // Tag the case file with the jurisdiction this enrichment was fetched from.
   // Also covers the webapp's single-case-file refresh, which never runs phase A.
   const resolvedJurisdiction = await upsertJurisdiction(prisma, jurisdiction);
@@ -402,7 +446,7 @@ export async function enrichCaseFile(
   for await (const file of paginate<AttachedFile>((page) =>
     client.getCaseFileAttachedFiles(caseFileNumber, jurisdiction, page),
   )) {
-    const result = await upsertAttachedFile(prisma, key, file, updatePieceName);
+    const result = await upsertAttachedFile(prisma, key, file, pieceNameOptions);
     files.push(file);
     if (result.upserted) {
       filesCount++;

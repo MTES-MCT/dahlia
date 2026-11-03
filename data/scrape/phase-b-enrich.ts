@@ -41,6 +41,7 @@ export async function phaseB(
         args.anonymize,
         args.force,
         args.updatePieceName,
+        args.forceUpdatePieceName,
       );
       enriched++;
     } catch (error) {
