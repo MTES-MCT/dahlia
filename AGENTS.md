@@ -89,6 +89,7 @@ applique aussitôt et échoue avant qu'on puisse corriger le SQL.
 - **DSFR** : utiliser les composants `@codegouvfr/react-dsfr/*` et `fr.cx(...)` pour les classes. Bootstrap DSFR dans `src/dsfr-bootstrap/` et `app/layout.tsx`.
 - **Tailwind** : utiliser Tailwind v4 en complément du DSFR lorsque le DSFR ne propose pas la classe voulue ou pour personnaliser. Combiner avec `fr.cx(...)` et `clsx(...)` si besoin.
 - **Styles** : éviter au maximum l'attribut `style` ; préférer des classes DSFR ou Tailwind. Si l'attribut `style` est nécessaire, demander confirmation à l'utilisateur en justifiant pourquoi les classes ne conviennent pas.
+- **Largeur des champs de formulaire (accessibilité)** : un champ de saisie (input, select, champ de recherche) ne doit jamais occuper 100 % de la largeur de la page ou du conteneur. Dimensionner le champ selon la saisie attendue : grille DSFR (`fr-col-md-6`, …) ou largeur max Tailwind (ex. `max-w-md`). Exception : le champ de recherche principal d'un tableau occupe toute la largeur.
 - **TypeScript** : toujours vérifier que les contrôles TypeScript passent et utiliser les types générés par Prisma (ex. `Prisma.CaseFileGetPayload`) pour le code de la couche données.
 - **Titre de page (RGAA 8.5/8.6)** : toute nouvelle page doit exporter un `metadata.title` (ou `generateMetadata`) **spécifique et significatif**. Le layout racine applique le gabarit `%s - DAHLIA` : ne pas inclure « - DAHLIA » dans le titre de la page. Ajouter aussi un cas dans `app/page-titles.unit.test.tsx` (et l'inclure dans le test d'unicité des titres).
 
