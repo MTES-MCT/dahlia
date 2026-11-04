@@ -151,8 +151,8 @@ function buildFreeTextFilter(freeText: string): Prisma.CaseFileWhereInput {
     OR: [
       ...(titreFilter.OR ?? []),
       { lastProducer: { displayNameNormalized: { contains: normalized } } },
-      // Only in the free-text branch: adding it to `buildTitreWordFilter` would
-      // make the `titre:` facet silently match tags too.
+      // Kept out of `buildTitreWordFilter`: tags are matched as a whole, not
+      // word by word.
       buildTagFilter(freeText),
     ],
   };
@@ -166,8 +166,6 @@ const FACET_BUILDERS: Record<
     buildWordAndFilter(facetSearchWords(raw), (word) => ({
       caseFileNumber: { contains: word, mode: "insensitive" },
     })),
-  titre: (normalized) =>
-    buildWordAndFilter(facetSearchWords(normalized), (word) => buildTitreWordFilter(word)),
   requerant: (normalized) =>
     buildWordAndFilter(facetSearchWords(normalized), (word) =>
       buildMainActorSearchFilter("isMainClaimant", word),

@@ -63,7 +63,9 @@ describe("ColumnFilterButton", () => {
     render(
       <ColumnFilterButton
         label="Statut"
-        facetFields={[{ key: "statut", label: "Statut", options: ["Terminé", "En cours d'instruction"] }]}
+        facetFields={[
+          { key: "statut", label: "Statut", options: ["Terminé", "En cours d'instruction"] },
+        ]}
       />,
     );
 
@@ -138,7 +140,7 @@ describe("ColumnFilterButton", () => {
       fireEvent.click(getDossierToggleButton());
 
       expect(screen.getByPlaceholderText("Numéro")).toBeTruthy();
-      expect(screen.getByPlaceholderText("Titre")).toBeTruthy();
+      expect(screen.queryByPlaceholderText("Titre")).toBeNull();
       expect(screen.getByPlaceholderText("Requérant")).toBeTruthy();
       expect(screen.getByPlaceholderText("Défendeur")).toBeTruthy();
       expect(screen.getByPlaceholderText("Mots-clés")).toBeTruthy();
@@ -161,14 +163,13 @@ describe("ColumnFilterButton", () => {
     });
 
     it("seede chaque champ avec la facette courante", () => {
-      setSearchParams("dahliaq=dossier:TA069%20requerant:dupont%20titre:prefet");
+      setSearchParams("dahliaq=dossier:TA069%20requerant:dupont");
       render(<ColumnFilterButton label="Dossier" facetFields={DOSSIER_FACET_FIELDS} />);
 
       fireEvent.click(getDossierToggleButton());
 
       expect((screen.getByPlaceholderText("Numéro") as HTMLInputElement).value).toBe("TA069");
       expect((screen.getByPlaceholderText("Requérant") as HTMLInputElement).value).toBe("dupont");
-      expect((screen.getByPlaceholderText("Titre") as HTMLInputElement).value).toBe("prefet");
     });
   });
 });

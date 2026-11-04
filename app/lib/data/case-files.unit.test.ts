@@ -649,47 +649,6 @@ describe("case-files", () => {
       );
     });
 
-    it("filters with the titre facet across display-name fields and title", async () => {
-      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
-      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
-
-      await fetchCaseFilesTableData(1, 10, null, "descending", "titre:dalo");
-
-      const expectedWhere = {
-        AND: [
-          { isDeleted: false },
-          {
-            OR: [
-              { caseFileNumber: { contains: "dalo", mode: "insensitive" } },
-              { title: { contains: "dalo", mode: "insensitive" } },
-              { summary: { contains: "dalo", mode: "insensitive" } },
-              {
-                caseFileActors: {
-                  some: {
-                    isMainClaimant: true,
-                    actor: { displayNameNormalized: { contains: "dalo" } },
-                  },
-                },
-              },
-              {
-                caseFileActors: {
-                  some: {
-                    isMainDefender: true,
-                    actor: { displayNameNormalized: { contains: "dalo" } },
-                  },
-                },
-              },
-              { rightType: { in: ["DALO"] } },
-            ],
-          },
-        ],
-      };
-
-      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
-        expect.objectContaining({ where: expectedWhere }),
-      );
-    });
-
     it("filtre sur les mots-clés avec la facette mc:", async () => {
       vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
       vi.mocked(prisma.caseFile.count).mockResolvedValue(0);

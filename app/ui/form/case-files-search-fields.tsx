@@ -4,8 +4,10 @@ import { fr } from "@codegouvfr/react-dsfr";
 import { Badge } from "@codegouvfr/react-dsfr/Badge";
 import { Input } from "@codegouvfr/react-dsfr/Input";
 import { Select } from "@codegouvfr/react-dsfr/Select";
+import { Tag } from "@codegouvfr/react-dsfr/Tag";
 import clsx from "clsx";
 import { useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import {
   FACET_KEYS,
   normalizeForSearch,
@@ -33,7 +35,6 @@ const SELECT_CLASSES = clsx("w-auto!", "max-w-full");
 // Text inputs are capped at 20rem by default, sized to the expected input
 // otherwise; labels and hints keep the column width.
 const TEXT_INPUT_CLASSES = "max-w-80";
-const FREE_TEXT_INPUT_CLASSES = "max-w-100";
 const FACET_INPUT_CLASSES: Partial<Record<string, string>> = {
   dossier: "max-w-60",
 } satisfies Partial<Record<DossierFacetKey, string>>;
@@ -45,8 +46,8 @@ type FieldValues = {
   tags: CaseFileTagView[];
 };
 
-// Split a raw search query into the advanced filter values (free text + one
-// value per facet field, select values mapped to their option). With a tag
+// Split a raw search query into the field values (free text + one value per
+// facet field, select values mapped to their option). With a tag
 // catalogue, every `mc:` value naming an existing tag becomes a selected tag;
 // the others are dropped, like a select value matching no option.
 export function readFieldValues(
@@ -81,7 +82,7 @@ export function readFieldValues(
   };
 }
 
-// Rebuild the raw search query from the advanced filter values. Each selected
+// Rebuild the raw search query from the field values. Each selected
 // tag is its own `mc:` token, so a case file must carry all of them.
 export function buildQuery(
   values: FieldValues,
@@ -116,11 +117,39 @@ type Props = {
   availableTags?: readonly CaseFileTagView[];
 };
 
-// Main search field + « Filtres avancés » expandable panel, both editing one
-// raw query: typing in the main field updates the advanced fields and vice
-// versa. Only the main field is submitted (advanced fields have no `name`),
-// so pressing Enter anywhere runs the search with the synced query. The panel
-// closes when the form is submitted.
+// One removable chip per active advanced filter: `facetKey` names the facet to
+// clear, `tagId` the single tag to drop from the tag combobox selection.
+type ActiveFilter = { id: string; label: string; facetKey: string; tagId?: number };
+
+// Active advanced filters (facets only, free text excluded), in field order;
+// each selected tag gets its own chip.
+export function activeFilters(
+  values: FieldValues,
+  facetFields: readonly FacetField[],
+  hasTagCombobox: boolean,
+): ActiveFilter[] {
+  return facetFields.flatMap((field): ActiveFilter[] => {
+    if (hasTagCombobox && field.key === TAG_FACET_KEY) {
+      return values.tags.map((tag) => ({
+        id: `${field.key}-${tag.id}`,
+        label: `Mot-clé : ${tag.label}`,
+        facetKey: field.key,
+        tagId: tag.id,
+      }));
+    }
+    const value = (values.facets[field.key] ?? "").trim();
+    return value
+      ? [{ id: field.key, label: `${field.label} : ${value}`, facetKey: field.key }]
+      : [];
+  });
+}
+
+// Main free-text search field + « Filtres avancés » expandable panel of facet
+// fields. Both are combined into one raw query submitted through a hidden
+// field (`name`); the visible fields have no `name`, so pressing Enter anywhere
+// runs the search with the combined query. Active facets are listed under the
+// main field as dismissible tags: removing one re-runs the search right away.
+// The panel closes when the form is submitted.
 export function CaseFilesSearchFields({
   initialQuery,
   facetFields,
@@ -132,60 +161,90 @@ export function CaseFilesSearchFields({
   const tagField = availableTags
     ? facetFields.find((field) => field.key === TAG_FACET_KEY)
     : undefined;
+  const hasTagCombobox = tagField !== undefined;
   const otherFields = facetFields.filter((field) => field !== tagField);
-  const [query, setQuery] = useState(initialQuery);
   const [values, setValues] = useState(() =>
     readFieldValues(initialQuery, facetFields, facetKeys, availableTags),
   );
   const [open, setOpen] = useState(false);
-  const detailsRef = useRef<HTMLDetailsElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const form = detailsRef.current?.closest("form");
+    const form = rootRef.current?.closest("form");
     if (!form) return;
     const close = () => setOpen(false);
     form.addEventListener("submit", close);
     return () => form.removeEventListener("submit", close);
   }, []);
 
-  const parsedQuery = parseSearchQuery(query, facetKeys);
-  const activeFilterCount = parsedQuery.facets.length + (parsedQuery.freeText?.trim() ? 1 : 0);
-
-  function handleQueryChange(nextQuery: string) {
-    setQuery(nextQuery);
-    setValues(readFieldValues(nextQuery, facetFields, facetKeys, availableTags));
-  }
-
-  // Advanced fields keep their raw (untrimmed) value locally so typing a space
-  // is not swallowed; the main field receives the normalized query.
-  function updateValues(nextValues: FieldValues) {
-    setValues(nextValues);
-    setQuery(buildQuery(nextValues, facetFields, tagField !== undefined));
-  }
+  const filters = activeFilters(values, facetFields, hasTagCombobox);
+  const activeFilterCount = filters.length;
 
   function setFacet(key: string, value: string) {
-    updateValues({ ...values, facets: { ...values.facets, [key]: value } });
+    setValues({ ...values, facets: { ...values.facets, [key]: value } });
+  }
+
+  // Apply the new values synchronously so the hidden query field is up to date,
+  // then run the search.
+  function submitWith(nextValues: FieldValues) {
+    flushSync(() => setValues(nextValues));
+    rootRef.current?.closest("form")?.requestSubmit();
+  }
+
+  function removeFilter(filter: ActiveFilter) {
+    submitWith(
+      filter.tagId !== undefined
+        ? { ...values, tags: values.tags.filter((tag) => tag.id !== filter.tagId) }
+        : { ...values, facets: { ...values.facets, [filter.facetKey]: "" } },
+    );
   }
 
   return (
     // Positioning context: the « Filtres avancés » summary sits at the right end
     // of the « Rechercher » label row while its panel opens below the field.
-    <div className="relative">
+    <div ref={rootRef} className="relative">
+      <input type="hidden" name={name} value={buildQuery(values, facetFields, hasTagCombobox)} />
       <Input
         label="Rechercher"
         className={fr.cx("fr-mb-1w")}
         nativeInputProps={{
           id: `${name}-search`,
-          name,
           type: "search",
-          value: query,
+          value: values.freeText,
           placeholder,
-          onChange: (event) => handleQueryChange(event.target.value),
+          onChange: (event) => setValues({ ...values, freeText: event.target.value }),
         }}
       />
 
+      {/* Hidden while the panel is open: its fields already show the filters. */}
+      {!open && filters.length > 0 && (
+        <div role="group" aria-label="Filtres actifs">
+          {/* Sized to the tags: DSFR gives each `li` a 2.75rem line-height
+              (`flex` makes it fit its tag) and each tag a bottom margin
+              (removed by `fr-mb-0`); the row gap replaces that margin when
+              tags wrap. */}
+          <ul className={clsx(fr.cx("fr-tags-group", "fr-mb-0"), "gap-y-2")}>
+            {filters.map((filter) => (
+              <li key={filter.id} className="flex">
+                <Tag
+                  small
+                  dismissible
+                  nativeButtonProps={{
+                    type: "button",
+                    "aria-label": `Retirer le filtre ${filter.label}`,
+                    onClick: () => removeFilter(filter),
+                  }}
+                  className={fr.cx("fr-mb-0")}
+                >
+                  {filter.label}
+                </Tag>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <details
-        ref={detailsRef}
         open={open}
         onToggle={(event) => setOpen(event.currentTarget.open)}
         className={fr.cx("fr-mb-3w")}
@@ -214,18 +273,6 @@ export function CaseFilesSearchFields({
 
         {/* DSFR grid: 1 column below md, 2 from md, 3 from lg. */}
         <div className={fr.cx("fr-grid-row", "fr-grid-row--gutters", "fr-mt-1w")}>
-          <div className={fr.cx("fr-col-12", "fr-col-md-6", "fr-col-lg-4")}>
-            <Input
-              label="Recherché dans toutes les colonnes (Texte libre)"
-              className={FIELD_CLASSES}
-              classes={{ nativeInputOrTextArea: FREE_TEXT_INPUT_CLASSES }}
-              nativeInputProps={{
-                type: "search",
-                value: values.freeText,
-                onChange: (event) => updateValues({ ...values, freeText: event.target.value }),
-              }}
-            />
-          </div>
           {otherFields.map((field) => (
             <div key={field.key} className={fr.cx("fr-col-12", "fr-col-md-6", "fr-col-lg-4")}>
               {field.options ? (
@@ -262,24 +309,27 @@ export function CaseFilesSearchFields({
               )}
             </div>
           ))}
+          {/* Two columns wide from md (the whole md row, 2 of the 3 lg columns),
+              so the field and its selected badges get room. */}
+          {tagField && availableTags && (
+            <div className={fr.cx("fr-col-12", "fr-col-md-12", "fr-col-lg-8")}>
+              <TagCombobox
+                label={tagField.label}
+                availableTags={availableTags}
+                selectedIds={values.tags.map((tag) => tag.id)}
+                onChange={(ids) =>
+                  setValues({
+                    ...values,
+                    tags: ids
+                      .map((id) => availableTags.find((tag) => tag.id === id))
+                      .filter((tag): tag is CaseFileTagView => tag !== undefined),
+                  })
+                }
+                className="max-w-140"
+              />
+            </div>
+          )}
         </div>
-        {/* Outside the grid: the field and its selected badges get a wider row. */}
-        {tagField && availableTags && (
-          <TagCombobox
-            label={tagField.label}
-            availableTags={availableTags}
-            selectedIds={values.tags.map((tag) => tag.id)}
-            onChange={(ids) =>
-              updateValues({
-                ...values,
-                tags: ids
-                  .map((id) => availableTags.find((tag) => tag.id === id))
-                  .filter((tag): tag is CaseFileTagView => tag !== undefined),
-              })
-            }
-            className={clsx(fr.cx("fr-mt-3w"), "max-w-140")}
-          />
-        )}
       </details>
     </div>
   );

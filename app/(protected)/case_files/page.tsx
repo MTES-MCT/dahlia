@@ -181,7 +181,11 @@ export default async function Page({ searchParams }: Props) {
     <>
       <h1 className={fr.cx("fr-h2", "fr-mt-3w", "fr-mb-3w")}>{PAGE_HEADING}</h1>
 
-      <CaseFilesStatusGroupTabs currentGroup={group} counts={statusGroupCounts}>
+      <CaseFilesStatusGroupTabs
+        currentGroup={group}
+        counts={statusGroupCounts}
+        className={fr.cx("fr-mb-3w")}
+      >
         <DataTable
           minWidth="50rem"
           search={buildCaseFilesSearchConfig({

@@ -19,7 +19,6 @@ export function normalizeForSearch(value: string): string {
 // instead of the global free-text OR.
 export const DOSSIER_FACET_FIELDS = [
   { key: "dossier", label: "Numéro" },
-  { key: "titre", label: "Titre" },
   { key: "requerant", label: "Requérant" },
   { key: "defendeur", label: "Défendeur" },
   { key: "mc", label: "Mots-clés" },

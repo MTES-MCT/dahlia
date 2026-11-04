@@ -1,3 +1,5 @@
+import { fr } from "@codegouvfr/react-dsfr";
+import clsx from "clsx";
 import { DASHBOARD_TABLE_PARAMS } from "@/app/lib/case-file-search";
 import { type CaseFileTagView } from "@/app/lib/case-file-tags";
 import { type StatusGroup } from "@/app/lib/dashboard-filter";
@@ -6,7 +8,7 @@ import { type FacetField } from "@/app/ui/button/column-filter-button";
 import { CaseFilesSearchFields } from "@/app/ui/form/case-files-search-fields";
 import { type DataTableSearchConfig } from "@/app/ui/table/data-table";
 
-const PLACEHOLDER = "ex. « dupont » ou « dossier:TA069 requerant:prefet mc:urgent »";
+const PLACEHOLDER = "ex. « dupont » ou « 2603576 »";
 
 export type CaseFilesSearchProps = {
   // Current text query, used as the input default value.
@@ -42,6 +44,11 @@ export function buildCaseFilesSearchConfig({
     resetHref: "/case_files",
     label: "Rechercher un dossier",
     placeholder: PLACEHOLDER,
+    // Bordered light grey frame around the whole search, submit bar included.
+    className: clsx(
+      "border border-solid border-(--border-default-grey) bg-(--background-alt-grey)",
+      fr.cx("fr-p-3w"),
+    ),
     searchSlot: (
       // Remount on navigation so the fields re-seed from the new URL query.
       <CaseFilesSearchFields

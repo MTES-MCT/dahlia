@@ -47,8 +47,9 @@ describe("buildCaseFilesSearchConfig", () => {
     const form = getForm();
     const input = screen.getByLabelText("Rechercher") as HTMLInputElement;
     expect(form.contains(input)).toBe(true);
-    expect(input.name).toBe("dahliaq");
     expect(input.value).toBe("dupont");
+    // The query is submitted through a hidden field combining text and facets.
+    expect(hiddenValue(form, "dahliaq")).toBe("dupont");
     expect(screen.queryByRole("combobox")).toBeNull();
 
     const summary = screen.getByText("Filtres avancés");

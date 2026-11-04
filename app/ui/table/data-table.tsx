@@ -29,6 +29,8 @@ export type DataTableSearchConfig = {
   label: string;
   placeholder?: string;
   searchSlot?: React.ReactNode;
+  // Extra classes on the search form (e.g. a framed background).
+  className?: string;
 };
 
 export type DataTableProps<T> = {

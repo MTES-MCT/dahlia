@@ -21,6 +21,7 @@ type Props = {
   currentGroup: StatusGroup;
   counts: Record<StatusGroup, number>;
   children: React.ReactNode;
+  className?: string;
 };
 
 // DSFR tabs switching the dashboard between « En cours », « Terminés » and
@@ -28,7 +29,7 @@ type Props = {
 // right away, keeps the search and sort, resets pagination and drops a
 // `statut:` facet that does not belong to the new group (it would otherwise
 // always yield an empty table). The selected panel renders `children`.
-export function CaseFilesStatusGroupTabs({ currentGroup, counts, children }: Props) {
+export function CaseFilesStatusGroupTabs({ currentGroup, counts, children, className }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -61,6 +62,7 @@ export function CaseFilesStatusGroupTabs({ currentGroup, counts, children }: Pro
       label="Catégories de dossiers"
       selectedTabId={currentGroup}
       onTabChange={handleTabChange}
+      className={className}
       tabs={STATUS_GROUPS.map((group) => ({
         tabId: group,
         label: (

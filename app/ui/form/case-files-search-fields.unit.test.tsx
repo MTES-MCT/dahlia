@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { CaseFilesSearchFields, readFieldValues, buildQuery } from "./case-files-search-fields";
 import { resolveFacetFieldValue, type FacetField } from "@/app/ui/button/column-filter-button";
@@ -15,9 +15,12 @@ const FACET_FIELDS: FacetField[] = [
   },
 ];
 
-function renderFields(initialQuery: string) {
+function renderFields(
+  initialQuery: string,
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void = (event) => event.preventDefault(),
+) {
   return render(
-    <form role="search">
+    <form role="search" onSubmit={onSubmit}>
       <CaseFilesSearchFields
         initialQuery={initialQuery}
         facetFields={FACET_FIELDS}
@@ -46,14 +49,19 @@ describe("CaseFilesSearchFields", () => {
     cleanup();
   });
 
-  it("pré-remplit le champ principal et les filtres avancés avec la dernière recherche", () => {
+  it("pré-remplit le champ principal avec le texte libre et les filtres avancés avec les facettes", () => {
     renderFields('dupont requerant:prefet statut:"Terminé"');
 
-    expect(mainField().value).toBe('dupont requerant:prefet statut:"Terminé"');
-    expect(field("Recherché dans toutes les colonnes").value).toBe("dupont");
+    expect(mainField().value).toBe("dupont");
     expect(field("Requérant").value).toBe("prefet");
     expect(field("Statut").value).toBe("Terminé");
     expect(field("Type de recours").value).toBe("");
+  });
+
+  it("n'affiche plus de champ texte libre dans les filtres avancés", () => {
+    renderFields("");
+
+    expect(screen.queryByLabelText(/Recherché dans toutes les colonnes/)).toBeNull();
   });
 
   it("sélectionne l'option correspondant à une valeur saisie sans accent ni casse", () => {
@@ -63,53 +71,76 @@ describe("CaseFilesSearchFields", () => {
     expect(field("Type de recours").value).toBe("Recours en excès de pouvoir (REP)");
   });
 
-  it("met à jour les filtres avancés quand on tape dans le champ principal", () => {
-    renderFields("");
-
-    fireEvent.change(mainField(), { target: { value: "durand requerant:prefet" } });
-
-    expect(field("Recherché dans toutes les colonnes").value).toBe("durand");
-    expect(field("Requérant").value).toBe("prefet");
-  });
-
-  it("met à jour le champ principal quand on modifie un filtre avancé", () => {
+  it("soumet une seule requête combinant le texte libre et les facettes", () => {
     renderFields("dupont");
 
+    fireEvent.change(mainField(), { target: { value: "durand" } });
     fireEvent.change(field("Statut"), { target: { value: "Terminé" } });
     fireEvent.change(field("Requérant"), { target: { value: "le prefet" } });
 
-    expect(mainField().value).toBe('dupont requerant:"le prefet" statut:Terminé');
-  });
-
-  it("seul le champ principal est soumis", () => {
-    renderFields("dupont statut:Terminé");
-
     const form = screen.getByRole("search") as HTMLFormElement;
-    expect([...new FormData(form).keys()]).toEqual(["dahliaq"]);
+    expect([...new FormData(form).entries()]).toEqual([
+      ["dahliaq", 'durand requerant:"le prefet" statut:Terminé'],
+    ]);
   });
 
-  it("affiche le nombre de filtres actifs sur le lien « Filtres avancés »", () => {
+  it("ne modifie pas les filtres avancés quand on tape dans le champ principal", () => {
+    renderFields("requerant:prefet");
+
+    fireEvent.change(mainField(), { target: { value: "durand" } });
+
+    expect(mainField().value).toBe("durand");
+    expect(field("Requérant").value).toBe("prefet");
+  });
+
+  it("compte uniquement les facettes dans le compteur des filtres avancés", () => {
     renderFields("dupont requerant:prefet statut:Terminé");
 
-    expect(screen.getByText("Filtres avancés").textContent).toContain("3");
+    expect(screen.getByText("Filtres avancés").textContent).toContain("2");
     expect(screen.getByText("filtres actifs", { exact: false })).toBeTruthy();
   });
 
-  it("incrémente le compteur quand on ajoute du texte libre dans les filtres avancés", () => {
-    renderFields("requerant:prefet statut:Terminé");
-
-    expect(screen.getByText("Filtres avancés").textContent).toContain("2");
-
-    fireEvent.change(field("Recherché dans toutes les colonnes"), { target: { value: "dupont" } });
-
-    expect(screen.getByText("Filtres avancés").textContent).toContain("3");
-  });
-
-  it("affiche un compteur pour une recherche en texte libre seul", () => {
+  it("n'affiche pas de compteur pour une recherche en texte libre seul", () => {
     renderFields("dupont");
 
-    expect(screen.getByText("Filtres avancés").textContent).toContain("1");
-    expect(screen.getByText("filtre actif", { exact: false })).toBeTruthy();
+    expect(screen.getByText("Filtres avancés").textContent).toBe("Filtres avancés");
+  });
+
+  it("affiche chaque facette active comme un tag supprimable sous le champ principal", () => {
+    renderFields("dupont requerant:prefet statut:Terminé");
+
+    const group = screen.getByRole("group", { name: "Filtres actifs" });
+    const tags = [...group.querySelectorAll("button.fr-tag--dismiss")];
+    expect(tags.map((tag) => tag.textContent)).toEqual(["Requérant : prefet", "Statut : Terminé"]);
+    expect(screen.getByRole("button", { name: "Retirer le filtre Statut : Terminé" })).toBeTruthy();
+  });
+
+  it("retire la facette et relance la recherche au clic sur son tag", () => {
+    const onSubmit = vi.fn((event: React.FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      return [...new FormData(event.currentTarget).entries()];
+    });
+    renderFields("dupont requerant:prefet statut:Terminé", onSubmit);
+
+    fireEvent.click(screen.getByRole("button", { name: "Retirer le filtre Requérant : prefet" }));
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(onSubmit.mock.results[0].value).toEqual([["dahliaq", "dupont statut:Terminé"]]);
+  });
+
+  it("n'affiche pas de lien « Tout effacer »", () => {
+    renderFields("requerant:prefet statut:Terminé");
+
+    expect(screen.queryByText("Tout effacer")).toBeNull();
+  });
+
+  it("masque les tags des filtres actifs quand le panneau est ouvert", () => {
+    renderFields("statut:Terminé");
+    const panel = details();
+    panel.open = true;
+    fireEvent(panel, new Event("toggle"));
+
+    expect(screen.queryByRole("group", { name: "Filtres actifs" })).toBeNull();
   });
 
   it("libelle le lien « Masquer les filtres avancés » quand le panneau est ouvert", () => {
