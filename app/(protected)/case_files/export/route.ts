@@ -32,7 +32,6 @@ export async function GET(request: NextRequest) {
     tableState.sortBy,
     tableState.sortOrder,
     tableState.query,
-    null,
     group,
   );
 

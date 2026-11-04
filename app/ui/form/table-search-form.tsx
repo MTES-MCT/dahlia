@@ -18,7 +18,8 @@ export type TableSearchFormProps = {
   placeholder?: string;
   currentQuery: string;
   hiddenParams: TableSearchHiddenParam[];
-  resetHref: string;
+  // « Ré-initialiser la recherche » link target; no link when omitted.
+  resetHref?: string;
   // Replaces the default search bar (e.g. dashboard status filter + text field row).
   searchSlot?: React.ReactNode;
   className?: string;
@@ -81,13 +82,15 @@ export function TableSearchForm({
         <Button type="submit" title="Rechercher">
           Rechercher
         </Button>
-        <Link
-          href={resetHref}
-          scroll={false}
-          className={fr.cx("fr-link", "fr-icon-refresh-line", "fr-link--icon-left")}
-        >
-          Ré-initialiser la recherche
-        </Link>
+        {resetHref && (
+          <Link
+            href={resetHref}
+            scroll={false}
+            className={fr.cx("fr-link", "fr-icon-refresh-line", "fr-link--icon-left")}
+          >
+            Ré-initialiser la recherche
+          </Link>
+        )}
       </div>
     </form>
   );

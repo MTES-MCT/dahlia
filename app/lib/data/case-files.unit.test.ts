@@ -786,46 +786,11 @@ describe("case-files", () => {
       );
     });
 
-    it("filters by status label only when statusLabel is provided alone", async () => {
-      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
-      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
-
-      await fetchCaseFilesTableData(1, 10, null, "descending", null, "En cours d'instruction");
-
-      const expectedWhere = {
-        AND: [{ isDeleted: false }, { lastStatus: { label: "En cours d'instruction" } }],
-      };
-
-      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
-        expect.objectContaining({ where: expectedWhere }),
-      );
-      expect(vi.mocked(prisma.caseFile.count)).toHaveBeenCalledWith({ where: expectedWhere });
-    });
-
-    it("combines query and status filter with AND", async () => {
-      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
-      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
-
-      await fetchCaseFilesTableData(1, 10, null, "descending", "dupont", "Terminé");
-
-      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: {
-            AND: [
-              { isDeleted: false },
-              expect.objectContaining({ OR: expect.any(Array) }),
-              { lastStatus: { label: "Terminé" } },
-            ],
-          },
-        }),
-      );
-    });
-
     it("restreint au groupe « en cours » (statuts non terminés)", async () => {
       vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
       vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
 
-      await fetchCaseFilesTableData(1, 10, null, "descending", null, null, "en_cours");
+      await fetchCaseFilesTableData(1, 10, null, "descending", null, "en_cours");
 
       const expectedWhere = {
         AND: [
@@ -842,7 +807,7 @@ describe("case-files", () => {
       vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
       vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
 
-      await fetchCaseFilesTableData(1, 10, null, "descending", null, null, "termine");
+      await fetchCaseFilesTableData(1, 10, null, "descending", null, "termine");
 
       const expectedWhere = {
         AND: [{ isDeleted: false }, { lastStatus: { label: { in: ["Terminé", "Dossier rayé"] } } }],
@@ -856,7 +821,7 @@ describe("case-files", () => {
       vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
       vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
 
-      await fetchCaseFilesTableData(1, 10, null, "descending", "statut:Terminé", null, "tous");
+      await fetchCaseFilesTableData(1, 10, null, "descending", "statut:Terminé", "tous");
 
       expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -871,7 +836,7 @@ describe("case-files", () => {
       vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
       vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
 
-      await fetchCaseFilesTableData(1, 10, null, "descending", "droit:DALO", null, "tous");
+      await fetchCaseFilesTableData(1, 10, null, "descending", "droit:DALO", "tous");
 
       expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -886,7 +851,7 @@ describe("case-files", () => {
       vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
       vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
 
-      await fetchCaseFilesTableData(1, 10, null, "descending", "recours:REP", null, "tous");
+      await fetchCaseFilesTableData(1, 10, null, "descending", "recours:REP", "tous");
 
       expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
         expect.objectContaining({

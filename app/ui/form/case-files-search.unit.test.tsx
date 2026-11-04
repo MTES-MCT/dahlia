@@ -63,7 +63,7 @@ describe("buildCaseFilesSearchConfig", () => {
     expect(hiddenValue(getForm(), "groupe")).toBe("termine");
   });
 
-  it("affiche un bouton « Rechercher » et un lien de réinitialisation", () => {
+  it("affiche un bouton « Rechercher » sans lien de réinitialisation", () => {
     renderDashboardSearch({
       currentQuery: "",
     });
@@ -71,8 +71,7 @@ describe("buildCaseFilesSearchConfig", () => {
     const button = screen.getByRole("button", { name: "Rechercher" });
     expect(button.getAttribute("type")).toBe("submit");
 
-    const resetLink = screen.getByRole("link", { name: /Ré-initialiser la recherche/ });
-    expect(resetLink.getAttribute("href")).toBe("/case_files");
+    expect(screen.queryByRole("link", { name: /Ré-initialiser la recherche/ })).toBeNull();
   });
 
   it("rend les champs cachés sortBy/sortOrder quand ils sont fournis", () => {

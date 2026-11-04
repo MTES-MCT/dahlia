@@ -41,7 +41,6 @@ export function buildCaseFilesSearchConfig({
       ...buildDashboardSortHiddenParams(sortByParam, sortOrderParam),
       ...(statusGroup ? [{ name: "groupe", value: statusGroup }] : []),
     ],
-    resetHref: "/case_files",
     label: "Rechercher un dossier",
     placeholder: PLACEHOLDER,
     // Bordered light grey frame around the whole search, submit bar included.

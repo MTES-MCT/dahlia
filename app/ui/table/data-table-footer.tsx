@@ -13,8 +13,6 @@ type Props = {
   currentPage: number;
   totalPages: number;
   pageSize: TablePageSize;
-  // Extra query params preserved on pagination / page-size change (e.g. dashboard statut).
-  preserveParams?: Record<string, string | undefined>;
   // When set, a "download" button is shown flush to the right of the pagination,
   // linking to this route with the current filter/sort (minus pagination) so the
   // export mirrors the visible filter but contains every matching row.
@@ -27,7 +25,6 @@ export function DataTableFooter({
   currentPage,
   totalPages,
   pageSize,
-  preserveParams,
   exportPath,
 }: Props) {
   const router = useRouter();
@@ -36,11 +33,6 @@ export function DataTableFooter({
   function buildExportHref(): string {
     const nextParams = new URLSearchParams(searchParams.toString());
     nextParams.delete(params.page);
-    if (preserveParams) {
-      for (const [key, value] of Object.entries(preserveParams)) {
-        if (value !== undefined) nextParams.set(key, value);
-      }
-    }
     const queryString = nextParams.toString();
     return queryString ? `${exportPath}?${queryString}` : (exportPath ?? "");
   }
@@ -48,11 +40,6 @@ export function DataTableFooter({
   function buildHref(pageNumber: number): string {
     const nextParams = new URLSearchParams(searchParams.toString());
     nextParams.set(params.page, String(pageNumber));
-    if (preserveParams) {
-      for (const [key, value] of Object.entries(preserveParams)) {
-        if (value !== undefined) nextParams.set(key, value);
-      }
-    }
     const queryString = nextParams.toString();
     return queryString ? `?${queryString}` : "?";
   }
@@ -61,11 +48,6 @@ export function DataTableFooter({
     setTablePageSizeCookie(tableId, nextPageSize);
     const nextParams = new URLSearchParams(searchParams.toString());
     nextParams.set(params.page, "1");
-    if (preserveParams) {
-      for (const [key, value] of Object.entries(preserveParams)) {
-        if (value !== undefined) nextParams.set(key, value);
-      }
-    }
     router.push(`?${nextParams.toString()}`, { scroll: false });
     router.refresh();
   }

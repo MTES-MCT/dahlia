@@ -165,7 +165,6 @@ export default async function Page({ searchParams }: Props) {
     tableState.sortBy,
     tableState.sortOrder,
     tableState.query,
-    null,
     group,
   );
 

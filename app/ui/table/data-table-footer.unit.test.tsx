@@ -79,8 +79,8 @@ describe("DataTableFooter", () => {
     expect(href).toContain("tab=pieces");
   });
 
-  it("inclut preserveParams dans les liens de pagination", () => {
-    setSearchParams("pcPage=1");
+  it("conserve le groupe de statuts du tableau de bord dans les liens de pagination", () => {
+    setSearchParams("pcPage=1&groupe=termine");
     render(
       <DataTableFooter
         params={PIECES_PARAMS}
@@ -88,16 +88,15 @@ describe("DataTableFooter", () => {
         currentPage={1}
         totalPages={3}
         pageSize={10}
-        preserveParams={{ statut: "en_cours" }}
       />,
     );
 
     const page2Link = screen.getByRole("link", { name: "2" });
-    expect(page2Link.getAttribute("href")).toContain("statut=en_cours");
+    expect(page2Link.getAttribute("href")).toContain("groupe=termine");
   });
 
   it("met à jour le cookie, revient à la page 1 et rafraîchit lors du changement de taille", () => {
-    setSearchParams("pcPage=3&pcSort=date&tab=pieces");
+    setSearchParams("pcPage=3&pcSort=date&tab=pieces&groupe=en_cours");
     render(
       <DataTableFooter
         params={PIECES_PARAMS}
@@ -105,7 +104,6 @@ describe("DataTableFooter", () => {
         currentPage={3}
         totalPages={5}
         pageSize={10}
-        preserveParams={{ statut: "en_cours" }}
       />,
     );
 
@@ -116,7 +114,7 @@ describe("DataTableFooter", () => {
     expect(pushedUrl).toContain("pcPage=1");
     expect(pushedUrl).toContain("pcSort=date");
     expect(pushedUrl).toContain("tab=pieces");
-    expect(pushedUrl).toContain("statut=en_cours");
+    expect(pushedUrl).toContain("groupe=en_cours");
     expect(mockPush).toHaveBeenCalledWith(expect.any(String), { scroll: false });
     expect(mockRefresh).toHaveBeenCalled();
   });

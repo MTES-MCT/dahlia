@@ -194,11 +194,7 @@ function buildStatusGroupFilter(statusGroup: StatusGroup): Prisma.CaseFileWhereI
   return null;
 }
 
-function buildWhere(
-  query: string | null,
-  statusLabel: string | null,
-  statusGroup: StatusGroup,
-): Prisma.CaseFileWhereInput {
+function buildWhere(query: string | null, statusGroup: StatusGroup): Prisma.CaseFileWhereInput {
   const conditions: Prisma.CaseFileWhereInput[] = [
     { isDeleted: false } as Prisma.CaseFileWhereInput,
   ];
@@ -217,10 +213,6 @@ function buildWhere(
     }
   }
 
-  if (statusLabel) {
-    conditions.push({ lastStatus: { label: statusLabel } });
-  }
-
   const statusGroupFilter = buildStatusGroupFilter(statusGroup);
   if (statusGroupFilter) {
     conditions.push(statusGroupFilter);
@@ -236,10 +228,9 @@ function buildWhere(
 // leaves the filter strictly unchanged.
 async function buildScopedWhere(
   query: string | null,
-  statusLabel: string | null,
   statusGroup: StatusGroup,
 ): Promise<Prisma.CaseFileWhereInput> {
-  return { ...buildWhere(query, statusLabel, statusGroup), ...(await caseFileScopeWhere()) };
+  return { ...buildWhere(query, statusGroup), ...(await caseFileScopeWhere()) };
 }
 
 async function fetchCaseFiles(
@@ -248,11 +239,10 @@ async function fetchCaseFiles(
   sortBy: string | null,
   sortOrder: string | null = null,
   query: string | null = null,
-  statusLabel: string | null = null,
   statusGroup: StatusGroup = "tous",
 ): Promise<CaseFileWithRelations[]> {
   const direction: Prisma.SortOrder = sortOrder === "ascending" ? "asc" : "desc";
-  const where = await buildScopedWhere(query, statusLabel, statusGroup);
+  const where = await buildScopedWhere(query, statusGroup);
   const orderBy = sortBy ? buildOrderBy(sortBy, direction) : undefined;
 
   return prisma.caseFile.findMany({
@@ -266,10 +256,9 @@ async function fetchCaseFiles(
 
 async function fetchCaseFilesCount(
   query: string | null = null,
-  statusLabel: string | null = null,
   statusGroup: StatusGroup = "tous",
 ): Promise<number> {
-  const where = await buildScopedWhere(query, statusLabel, statusGroup);
+  const where = await buildScopedWhere(query, statusGroup);
   return prisma.caseFile.count({ where });
 }
 
@@ -279,7 +268,7 @@ export type StatusGroupCounts = Record<StatusGroup, number>;
 // independent of the current search so the tabs stay a stable overview.
 export async function fetchCaseFilesStatusGroupCounts(): Promise<StatusGroupCounts> {
   const [enCours, termine, tous] = await Promise.all(
-    STATUS_GROUPS.map((group) => fetchCaseFilesCount(null, null, group)),
+    STATUS_GROUPS.map((group) => fetchCaseFilesCount(null, group)),
   );
   return { en_cours: enCours, termine, tous };
 }
@@ -395,11 +384,10 @@ export async function fetchAllCaseFilesForExport(
   sortBy: string | null,
   sortOrder: string,
   query: string | null = null,
-  statusLabel: string | null = null,
   statusGroup: StatusGroup = "tous",
 ): Promise<CaseFileWithRelations[]> {
   const direction: Prisma.SortOrder = sortOrder === "ascending" ? "asc" : "desc";
-  const where = await buildScopedWhere(query, statusLabel, statusGroup);
+  const where = await buildScopedWhere(query, statusGroup);
   const orderBy = sortBy ? buildOrderBy(sortBy, direction) : undefined;
 
   return prisma.caseFile.findMany({
@@ -415,12 +403,11 @@ export async function fetchCaseFilesTableData(
   sortBy: string | null,
   sortOrder: string,
   query: string | null = null,
-  statusLabel: string | null = null,
   statusGroup: StatusGroup = "tous",
 ): Promise<CaseFilesTableData> {
   const [caseFiles, totalCount] = await Promise.all([
-    fetchCaseFiles(page, numberOfCaseFiles, sortBy, sortOrder, query, statusLabel, statusGroup),
-    fetchCaseFilesCount(query, statusLabel, statusGroup),
+    fetchCaseFiles(page, numberOfCaseFiles, sortBy, sortOrder, query, statusGroup),
+    fetchCaseFilesCount(query, statusGroup),
   ]);
   return {
     rows: caseFiles,
