@@ -895,6 +895,26 @@ erDiagram
     CaseFile            |o--o| LastDecisionReading : "lastDecisionReading"
 ```
 
+## Pièces factices (hors production) et stockage S3
+
+Hors production (et sauf `NO_FAKE_FILE=true`), le contenu des pièces n'est pas
+téléchargé depuis Télérecours : un PDF factice est servi selon le type de pièce
+(`app/lib/mocked-pieces.ts`). Ces PDF sont lus dans le bucket S3 (Outscale)
+`s3://<S3_BUCKET>/<S3_PREFIX>/mocked_pdfs/<fichier>.pdf` quand S3 est configuré,
+sinon dans le dossier local `files/mocked_pdfs`.
+
+```sh
+S3_ENDPOINT=https://oos.cloudgouv-eu-west-1.outscale.com
+S3_REGION=cloudgouv-eu-west-1
+S3_BUCKET=dahlia
+S3_PREFIX=files
+S3_ACCESS_KEY_ID=...
+S3_SECRET_ACCESS_KEY=...
+# Nécessaires avec les versions récentes du SDK AWS v3 sur un stockage non-AWS
+AWS_REQUEST_CHECKSUM_CALCULATION=WHEN_REQUIRED
+AWS_RESPONSE_CHECKSUM_VALIDATION=WHEN_REQUIRED
+```
+
 ## Questions Ouvertes
 
 ### Pièces jointes
