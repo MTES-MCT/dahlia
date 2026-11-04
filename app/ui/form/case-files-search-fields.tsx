@@ -149,8 +149,7 @@ export function CaseFilesSearchFields({
   }, []);
 
   const parsedQuery = parseSearchQuery(query, facetKeys);
-  const activeFilterCount =
-    parsedQuery.facets.length + (parsedQuery.freeText?.trim() ? 1 : 0);
+  const activeFilterCount = parsedQuery.facets.length + (parsedQuery.freeText?.trim() ? 1 : 0);
 
   function handleQueryChange(nextQuery: string) {
     setQuery(nextQuery);
@@ -169,7 +168,9 @@ export function CaseFilesSearchFields({
   }
 
   return (
-    <>
+    // Positioning context: the « Filtres avancés » summary sits at the right end
+    // of the « Rechercher » label row while its panel opens below the field.
+    <div className="relative">
       <Input
         label="Rechercher"
         className={fr.cx("fr-mb-1w")}
@@ -197,9 +198,10 @@ export function CaseFilesSearchFields({
               "fr-link--icon-left",
             ),
             "cursor-pointer",
+            "absolute top-0 right-0",
           )}
         >
-          Filtres avancés
+          {open ? "Masquer les filtres avancés" : "Filtres avancés"}
           {activeFilterCount > 0 && (
             <Badge as="span" small noIcon severity="info" className={fr.cx("fr-ml-1w")}>
               {activeFilterCount}
@@ -279,6 +281,6 @@ export function CaseFilesSearchFields({
           />
         )}
       </details>
-    </>
+    </div>
   );
 }

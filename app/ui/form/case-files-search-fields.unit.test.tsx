@@ -112,6 +112,20 @@ describe("CaseFilesSearchFields", () => {
     expect(screen.getByText("filtre actif", { exact: false })).toBeTruthy();
   });
 
+  it("libelle le lien « Masquer les filtres avancés » quand le panneau est ouvert", () => {
+    renderFields("");
+    const panel = details();
+    panel.open = true;
+    fireEvent(panel, new Event("toggle"));
+
+    expect(screen.getByText("Masquer les filtres avancés").tagName).toBe("SUMMARY");
+
+    panel.open = false;
+    fireEvent(panel, new Event("toggle"));
+
+    expect(screen.getByText("Filtres avancés").tagName).toBe("SUMMARY");
+  });
+
   it("referme les filtres avancés à la soumission du formulaire", () => {
     renderFields("");
     const panel = details();
@@ -139,7 +153,11 @@ describe("readFieldValues / buildQuery (tags)", () => {
 
   it("sérialise chaque tag sélectionné en token mc", () => {
     expect(
-      buildQuery({ freeText: "", facets: { mc: "" }, tags: [TAGS[0], TAGS[1]] }, tagFacetFields, true),
+      buildQuery(
+        { freeText: "", facets: { mc: "" }, tags: [TAGS[0], TAGS[1]] },
+        tagFacetFields,
+        true,
+      ),
     ).toBe("mc:Urgent mc:Priorité");
   });
 });
