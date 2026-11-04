@@ -31,17 +31,27 @@ function renderFields(
   );
 }
 
-// Labels are matched on their start: DSFR renders the hint text inside <label>.
-function field(label: string): HTMLInputElement | HTMLSelectElement {
-  return screen.getByLabelText(new RegExp(`^${label}`)) as HTMLInputElement | HTMLSelectElement;
-}
-
 function mainField(): HTMLInputElement {
   return screen.getByLabelText("Rechercher") as HTMLInputElement;
 }
 
 function details(): HTMLDetailsElement {
-  return screen.getByText("Filtres avancés").closest("details") as HTMLDetailsElement;
+  const summary = screen.getByText(/Filtres avancés|Masquer les filtres avancés/);
+  return summary.closest("details") as HTMLDetailsElement;
+}
+
+function openAdvancedPanel() {
+  const panel = details();
+  if (!panel.open) {
+    panel.open = true;
+    fireEvent(panel, new Event("toggle"));
+  }
+}
+
+// Facet inputs live in the panel, which is closed by default.
+function field(label: string): HTMLInputElement | HTMLSelectElement {
+  openAdvancedPanel();
+  return screen.getByLabelText(new RegExp(`^${label}`)) as HTMLInputElement | HTMLSelectElement;
 }
 
 describe("CaseFilesSearchFields", () => {

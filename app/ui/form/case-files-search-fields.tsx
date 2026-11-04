@@ -17,6 +17,7 @@ import {
 } from "@/app/lib/case-file-search";
 import { type CaseFileTagView } from "@/app/lib/case-file-tags";
 import { resolveFacetFieldValue, type FacetField } from "@/app/ui/button/column-filter-button";
+import { SavedSearchLabelRow } from "@/app/ui/form/saved-searches";
 import { TagCombobox } from "@/app/ui/form/tag-picker";
 
 // Facet picked with the tag combobox (one `mc:<label>` token per selected tag)
@@ -200,12 +201,52 @@ export function CaseFilesSearchFields({
   }
 
   return (
-    // Positioning context: the « Filtres avancés » summary sits at the right end
-    // of the « Rechercher » label row while its panel opens below the field.
     <div ref={rootRef} className="relative">
       <input type="hidden" name={name} value={buildQuery(values, facetFields, hasTagCombobox)} />
+      {/* Mobile: « Filtres avancés » above saved-search controls (`flex-col-reverse`).
+          Desktop: saved search on the left, filter toggle on the right. The facet
+          panel opens below the main field so the toggle and input stay on top. */}
+      <div
+        className={clsx(
+          "flex flex-col-reverse md:flex-row md:items-center md:justify-between",
+          "gap-2",
+          fr.cx("fr-mb-1w"),
+        )}
+      >
+        <SavedSearchLabelRow className="min-w-0 md:flex-1" />
+        <details
+          open={open}
+          onToggle={(event) => setOpen(event.currentTarget.open)}
+          className={clsx(fr.cx("fr-mb-0"), "w-full shrink-0 self-end md:w-auto")}
+        >
+          <summary
+            className={clsx(
+              fr.cx(
+                "fr-link",
+                activeFilterCount > 0 ? "fr-icon-filter-fill" : "fr-icon-filter-line",
+                "fr-link--icon-left",
+              ),
+              "cursor-pointer",
+              "list-none",
+              "[&::-webkit-details-marker]:hidden",
+              "md:ml-auto",
+            )}
+          >
+            {open ? "Masquer les filtres avancés" : "Filtres avancés"}
+            {activeFilterCount > 0 && (
+              <Badge as="span" small noIcon severity="info" className={fr.cx("fr-ml-1w")}>
+                {activeFilterCount}
+                <span className={fr.cx("fr-sr-only")}>
+                  {activeFilterCount > 1 ? " filtres actifs" : " filtre actif"}
+                </span>
+              </Badge>
+            )}
+          </summary>
+        </details>
+      </div>
+
       <Input
-        label="Rechercher"
+        label={<span className={fr.cx("fr-sr-only")}>Rechercher</span>}
         className={fr.cx("fr-mb-1w")}
         nativeInputProps={{
           id: `${name}-search`,
@@ -216,9 +257,67 @@ export function CaseFilesSearchFields({
         }}
       />
 
+      {open && (
+        <div className={fr.cx("fr-grid-row", "fr-grid-row--gutters", "fr-mt-1w", "fr-mb-3w")}>
+          {otherFields.map((field) => (
+            <div key={field.key} className={fr.cx("fr-col-12", "fr-col-md-6", "fr-col-lg-4")}>
+              {field.options ? (
+                <Select
+                  label={field.label}
+                  className={FIELD_CLASSES}
+                  nativeSelectProps={{
+                    className: SELECT_CLASSES,
+                    value: values.facets[field.key] ?? "",
+                    onChange: (event) => setFacet(field.key, event.target.value),
+                  }}
+                >
+                  <option value="" />
+                  {field.options.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </Select>
+              ) : (
+                <Input
+                  label={field.label}
+                  className={FIELD_CLASSES}
+                  classes={{
+                    nativeInputOrTextArea: FACET_INPUT_CLASSES[field.key] ?? TEXT_INPUT_CLASSES,
+                  }}
+                  nativeInputProps={{
+                    type: "search",
+                    value: values.facets[field.key] ?? "",
+                    onChange: (event) => setFacet(field.key, event.target.value),
+                  }}
+                />
+              )}
+            </div>
+          ))}
+          {tagField && availableTags && (
+            <div className={fr.cx("fr-col-12", "fr-col-md-12", "fr-col-lg-8")}>
+              <TagCombobox
+                label={tagField.label}
+                availableTags={availableTags}
+                selectedIds={values.tags.map((tag) => tag.id)}
+                onChange={(ids) =>
+                  setValues({
+                    ...values,
+                    tags: ids
+                      .map((id) => availableTags.find((tag) => tag.id === id))
+                      .filter((tag): tag is CaseFileTagView => tag !== undefined),
+                  })
+                }
+                className="max-w-140"
+              />
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Hidden while the panel is open: its fields already show the filters. */}
       {!open && filters.length > 0 && (
-        <div role="group" aria-label="Filtres actifs">
+        <div role="group" aria-label="Filtres actifs" className={fr.cx("fr-mb-3w")}>
           {/* Sized to the tags: DSFR gives each `li` a 2.75rem line-height
               (`flex` makes it fit its tag) and each tag a bottom margin
               (removed by `fr-mb-0`); the row gap replaces that margin when
@@ -243,94 +342,6 @@ export function CaseFilesSearchFields({
           </ul>
         </div>
       )}
-
-      <details
-        open={open}
-        onToggle={(event) => setOpen(event.currentTarget.open)}
-        className={fr.cx("fr-mb-3w")}
-      >
-        <summary
-          className={clsx(
-            fr.cx(
-              "fr-link",
-              activeFilterCount > 0 ? "fr-icon-filter-fill" : "fr-icon-filter-line",
-              "fr-link--icon-left",
-            ),
-            "cursor-pointer",
-            "absolute top-0 right-0",
-          )}
-        >
-          {open ? "Masquer les filtres avancés" : "Filtres avancés"}
-          {activeFilterCount > 0 && (
-            <Badge as="span" small noIcon severity="info" className={fr.cx("fr-ml-1w")}>
-              {activeFilterCount}
-              <span className={fr.cx("fr-sr-only")}>
-                {activeFilterCount > 1 ? " filtres actifs" : " filtre actif"}
-              </span>
-            </Badge>
-          )}
-        </summary>
-
-        {/* DSFR grid: 1 column below md, 2 from md, 3 from lg. */}
-        <div className={fr.cx("fr-grid-row", "fr-grid-row--gutters", "fr-mt-1w")}>
-          {otherFields.map((field) => (
-            <div key={field.key} className={fr.cx("fr-col-12", "fr-col-md-6", "fr-col-lg-4")}>
-              {field.options ? (
-                <Select
-                  label={field.label}
-                  className={FIELD_CLASSES}
-                  nativeSelectProps={{
-                    className: SELECT_CLASSES,
-                    value: values.facets[field.key] ?? "",
-                    onChange: (event) => setFacet(field.key, event.target.value),
-                  }}
-                >
-                  {/* Empty choice: no filter on this field. */}
-                  <option value="" />
-                  {field.options.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </Select>
-              ) : (
-                <Input
-                  label={field.label}
-                  className={FIELD_CLASSES}
-                  classes={{
-                    nativeInputOrTextArea: FACET_INPUT_CLASSES[field.key] ?? TEXT_INPUT_CLASSES,
-                  }}
-                  nativeInputProps={{
-                    type: "search",
-                    value: values.facets[field.key] ?? "",
-                    onChange: (event) => setFacet(field.key, event.target.value),
-                  }}
-                />
-              )}
-            </div>
-          ))}
-          {/* Two columns wide from md (the whole md row, 2 of the 3 lg columns),
-              so the field and its selected badges get room. */}
-          {tagField && availableTags && (
-            <div className={fr.cx("fr-col-12", "fr-col-md-12", "fr-col-lg-8")}>
-              <TagCombobox
-                label={tagField.label}
-                availableTags={availableTags}
-                selectedIds={values.tags.map((tag) => tag.id)}
-                onChange={(ids) =>
-                  setValues({
-                    ...values,
-                    tags: ids
-                      .map((id) => availableTags.find((tag) => tag.id === id))
-                      .filter((tag): tag is CaseFileTagView => tag !== undefined),
-                  })
-                }
-                className="max-w-140"
-              />
-            </div>
-          )}
-        </div>
-      </details>
     </div>
   );
 }

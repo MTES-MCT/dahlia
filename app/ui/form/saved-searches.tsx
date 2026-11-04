@@ -8,7 +8,16 @@ import { useIsModalOpen } from "@codegouvfr/react-dsfr/Modal/useIsModalOpen";
 import { RadioButtons } from "@codegouvfr/react-dsfr/RadioButtons";
 import clsx from "clsx";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useState, type FormEvent } from "react";
+import {
+  createContext,
+  useActionState,
+  useContext,
+  useEffect,
+  useState,
+  type ComponentProps,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import {
   deleteSavedSearchFormAction,
   saveSearchFormAction,
@@ -41,6 +50,64 @@ const MAIN_SEARCH_FIELD_ID = `${DASHBOARD_TABLE_PARAMS.query}-search`;
 const APPLY_FORM_ID = "apply-saved-search-form";
 const SAVE_FORM_ID = "save-search-form";
 const DELETE_FORM_ID = "delete-saved-search-form";
+
+type SavedSearchUiContextValue = {
+  saveButton: ReactNode;
+  labelSlot: ReactNode;
+};
+
+const SavedSearchUiContext = createContext<SavedSearchUiContextValue>({
+  saveButton: null,
+  labelSlot: null,
+});
+
+export function SaveCurrentSearchButton() {
+  return useContext(SavedSearchUiContext).saveButton;
+}
+
+// « Recherche : » row (saved search name + switch control) in place of the
+// visible « Rechercher » label on the dashboard search field.
+export function SavedSearchLabelRow({ className }: { className?: string }) {
+  const labelSlot = useContext(SavedSearchUiContext).labelSlot;
+  if (!labelSlot) return null;
+  return <div className={clsx("relative min-w-0", className)}>{labelSlot}</div>;
+}
+
+const APPLY_SAVED_SEARCH_LABEL = "Appliquer une recherche";
+const CHANGE_SAVED_SEARCH_LABEL = "Changer de recherche";
+const CLEAR_SEARCH_LABEL = "Effacer les critères de recherche";
+
+// Icon-only below lg; icon + label from the DSFR lg breakpoint (62em).
+function SavedSearchRowButton({
+  label,
+  iconId,
+  priority,
+  onClick,
+  ariaControls,
+}: {
+  label: string;
+  iconId: NonNullable<ComponentProps<typeof Button>["iconId"]>;
+  priority: "secondary" | "tertiary";
+  onClick: () => void;
+  ariaControls?: string;
+}) {
+  return (
+    <Button
+      type="button"
+      priority={priority}
+      size="small"
+      iconId={iconId}
+      iconPosition="left"
+      title={label}
+      onClick={onClick}
+      nativeButtonProps={
+        ariaControls ? { "aria-controls": ariaControls } : undefined
+      }
+    >
+      <span className={clsx("hidden", "lg:inline")}>{label}</span>
+    </Button>
+  );
+}
 
 type SaveFormProps = { query: string; statusGroup: StatusGroup };
 
@@ -233,15 +300,15 @@ type Props = {
   currentQuery: string;
   currentGroup: StatusGroup;
   sort?: DashboardSortParams;
+  children?: ReactNode;
 };
 
-// Saved searches, shown above the search frame. Without an applied saved
-// search, an « Appliquer une recherche sauvegardée » button opens a modal to
-// pick one, next to « Sauvegarder la recherche courante » (when a search is
-// displayed), which opens the save modal. Once applied, its name is shown with two icon buttons: edit (same
-// modal: switch searches, or delete the applied one in a danger zone, after a
-// confirmation) and clear (resets every search criterion).
-export function SavedSearches({ searches, currentQuery, currentGroup, sort }: Props) {
+// Saved searches for the dashboard. The applied-search controls (or « Appliquer
+// une recherche sauvegardée ») sit on the main search label row via
+// `SavedSearchLabelRow`. « Sauvegarder la recherche courante » is next to
+// « Rechercher » via `SaveCurrentSearchButton`. Modals are rendered here so
+// they stay outside the GET search form.
+export function SavedSearches({ searches, currentQuery, currentGroup, sort, children }: Props) {
   const router = useRouter();
   const current = findCurrentSavedSearch(searches, currentQuery, currentGroup);
   // Only a displayed search that is not already a saved one can be saved.
@@ -277,59 +344,50 @@ export function SavedSearches({ searches, currentQuery, currentGroup, sort }: Pr
     deleteSavedSearchModal.open();
   }
 
+  const saveCurrentSearchButton =
+    !current && canSave ? (
+      <Button
+        type="button"
+        priority="tertiary"
+        iconId="fr-icon-save-line"
+        iconPosition="left"
+        onClick={() => saveSearchModal.open()}
+        nativeButtonProps={{ "aria-controls": saveSearchModal.id }}
+      >
+        Sauvegarder la recherche courante
+      </Button>
+    ) : null;
+
+  const showSavedSearchControls = current || searches.length > 0;
+
+  const labelSlot = (
+    <div className={clsx("flex flex-wrap items-center gap-2")}>
+      <p className={fr.cx("fr-mb-0")}>
+        Recherche&nbsp;: {current ? <strong>{current.name}</strong> : null}
+      </p>
+      {showSavedSearchControls ? (
+        <SavedSearchRowButton
+          label={current ? CHANGE_SAVED_SEARCH_LABEL : APPLY_SAVED_SEARCH_LABEL}
+          iconId="fr-icon-arrow-left-right-line"
+          priority="secondary"
+          onClick={() => applySavedSearchModal.open()}
+          ariaControls={applySavedSearchModal.id}
+        />
+      ) : null}
+      {canSave ? (
+        <SavedSearchRowButton
+          label={CLEAR_SEARCH_LABEL}
+          iconId="fr-icon-close-line"
+          priority="tertiary"
+          onClick={clearSearch}
+        />
+      ) : null}
+    </div>
+  );
+
   return (
-    <>
-      {current ? (
-        <div className={clsx("flex flex-wrap items-center gap-2", fr.cx("fr-mb-3w"))}>
-          <p className={fr.cx("fr-mb-0")}>
-            Recherche appliquée&nbsp;: <strong>{current.name}</strong>
-          </p>
-          <Button
-            type="button"
-            priority="secondary"
-            size="small"
-            iconId="fr-icon-edit-line"
-            title="Modifier la recherche appliquée"
-            onClick={() => applySavedSearchModal.open()}
-            nativeButtonProps={{ "aria-controls": applySavedSearchModal.id }}
-          />
-          <Button
-            type="button"
-            priority="tertiary"
-            size="small"
-            iconId="fr-icon-close-line"
-            title="Effacer les critères de recherche"
-            onClick={clearSearch}
-          />
-        </div>
-      ) : (
-        (searches.length > 0 || canSave) && (
-          <div className={clsx("flex flex-wrap items-center gap-4", fr.cx("fr-mb-3w"))}>
-            {searches.length > 0 && (
-              <Button
-                type="button"
-                priority="secondary"
-                onClick={() => applySavedSearchModal.open()}
-                nativeButtonProps={{ "aria-controls": applySavedSearchModal.id }}
-              >
-                Appliquer une recherche sauvegardée
-              </Button>
-            )}
-            {canSave && (
-              <Button
-                type="button"
-                priority="tertiary"
-                iconId="fr-icon-save-line"
-                iconPosition="left"
-                onClick={() => saveSearchModal.open()}
-                nativeButtonProps={{ "aria-controls": saveSearchModal.id }}
-              >
-                Sauvegarder la recherche courante
-              </Button>
-            )}
-          </div>
-        )
-      )}
+    <SavedSearchUiContext.Provider value={{ saveButton: saveCurrentSearchButton, labelSlot }}>
+      {children}
 
       <applySavedSearchModal.Component title="Appliquer une recherche sauvegardée">
         <ApplySavedSearchForm
@@ -352,6 +410,6 @@ export function SavedSearches({ searches, currentQuery, currentGroup, sort }: Pr
       <deleteSavedSearchModal.Component title="Supprimer la recherche">
         {toDelete && <DeleteSavedSearchForm key={toDelete.id} search={toDelete} />}
       </deleteSavedSearchModal.Component>
-    </>
+    </SavedSearchUiContext.Provider>
   );
 }

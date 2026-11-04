@@ -6,6 +6,7 @@ import { type StatusGroup } from "@/app/lib/dashboard-filter";
 import { buildDashboardSortHiddenParams } from "@/app/lib/table-search-context";
 import { type FacetField } from "@/app/ui/button/column-filter-button";
 import { CaseFilesSearchFields } from "@/app/ui/form/case-files-search-fields";
+import { SaveCurrentSearchButton } from "@/app/ui/form/saved-searches";
 import { type DataTableSearchConfig } from "@/app/ui/table/data-table";
 
 const PLACEHOLDER = "ex. « dupont » ou « 2603576 »";
@@ -59,5 +60,6 @@ export function buildCaseFilesSearchConfig({
         placeholder={PLACEHOLDER}
       />
     ),
+    actionsSlot: <SaveCurrentSearchButton />,
   };
 }

@@ -2,10 +2,16 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 import { DASHBOARD_TABLE_PARAMS } from "@/app/lib/case-file-search";
 import { buildCaseFilesSearchConfig } from "./case-files-search";
+import { SavedSearches } from "@/app/ui/form/saved-searches";
 import { TableSearchForm } from "@/app/ui/form/table-search-form";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
+}));
+
+vi.mock("@/app/(protected)/case_files/actions", () => ({
+  saveSearchFormAction: vi.fn(),
+  deleteSavedSearchFormAction: vi.fn(),
 }));
 
 function getForm(): HTMLFormElement {
@@ -20,7 +26,9 @@ function hiddenValue(form: HTMLFormElement, name: string): string | undefined {
 
 function renderDashboardSearch(props: Parameters<typeof buildCaseFilesSearchConfig>[0]) {
   render(
-    <TableSearchForm params={DASHBOARD_TABLE_PARAMS} {...buildCaseFilesSearchConfig(props)} />,
+    <SavedSearches searches={[]} currentQuery={props.currentQuery} currentGroup="en_cours">
+      <TableSearchForm params={DASHBOARD_TABLE_PARAMS} {...buildCaseFilesSearchConfig(props)} />
+    </SavedSearches>,
   );
 }
 
@@ -97,8 +105,16 @@ describe("buildCaseFilesSearchConfig", () => {
     expect(hiddenValue(form, "sortOrder")).toBeUndefined();
   });
 
-  it("ne propose pas de sauvegarde à côté du bouton Rechercher", () => {
+  it("propose la sauvegarde à côté du bouton Rechercher quand une recherche est affichée", () => {
     renderDashboardSearch({ currentQuery: "dupont" });
+
+    const searchButton = screen.getByRole("button", { name: "Rechercher" });
+    const saveButton = screen.getByRole("button", { name: "Sauvegarder la recherche courante" });
+    expect(searchButton.parentElement?.contains(saveButton)).toBe(true);
+  });
+
+  it("ne propose pas de sauvegarde à côté du bouton Rechercher sans critère affiché", () => {
+    renderDashboardSearch({ currentQuery: "" });
 
     expect(screen.queryByRole("button", { name: /Sauvegarder la recherche/ })).toBeNull();
   });

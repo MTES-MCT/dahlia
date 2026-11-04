@@ -188,37 +188,37 @@ export default async function Page({ searchParams }: Props) {
         counts={statusGroupCounts}
         className={fr.cx("fr-mb-3w")}
       >
-        {/* Above the search frame, as in the mockup. */}
         <SavedSearches
           searches={savedSearches}
           currentQuery={tableState.query ?? ""}
           currentGroup={group}
           sort={{ sortBy: sortByParam, sortOrder: sortOrderParam }}
-        />
-        <DataTable
-          minWidth="50rem"
-          search={buildCaseFilesSearchConfig({
-            currentQuery: tableState.query ?? "",
-            sortByParam,
-            sortOrderParam,
-            statusGroup: group,
-            facetFields: dashboardFacetFields(groupStatusOptions),
-            availableTags: tagOptions,
-          })}
-          columns={dashboardColumns(currentQueryString)}
-          rows={rows}
-          totalCount={totalCount}
-          totalPages={totalPages}
-          currentPage={tableState.page}
-          pageSize={pageSize}
-          params={DASHBOARD_TABLE_PARAMS}
-          tableId="dashboard"
-          facetKeys={FACET_KEYS}
-          caption={(count) =>
-            `${count} dossier${count > 1 ? "s" : ""}${currentStatut ? ` ${statusLabelForCount(count, currentStatut)}` : statusGroupCaptionSuffix(group, count)}`
-          }
-          exportPath="/case_files/export"
-        />
+        >
+          <DataTable
+            minWidth="50rem"
+            search={buildCaseFilesSearchConfig({
+              currentQuery: tableState.query ?? "",
+              sortByParam,
+              sortOrderParam,
+              statusGroup: group,
+              facetFields: dashboardFacetFields(groupStatusOptions),
+              availableTags: tagOptions,
+            })}
+            columns={dashboardColumns(currentQueryString)}
+            rows={rows}
+            totalCount={totalCount}
+            totalPages={totalPages}
+            currentPage={tableState.page}
+            pageSize={pageSize}
+            params={DASHBOARD_TABLE_PARAMS}
+            tableId="dashboard"
+            facetKeys={FACET_KEYS}
+            caption={(count) =>
+              `${count} dossier${count > 1 ? "s" : ""}${currentStatut ? ` ${statusLabelForCount(count, currentStatut)}` : statusGroupCaptionSuffix(group, count)}`
+            }
+            exportPath="/case_files/export"
+          />
+        </SavedSearches>
       </CaseFilesStatusGroupTabs>
     </>
   );

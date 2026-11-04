@@ -22,6 +22,8 @@ export type TableSearchFormProps = {
   resetHref?: string;
   // Replaces the default search bar (e.g. dashboard status filter + text field row).
   searchSlot?: React.ReactNode;
+  // Extra controls next to the submit button (e.g. save current search on the dashboard).
+  actionsSlot?: React.ReactNode;
   className?: string;
 };
 
@@ -37,6 +39,7 @@ export function TableSearchForm({
   hiddenParams,
   resetHref,
   searchSlot,
+  actionsSlot,
   className,
 }: TableSearchFormProps) {
   const router = useRouter();
@@ -82,6 +85,7 @@ export function TableSearchForm({
         <Button type="submit" title="Rechercher">
           Rechercher
         </Button>
+        {actionsSlot}
         {resetHref && (
           <Link
             href={resetHref}

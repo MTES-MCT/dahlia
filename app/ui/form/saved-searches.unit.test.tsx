@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
 import { render, screen, cleanup, fireEvent, within, waitFor } from "@testing-library/react";
-import { SavedSearches } from "./saved-searches";
+import { SaveCurrentSearchButton, SavedSearchLabelRow, SavedSearches } from "./saved-searches";
 import { type SavedSearchView } from "@/app/lib/saved-searches";
 
 const push = vi.fn();
@@ -48,7 +48,10 @@ function renderSearches(currentQuery: string, currentGroup: "en_cours" | "termin
       currentQuery={currentQuery}
       currentGroup={currentGroup}
       sort={{ sortBy: "caseFileNumber" }}
-    />,
+    >
+      <SavedSearchLabelRow />
+      <SaveCurrentSearchButton />
+    </SavedSearches>,
   );
 }
 
@@ -57,7 +60,7 @@ function modal(id: string): HTMLElement {
 }
 
 function applyButton() {
-  return screen.queryByRole("button", { name: "Appliquer une recherche sauvegardée" });
+  return screen.queryByRole("button", { name: "Appliquer une recherche" });
 }
 
 function saveButton() {
@@ -78,13 +81,24 @@ describe("SavedSearches", () => {
     renderSearches("dupont", "en_cours");
 
     expect(applyButton()?.className).toContain("fr-btn--secondary");
-    expect(screen.queryByText(/Recherche appliquée/)).toBeNull();
+    expect(applyButton()?.className).toContain("fr-icon-arrow-left-right-line");
+    expect(applyButton()?.closest("div")?.querySelector("p")?.textContent).toMatch(/^Recherche/u);
+    expect(applyButton()?.closest("div")?.querySelector("p strong")).toBeNull();
+    expect(screen.getByRole("button", { name: "Effacer les critères de recherche" })).toBeTruthy();
   });
 
-  it("n'affiche rien sans recherche sauvegardée", () => {
-    render(<SavedSearches searches={[]} currentQuery="" currentGroup="en_cours" />);
+  it("affiche le libellé Recherche sans recherche sauvegardée", () => {
+    render(
+      <SavedSearches searches={[]} currentQuery="" currentGroup="en_cours">
+        <SavedSearchLabelRow />
+      </SavedSearches>,
+    );
 
     expect(applyButton()).toBeNull();
+    const label = screen
+      .getAllByText((content) => content.startsWith("Recherche"))
+      .find((node) => node.tagName === "P");
+    expect(label?.textContent?.trim()).toBe("Recherche\u00a0:");
   });
 
   it("liste les recherches dans la modale et applique celle choisie", () => {
@@ -119,17 +133,18 @@ describe("SavedSearches", () => {
     expect(push).not.toHaveBeenCalled();
   });
 
-  it("remplace le bouton par le nom de la recherche appliquée et ses actions", () => {
+  it("remplace le bouton par le nom de la recherche et ses actions", () => {
     renderSearches("dupont", "termine");
 
     expect(applyButton()).toBeNull();
-    expect(screen.getByText(/Recherche appliquée/).textContent).toBe(
-      "Recherche appliquée\u00a0: Dupont terminés",
-    );
-    const edit = screen.getByRole("button", { name: "Modifier la recherche appliquée" });
+    const appliedLine = screen
+      .getAllByText("Dupont terminés")
+      .find((node) => node.closest("p")?.textContent?.startsWith("Recherche"));
+    expect(appliedLine?.closest("p")?.textContent).toBe("Recherche\u00a0: Dupont terminés");
+    const edit = screen.getByRole("button", { name: "Changer de recherche" });
     const clear = screen.getByRole("button", { name: "Effacer les critères de recherche" });
     expect(edit.className).toContain("fr-btn--secondary");
-    expect(edit.className).toContain("fr-icon-edit-line");
+    expect(edit.className).toContain("fr-icon-arrow-left-right-line");
     expect(clear.className).toContain("fr-btn--tertiary");
     expect(clear.className).toContain("fr-icon-close-line");
   });
@@ -144,10 +159,10 @@ describe("SavedSearches", () => {
     });
   });
 
-  it("rouvre la modale sur la recherche appliquée pour en changer", () => {
+  it("rouvre la modale sur la recherche pour en changer", () => {
     renderSearches("dupont", "termine");
 
-    fireEvent.click(screen.getByRole("button", { name: "Modifier la recherche appliquée" }));
+    fireEvent.click(screen.getByRole("button", { name: "Changer de recherche" }));
     const dialog = modal("apply-saved-search-modal");
     expect(dialog.hasAttribute("open")).toBe(true);
     expect((within(dialog).getByLabelText(/Dupont terminés/) as HTMLInputElement).checked).toBe(
@@ -163,9 +178,9 @@ describe("SavedSearches", () => {
     );
   });
 
-  it("supprime la recherche appliquée depuis la zone de danger, après confirmation", async () => {
+  it("supprime la recherche depuis la zone de danger, après confirmation", async () => {
     renderSearches("dupont", "termine");
-    fireEvent.click(screen.getByRole("button", { name: "Modifier la recherche appliquée" }));
+    fireEvent.click(screen.getByRole("button", { name: "Changer de recherche" }));
     const applyDialog = modal("apply-saved-search-modal");
     expect(within(applyDialog).getByText("Zone de danger")).toBeTruthy();
 
@@ -187,7 +202,7 @@ describe("SavedSearches", () => {
 
   it("propose à la suppression la recherche nouvellement cochée dans la modale", async () => {
     renderSearches("dupont", "termine");
-    fireEvent.click(screen.getByRole("button", { name: "Modifier la recherche appliquée" }));
+    fireEvent.click(screen.getByRole("button", { name: "Changer de recherche" }));
     const applyDialog = modal("apply-saved-search-modal");
 
     fireEvent.click(within(applyDialog).getByLabelText(/Référés/));
@@ -210,7 +225,7 @@ describe("SavedSearches", () => {
 
   it("n'efface rien quand on annule la suppression", () => {
     renderSearches("dupont", "termine");
-    fireEvent.click(screen.getByRole("button", { name: "Modifier la recherche appliquée" }));
+    fireEvent.click(screen.getByRole("button", { name: "Changer de recherche" }));
     fireEvent.click(
       within(modal("apply-saved-search-modal")).getByRole("button", {
         name: "Supprimer cette recherche",
@@ -224,13 +239,13 @@ describe("SavedSearches", () => {
     expect(deleteSavedSearchFormAction).not.toHaveBeenCalled();
   });
 
-  it("affiche « Sauvegarder la recherche courante » en tertiaire à droite du bouton d'application", () => {
+  it("affiche « Sauvegarder la recherche courante » en tertiaire via le contexte du formulaire", () => {
     renderSearches("dupont", "en_cours");
 
     const save = saveButton() as HTMLElement;
     expect(save.className).toContain("fr-btn--tertiary");
     expect(save.getAttribute("type")).toBe("button");
-    expect(applyButton()?.nextElementSibling).toBe(save);
+    expect(applyButton()?.nextElementSibling).not.toBe(save);
   });
 
   it("ne propose pas de sauvegarde quand une recherche sauvegardée est appliquée", () => {
@@ -246,10 +261,16 @@ describe("SavedSearches", () => {
   });
 
   it("propose la sauvegarde même sans recherche déjà sauvegardée", () => {
-    render(<SavedSearches searches={[]} currentQuery="dupont" currentGroup="en_cours" />);
+    render(
+      <SavedSearches searches={[]} currentQuery="dupont" currentGroup="en_cours">
+        <SavedSearchLabelRow />
+        <SaveCurrentSearchButton />
+      </SavedSearches>,
+    );
 
     expect(saveButton()).toBeTruthy();
     expect(applyButton()).toBeNull();
+    expect(screen.getByRole("button", { name: "Effacer les critères de recherche" })).toBeTruthy();
   });
 
   it("sauvegarde la recherche affichée sous le nom saisi", async () => {
