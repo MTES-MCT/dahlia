@@ -2,7 +2,12 @@ import { PrismaClient } from "@prisma/client";
 import { describeError, sleep } from "../telerecours/http";
 import { TelerecoursClient } from "../telerecours/client.interface";
 import type { CaseFileKey } from "../persistence/case-file-key";
-import { enrichCaseFile, upsertCaseFileDetail } from "../persistence/enrich-case-file";
+import { anonymizeCaseFileDetail, createNameScrubber } from "../anonymize";
+import {
+  caseFileActors,
+  enrichCaseFile,
+  upsertCaseFileDetail,
+} from "../persistence/enrich-case-file";
 import { upsertCaseFile } from "../persistence/upsert-case-file";
 import { upsertJurisdiction } from "../persistence/upsert-jurisdiction";
 import { scrapedPerimeterWhere } from "./where";
@@ -55,7 +60,9 @@ async function importRelatedCaseFile(
   await upsertCaseFileDetail(
     prisma,
     { jurisdictionCode: resolvedJurisdiction.jurisdictionCode, caseFileNumber },
-    detail,
+    options.anonymize
+      ? anonymizeCaseFileDetail(detail, createNameScrubber(caseFileActors(detail, [], [])))
+      : detail,
   );
   return true;
 }

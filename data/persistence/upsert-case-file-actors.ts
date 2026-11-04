@@ -1,6 +1,5 @@
 import { PrismaClient } from "@prisma/client";
 import { Actor, CaseFileActorDto } from "../telerecours/types";
-import { anonymizeActor } from "../anonymize";
 import type { CaseFileKey } from "./case-file-key";
 import { upsertActor } from "./upsert-case-file";
 
@@ -32,9 +31,6 @@ export async function upsertCaseFileActorLink(
   role: CaseFileActorRole,
   anonymize: boolean,
 ): Promise<void> {
-  if (anonymize) {
-    actor = anonymizeActor(actor);
-  }
   const qualityCode = await upsertQuality(prisma, actor.quality, "R");
   await upsertActor(prisma, key.jurisdictionCode, actor, anonymize);
 

@@ -2,8 +2,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { mockDeep, type DeepMockProxy } from "vitest-mock-extended";
 import type { PrismaClient } from "@prisma/client";
 import { linkRelatedCaseFiles } from "./phase-c-related";
+import { anonymizeActor, FAKE_EMAIL } from "../anonymize";
 import { fakeTelerecoursClient } from "../test-support/fake-client";
-import { caseFileDetailFixture } from "../test-support/fixtures";
+import { actorFixture, caseFileDetailFixture } from "../test-support/fixtures";
 import type { TelerecoursClient } from "../telerecours/client.interface";
 
 const KEY = { jurisdictionCode: "TA069", caseFileNumber: "2401234" };
@@ -99,6 +100,32 @@ describe("linkRelatedCaseFiles", () => {
       );
       expect(client.getCaseFileMeasures).not.toHaveBeenCalled();
       expect(prisma.relatedCaseFile.upsert).toHaveBeenCalledTimes(1);
+    });
+
+    it("anonymise les textes du détail avec les acteurs principaux", async () => {
+      const client = clientWithDetail({
+        getCaseFileDetail: vi.fn().mockResolvedValue(
+          caseFileDetailFixture({
+            caseFileNumber: "2405678",
+            title: "M. Dupont",
+            directory: { reference: "R1", complementaryRecipientEmails: "reel@exemple.fr" },
+          }),
+        ),
+      });
+
+      await linkRelatedCaseFiles(prisma, client, KEY, "TA069", false, {
+        ...IMPORT,
+        anonymize: true,
+      });
+
+      expect(prisma.caseFile.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            title: `M. ${anonymizeActor(actorFixture()).lastName}`,
+            directoryComplementaryEmails: FAKE_EMAIL,
+          }),
+        }),
+      );
     });
 
     it("enrichit aussi les éléments liés avec --enrich all", async () => {
