@@ -96,4 +96,10 @@ describe("buildCaseFilesSearchConfig", () => {
     expect(hiddenValue(form, "sortBy")).toBeUndefined();
     expect(hiddenValue(form, "sortOrder")).toBeUndefined();
   });
+
+  it("ne propose pas de sauvegarde à côté du bouton Rechercher", () => {
+    renderDashboardSearch({ currentQuery: "dupont" });
+
+    expect(screen.queryByRole("button", { name: /Sauvegarder la recherche/ })).toBeNull();
+  });
 });

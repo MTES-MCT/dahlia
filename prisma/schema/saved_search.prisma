@@ -1,0 +1,20 @@
+// Dashboard search saved by a user (« Mes recherches »), private to its owner.
+// `query` is the raw `dahliaq` search (free text + facets) and `statusGroup` the
+// dashboard tab (`groupe` param) it was saved from.
+model SavedSearch {
+  id Int @id @default(autoincrement())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name        String
+  query       String
+  statusGroup String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // A user cannot have two searches with the same name.
+  @@unique([userId, name])
+  @@map("saved_searches")
+}

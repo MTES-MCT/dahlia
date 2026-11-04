@@ -9,6 +9,7 @@ import {
   HEARING_CONVOCATION_SORT_KEY,
 } from "@/app/lib/data/case-files";
 import { fetchDashboardStatusFilterOptions } from "@/app/lib/data/statuses";
+import { fetchCurrentUserSavedSearches } from "@/app/lib/data/saved-searches";
 import { fetchTagOptions } from "@/app/lib/data/tags";
 import {
   CASE_FILES_DASHBOARD_COLUMNS,
@@ -36,6 +37,7 @@ import {
   type StatusGroup,
 } from "@/app/lib/dashboard-filter";
 import { buildCaseFilesSearchConfig } from "@/app/ui/form/case-files-search";
+import { SavedSearches } from "@/app/ui/form/saved-searches";
 import { caseFileHref } from "@/app/lib/case-file-key";
 import { CaseFileDossierCell } from "@/app/ui/table/case-file-dossier-cell";
 import { DataTable, type DataTableColumn } from "@/app/ui/table/data-table";
@@ -141,10 +143,11 @@ export default async function Page({ searchParams }: Props) {
     },
   );
 
-  const [statusFilterOptions, tagOptions, statusGroupCounts] = await Promise.all([
+  const [statusFilterOptions, tagOptions, statusGroupCounts, savedSearches] = await Promise.all([
     fetchDashboardStatusFilterOptions(),
     fetchTagOptions(),
     fetchCaseFilesStatusGroupCounts(),
+    fetchCurrentUserSavedSearches(),
   ]);
   const group = resolveStatusGroup(groupeParam);
   const groupStatusOptions = filterStatusOptionsByGroup(statusFilterOptions, group);
@@ -185,6 +188,13 @@ export default async function Page({ searchParams }: Props) {
         counts={statusGroupCounts}
         className={fr.cx("fr-mb-3w")}
       >
+        {/* Above the search frame, as in the mockup. */}
+        <SavedSearches
+          searches={savedSearches}
+          currentQuery={tableState.query ?? ""}
+          currentGroup={group}
+          sort={{ sortBy: sortByParam, sortOrder: sortOrderParam }}
+        />
         <DataTable
           minWidth="50rem"
           search={buildCaseFilesSearchConfig({
