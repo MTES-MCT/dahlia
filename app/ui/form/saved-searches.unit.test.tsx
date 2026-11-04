@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
 import { render, screen, cleanup, fireEvent, within, waitFor } from "@testing-library/react";
-import { SaveSearchLink, SavedSearches } from "./saved-searches";
+import { SavedSearches } from "./saved-searches";
 import { type SavedSearchView } from "@/app/lib/saved-searches";
 
 const push = vi.fn();
@@ -43,24 +43,25 @@ function mockDsfrModalApi() {
 
 function renderSearches(currentQuery: string, currentGroup: "en_cours" | "termine" | "tous") {
   return render(
-    <>
-      <SavedSearches
-        searches={SEARCHES}
-        currentQuery={currentQuery}
-        currentGroup={currentGroup}
-        sort={{ sortBy: "caseFileNumber" }}
-      />
-      <SaveSearchLink />
-    </>,
+    <SavedSearches
+      searches={SEARCHES}
+      currentQuery={currentQuery}
+      currentGroup={currentGroup}
+      sort={{ sortBy: "caseFileNumber" }}
+    />,
   );
-}
-
-function select(): HTMLSelectElement {
-  return screen.getByLabelText("Mes recherches") as HTMLSelectElement;
 }
 
 function modal(id: string): HTMLElement {
   return document.getElementById(id) as HTMLElement;
+}
+
+function applyButton() {
+  return screen.queryByRole("button", { name: "Appliquer une recherche sauvegardée" });
+}
+
+function saveButton() {
+  return screen.queryByRole("button", { name: "Sauvegarder la recherche courante" });
 }
 
 describe("SavedSearches", () => {
@@ -73,65 +74,105 @@ describe("SavedSearches", () => {
     cleanup();
   });
 
-  it("affiche un placeholder non sélectionnable puis le choix vide et les recherches", () => {
-    renderSearches("", "en_cours");
-
-    const [placeholder, ...options] = [...select().options];
-    expect(placeholder.textContent).toBe("Choisir une recherche sauvegardée");
-    expect(placeholder.disabled).toBe(true);
-    expect(placeholder.hidden).toBe(true);
-    expect(options.map((option) => option.textContent)).toEqual(["", "Référés", "Dupont terminés"]);
-    // No saved search displayed: the placeholder is shown.
-    expect(select().selectedOptions[0]).toBe(placeholder);
-  });
-
-  it("n'affiche pas le select sans recherche sauvegardée", () => {
-    render(<SavedSearches searches={[]} currentQuery="" currentGroup="en_cours" />);
-
-    expect(screen.queryByLabelText("Mes recherches")).toBeNull();
-  });
-
-  it("présélectionne la recherche affichée et propose de la supprimer", () => {
-    renderSearches("dupont", "termine");
-
-    expect(select().value).toBe("2");
-    expect(screen.getByRole("button", { name: "Supprimer cette recherche" })).toBeTruthy();
-  });
-
-  it("ne propose pas de suppression quand la recherche affichée n'est pas sauvegardée", () => {
+  it("propose d'appliquer une recherche sauvegardée quand aucune n'est appliquée", () => {
     renderSearches("dupont", "en_cours");
 
-    expect(select().value).toBe("");
-    expect(screen.queryByRole("button", { name: "Supprimer cette recherche" })).toBeNull();
+    expect(applyButton()?.className).toContain("fr-btn--secondary");
+    expect(screen.queryByText(/Recherche appliquée/)).toBeNull();
   });
 
-  it("lance la recherche choisie dans son onglet en gardant le tri", () => {
+  it("n'affiche rien sans recherche sauvegardée", () => {
+    render(<SavedSearches searches={[]} currentQuery="" currentGroup="en_cours" />);
+
+    expect(applyButton()).toBeNull();
+  });
+
+  it("liste les recherches dans la modale et applique celle choisie", () => {
     renderSearches("", "en_cours");
 
-    fireEvent.change(select(), { target: { value: "2" } });
+    fireEvent.click(applyButton() as HTMLElement);
+    const dialog = modal("apply-saved-search-modal");
+    expect(dialog.hasAttribute("open")).toBe(true);
+    const radios = within(dialog).getAllByRole("radio") as HTMLInputElement[];
+    expect(radios.map((radio) => radio.checked)).toEqual([false, false]);
+    // No danger zone while no saved search is applied.
+    expect(within(dialog).queryByText("Zone de danger")).toBeNull();
+
+    fireEvent.click(within(dialog).getByLabelText(/Dupont terminés/));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Appliquer" }));
 
     expect(push).toHaveBeenCalledWith(
       "/case_files?sortBy=caseFileNumber&dahliaq=dupont&groupe=termine",
       { scroll: false },
     );
+    expect(dialog.hasAttribute("open")).toBe(false);
   });
 
-  it("efface la recherche quand on revient au choix vide", () => {
+  it("demande de choisir une recherche avant d'appliquer", () => {
+    renderSearches("", "en_cours");
+    fireEvent.click(applyButton() as HTMLElement);
+    const dialog = modal("apply-saved-search-modal");
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Appliquer" }));
+
+    expect(dialog.textContent).toContain("Choisissez une recherche.");
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("remplace le bouton par le nom de la recherche appliquée et ses actions", () => {
     renderSearches("dupont", "termine");
 
-    fireEvent.change(select(), { target: { value: "none" } });
+    expect(applyButton()).toBeNull();
+    expect(screen.getByText(/Recherche appliquée/).textContent).toBe(
+      "Recherche appliquée\u00a0: Dupont terminés",
+    );
+    const edit = screen.getByRole("button", { name: "Modifier la recherche appliquée" });
+    const clear = screen.getByRole("button", { name: "Effacer les critères de recherche" });
+    expect(edit.className).toContain("fr-btn--secondary");
+    expect(edit.className).toContain("fr-icon-edit-line");
+    expect(clear.className).toContain("fr-btn--tertiary");
+    expect(clear.className).toContain("fr-icon-close-line");
+  });
+
+  it("efface tous les critères en restant dans l'onglet", () => {
+    renderSearches("dupont", "termine");
+
+    fireEvent.click(screen.getByRole("button", { name: "Effacer les critères de recherche" }));
 
     expect(push).toHaveBeenCalledWith("/case_files?sortBy=caseFileNumber&groupe=termine", {
       scroll: false,
     });
   });
 
-  it("ouvre une modale de confirmation avant de supprimer", async () => {
+  it("rouvre la modale sur la recherche appliquée pour en changer", () => {
     renderSearches("dupont", "termine");
 
-    fireEvent.click(screen.getByRole("button", { name: "Supprimer cette recherche" }));
+    fireEvent.click(screen.getByRole("button", { name: "Modifier la recherche appliquée" }));
+    const dialog = modal("apply-saved-search-modal");
+    expect(dialog.hasAttribute("open")).toBe(true);
+    expect((within(dialog).getByLabelText(/Dupont terminés/) as HTMLInputElement).checked).toBe(
+      true,
+    );
+
+    fireEvent.click(within(dialog).getByLabelText(/Référés/));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Appliquer" }));
+
+    expect(push).toHaveBeenCalledWith(
+      "/case_files?sortBy=caseFileNumber&dahliaq=recours%3AR%C3%A9f%C3%A9r%C3%A9&groupe=en_cours",
+      { scroll: false },
+    );
+  });
+
+  it("supprime la recherche appliquée depuis la zone de danger, après confirmation", async () => {
+    renderSearches("dupont", "termine");
+    fireEvent.click(screen.getByRole("button", { name: "Modifier la recherche appliquée" }));
+    const applyDialog = modal("apply-saved-search-modal");
+    expect(within(applyDialog).getByText("Zone de danger")).toBeTruthy();
+
+    fireEvent.click(within(applyDialog).getByRole("button", { name: "Supprimer cette recherche" }));
 
     const dialog = modal("delete-saved-search-modal");
+    expect(applyDialog.hasAttribute("open")).toBe(false);
     expect(dialog.hasAttribute("open")).toBe(true);
     expect(dialog.textContent).toContain("Dupont terminés");
     expect(deleteSavedSearchFormAction).not.toHaveBeenCalled();
@@ -144,9 +185,37 @@ describe("SavedSearches", () => {
     await waitFor(() => expect(dialog.hasAttribute("open")).toBe(false));
   });
 
+  it("propose à la suppression la recherche nouvellement cochée dans la modale", async () => {
+    renderSearches("dupont", "termine");
+    fireEvent.click(screen.getByRole("button", { name: "Modifier la recherche appliquée" }));
+    const applyDialog = modal("apply-saved-search-modal");
+
+    fireEvent.click(within(applyDialog).getByLabelText(/Référés/));
+
+    expect(
+      within(applyDialog).getByText("Zone de danger").closest("section")?.textContent,
+    ).toContain("Supprimer la recherche Référés.");
+
+    fireEvent.click(within(applyDialog).getByRole("button", { name: "Supprimer cette recherche" }));
+    const dialog = modal("delete-saved-search-modal");
+    expect(dialog.textContent).toContain("Référés");
+    expect(dialog.textContent).not.toContain("Dupont terminés");
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Supprimer" }));
+
+    await waitFor(() => expect(deleteSavedSearchFormAction).toHaveBeenCalledTimes(1));
+    const [, formData] = deleteSavedSearchFormAction.mock.calls[0] as unknown as [null, FormData];
+    expect(formData.get("id")).toBe("1");
+  });
+
   it("n'efface rien quand on annule la suppression", () => {
     renderSearches("dupont", "termine");
-    fireEvent.click(screen.getByRole("button", { name: "Supprimer cette recherche" }));
+    fireEvent.click(screen.getByRole("button", { name: "Modifier la recherche appliquée" }));
+    fireEvent.click(
+      within(modal("apply-saved-search-modal")).getByRole("button", {
+        name: "Supprimer cette recherche",
+      }),
+    );
     const dialog = modal("delete-saved-search-modal");
 
     fireEvent.click(within(dialog).getByRole("button", { name: "Annuler" }));
@@ -155,10 +224,38 @@ describe("SavedSearches", () => {
     expect(deleteSavedSearchFormAction).not.toHaveBeenCalled();
   });
 
+  it("affiche « Sauvegarder la recherche courante » en tertiaire à droite du bouton d'application", () => {
+    renderSearches("dupont", "en_cours");
+
+    const save = saveButton() as HTMLElement;
+    expect(save.className).toContain("fr-btn--tertiary");
+    expect(save.getAttribute("type")).toBe("button");
+    expect(applyButton()?.nextElementSibling).toBe(save);
+  });
+
+  it("ne propose pas de sauvegarde quand une recherche sauvegardée est appliquée", () => {
+    renderSearches("dupont", "termine");
+
+    expect(saveButton()).toBeNull();
+  });
+
+  it("ne propose pas de sauvegarde sans recherche affichée", () => {
+    renderSearches("", "en_cours");
+
+    expect(saveButton()).toBeNull();
+  });
+
+  it("propose la sauvegarde même sans recherche déjà sauvegardée", () => {
+    render(<SavedSearches searches={[]} currentQuery="dupont" currentGroup="en_cours" />);
+
+    expect(saveButton()).toBeTruthy();
+    expect(applyButton()).toBeNull();
+  });
+
   it("sauvegarde la recherche affichée sous le nom saisi", async () => {
     renderSearches("dupont statut:Terminé", "tous");
 
-    fireEvent.click(screen.getByRole("button", { name: "Sauvegarder la recherche" }));
+    fireEvent.click(saveButton() as HTMLElement);
 
     const dialog = modal("save-search-modal");
     expect(dialog.hasAttribute("open")).toBe(true);
@@ -185,7 +282,7 @@ describe("SavedSearches", () => {
       error: "Vous avez déjà une recherche portant ce nom.",
     } as never);
     renderSearches("dupont", "tous");
-    fireEvent.click(screen.getByRole("button", { name: "Sauvegarder la recherche" }));
+    fireEvent.click(saveButton() as HTMLElement);
     const dialog = modal("save-search-modal");
 
     fireEvent.click(within(dialog).getByRole("button", { name: "Enregistrer" }));
@@ -194,19 +291,5 @@ describe("SavedSearches", () => {
       expect(dialog.textContent).toContain("Vous avez déjà une recherche portant ce nom."),
     );
     expect(dialog.hasAttribute("open")).toBe(true);
-  });
-});
-
-describe("SaveSearchLink", () => {
-  afterEach(() => {
-    cleanup();
-  });
-
-  it("ne soumet pas le formulaire de recherche", () => {
-    render(<SaveSearchLink />);
-
-    expect(
-      screen.getByRole("button", { name: "Sauvegarder la recherche" }).getAttribute("type"),
-    ).toBe("button");
   });
 });

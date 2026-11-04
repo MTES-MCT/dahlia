@@ -30,8 +30,6 @@ export type DataTableSearchConfig = {
   label: string;
   placeholder?: string;
   searchSlot?: React.ReactNode;
-  // Extra controls after the « Rechercher » button.
-  actionsSlot?: React.ReactNode;
   // Extra classes on the search form (e.g. a framed background).
   className?: string;
 };

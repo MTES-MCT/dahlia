@@ -204,7 +204,6 @@ export default async function Page({ searchParams }: Props) {
             statusGroup: group,
             facetFields: dashboardFacetFields(groupStatusOptions),
             availableTags: tagOptions,
-            canSaveSearch: Boolean(tableState.query),
           })}
           columns={dashboardColumns(currentQueryString)}
           rows={rows}

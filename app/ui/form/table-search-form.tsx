@@ -22,8 +22,6 @@ export type TableSearchFormProps = {
   resetHref?: string;
   // Replaces the default search bar (e.g. dashboard status filter + text field row).
   searchSlot?: React.ReactNode;
-  // Extra controls after the « Rechercher » button (e.g. « Sauvegarder la recherche »).
-  actionsSlot?: React.ReactNode;
   className?: string;
 };
 
@@ -39,7 +37,6 @@ export function TableSearchForm({
   hiddenParams,
   resetHref,
   searchSlot,
-  actionsSlot,
   className,
 }: TableSearchFormProps) {
   const router = useRouter();
@@ -94,7 +91,6 @@ export function TableSearchForm({
             Ré-initialiser la recherche
           </Link>
         )}
-        {actionsSlot}
       </div>
     </form>
   );

@@ -6,7 +6,6 @@ import { type StatusGroup } from "@/app/lib/dashboard-filter";
 import { buildDashboardSortHiddenParams } from "@/app/lib/table-search-context";
 import { type FacetField } from "@/app/ui/button/column-filter-button";
 import { CaseFilesSearchFields } from "@/app/ui/form/case-files-search-fields";
-import { SaveSearchLink } from "@/app/ui/form/saved-searches";
 import { type DataTableSearchConfig } from "@/app/ui/table/data-table";
 
 const PLACEHOLDER = "ex. « dupont » ou « 2603576 »";
@@ -25,9 +24,6 @@ export type CaseFilesSearchProps = {
   facetFields?: readonly FacetField[];
   // Tag catalogue offered by the « Mots-clés » combobox of the panel.
   availableTags?: readonly CaseFileTagView[];
-  // Offer « Sauvegarder la recherche » next to the submit button (only useful
-  // once a search is displayed).
-  canSaveSearch?: boolean;
 };
 
 export function buildCaseFilesSearchConfig({
@@ -37,7 +33,6 @@ export function buildCaseFilesSearchConfig({
   statusGroup,
   facetFields = [],
   availableTags,
-  canSaveSearch = false,
 }: CaseFilesSearchProps): DataTableSearchConfig {
   return {
     action: "/case_files",
@@ -53,7 +48,6 @@ export function buildCaseFilesSearchConfig({
       "border border-solid border-(--border-default-grey) bg-(--background-alt-grey)",
       fr.cx("fr-p-3w"),
     ),
-    actionsSlot: canSaveSearch ? <SaveSearchLink /> : undefined,
     searchSlot: (
       // Remount on navigation so the fields re-seed from the new URL query.
       <CaseFilesSearchFields
