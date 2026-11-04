@@ -20,6 +20,7 @@ const PIECES_LIST_SELECT = {
   isFavorite: true,
   mimeType: true,
   fileTypeLabel: true,
+  fileFamilyTypeCode: true,
   fileFamilyTypeLabel: true,
   fileFamilyType: { select: { label: true } },
   eventCreationDate: true,

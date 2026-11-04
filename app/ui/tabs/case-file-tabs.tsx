@@ -120,6 +120,7 @@ export async function CaseFileTabs({
       comment: piece.comment,
       isFavorite: piece.isFavorite,
       typeLabel: piece.fileTypeLabel,
+      fileFamilyTypeCode: piece.fileFamilyTypeCode,
       eventDate: formatDateFr(piece.eventCreationDate),
       dataUrl: `${caseFilePath}/pieces/${encodeURIComponent(piece.encodedFileId)}/data`,
       // Outside production the data route serves a mocked PDF regardless of the

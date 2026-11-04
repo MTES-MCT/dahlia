@@ -54,23 +54,24 @@ describe("autoDahliaName", () => {
     fileFamilyTypeCode: "COUK",
   });
 
-  it("remplace le code par le type de pièce en gardant l'identifiant à sa place", () => {
-    expect(autoDahliaName(courrier("1083731924_notreq.pdf"))).toBe(
-      "1083731924 Communication de la requête",
-    );
+  it("remplace le code par le type de pièce sans conserver l'identifiant Télérecours", () => {
+    expect(autoDahliaName(courrier("1083731924_notreq.pdf"))).toBe("Communication de la requête");
     expect(
       autoDahliaName(courrier("notpcc_1160330020.pdf", "Communication de pièces complémentaires")),
-    ).toBe("Communication de pièces complémentaires 1160330020");
+    ).toBe("Communication de pièces complémentaires");
     expect(
       autoDahliaName(
         courrier("dispada5_1172791774.pdf", "Notification d'une dispense d'audience DALO"),
       ),
-    ).toBe("Notification d'une dispense d'audience DALO 1172791774");
+    ).toBe("Notification d'une dispense d'audience DALO");
     expect(
       autoDahliaName(courrier("r611-11_1164887605.pdf", "Lettre d'information - R. 611-11-1")),
-    ).toBe("Lettre d'information - R. 611-11-1 1164887605");
+    ).toBe("Lettre d'information - R. 611-11-1");
     expect(autoDahliaName(courrier("1084203330_LETGRE.PDF", " Lettre du greffier "))).toBe(
-      "1084203330 Lettre du greffier",
+      "Lettre du greffier",
+    );
+    expect(autoDahliaName(courrier("notdeci_1147950896-1.pdf", "Notification décision"))).toBe(
+      "Notification décision",
     );
   });
 
@@ -82,22 +83,22 @@ describe("autoDahliaName", () => {
         fileTypeLabel: "Requête",
         fileFamilyTypeCode: "REQ",
       }),
-    ).toBe("1083731924 dupont");
+    ).toBe("dupont");
     // Court correspondence with a free-form name.
     expect(autoDahliaName(courrier("P_34_courrier_du_greffe.pdf"))).toBe("034 courrier du greffe");
     // No type label to fall back on.
-    expect(autoDahliaName(courrier("1083731924_notreq.pdf", " "))).toBe("1083731924 notreq");
-    expect(autoDahliaName({ fileName: "1083731924_notreq.pdf" })).toBe("1083731924 notreq");
+    expect(autoDahliaName(courrier("1083731924_notreq.pdf", " "))).toBe("notreq");
+    expect(autoDahliaName({ fileName: "1083731924_notreq.pdf" })).toBe("notreq");
   });
 });
 
 describe("pieceNameFromFileName : mots collés de Télérecours", () => {
   it("écrit « Inventaire automatique » en clair, quelle que soit la casse", () => {
     expect(pieceNameFromFileName("1105771952_inventaireAutomatique_803008652.pdf")).toBe(
-      "1105771952 Inventaire automatique 803008652",
+      "Inventaire automatique",
     );
     expect(pieceNameFromFileName("inventaireAutomatique_806073205_1142998355.pdf")).toBe(
-      "Inventaire automatique 806073205 1142998355",
+      "Inventaire automatique",
     );
     expect(pieceNameFromFileName("InventaireAutomatique_82304.pdf")).toBe(
       "Inventaire automatique 82304",

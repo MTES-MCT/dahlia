@@ -58,6 +58,7 @@ const pieces = [
     isFavorite: false,
     mimeType: "application/pdf",
     fileTypeLabel: "Requête",
+    fileFamilyTypeCode: "REQ",
     fileFamilyTypeLabel: "Requête",
     fileFamilyType: { label: "Requête" },
     eventCreationDate: new Date("2026-01-15T10:00:00"),

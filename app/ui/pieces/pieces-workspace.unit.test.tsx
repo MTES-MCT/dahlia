@@ -22,6 +22,7 @@ const pieces: WorkspacePiece[] = [
     comment: "À vérifier",
     isFavorite: false,
     typeLabel: "Requête",
+    fileFamilyTypeCode: "REQ",
     eventDate: "12/03/2026",
     dataUrl: "/data/f1",
     viewerMimeType: "application/pdf",
@@ -33,6 +34,7 @@ const pieces: WorkspacePiece[] = [
     comment: null,
     isFavorite: false,
     typeLabel: "Mémoire",
+    fileFamilyTypeCode: "MEM",
     eventDate: "",
     dataUrl: "/data/f2",
     viewerMimeType: "application/pdf",
@@ -94,10 +96,37 @@ describe("PiecesWorkspace", () => {
     expect(within(nav).getByRole("button", { name: /^annexe\.pdf/ })).toBeTruthy();
   });
 
-  it("affiche dans la liste le nom de fichier et la date de l'événement de la pièce", () => {
+  it("masque le tag de type COUK quand le nom DAHLIA reprend le type", () => {
+    render(
+      <PiecesWorkspace
+        caseFileKey={{ jurisdictionCode: "TA069", caseFileNumber: "TA069-2026-001" }}
+        pieces={[
+          {
+            encodedFileId: "couk",
+            fileName: "1083731924_notreq.pdf",
+            dahliaName: "Communication de la requête",
+            comment: null,
+            isFavorite: false,
+            typeLabel: "Communication de la requête",
+            fileFamilyTypeCode: "COUK",
+            eventDate: "01/01/2026",
+            dataUrl: "/data/couk",
+            viewerMimeType: "application/pdf",
+          },
+        ]}
+      />,
+    );
+    const button = within(sidebar()).getByRole("button", {
+      name: /^Communication de la requête/,
+    });
+    expect(within(button).queryByText("Communication de la requête", { selector: ".fr-tag" })).toBeNull();
+    expect(within(button).getAllByText("Communication de la requête")).toHaveLength(1);
+  });
+
+  it("affiche dans la liste la date de l'événement de la pièce", () => {
     renderWorkspace();
     const button = within(sidebar()).getByRole("button", { name: /^Requête introductive/ });
-    expect(within(button).getByText("requete.pdf")).toBeTruthy();
+    expect(within(button).queryByText("requete.pdf")).toBeNull();
     expect(within(button).getByText("12/03/2026")).toBeTruthy();
   });
 
@@ -157,19 +186,10 @@ describe("PiecesWorkspace", () => {
     expect(heading.nextElementSibling?.textContent).toBe("requete.pdf");
   });
 
-  it("navigue vers la pièce suivante puis précédente avec les flèches", () => {
+  it("n'affiche pas de boutons précédent / suivant autour du titre de la pièce", () => {
     renderWorkspace();
-    const previous = screen.getByRole("button", { name: "Pièce précédente" }) as HTMLButtonElement;
-    expect(previous.disabled).toBe(true);
-
-    fireEvent.click(screen.getByRole("button", { name: "Pièce suivante" }));
-    expect(screen.getByRole("heading", { name: "annexe.pdf" })).toBeTruthy();
-    expect(
-      (screen.getByRole("button", { name: "Pièce suivante" }) as HTMLButtonElement).disabled,
-    ).toBe(true);
-
-    fireEvent.click(screen.getByRole("button", { name: "Pièce précédente" }));
-    expect(screen.getByRole("heading", { name: "Requête introductive" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Pièce précédente" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Pièce suivante" })).toBeNull();
   });
 
   it("change de pièce avec les flèches haut et bas du clavier", () => {
@@ -218,7 +238,7 @@ describe("PiecesWorkspace", () => {
     renderWorkspace();
     expect(screen.queryByText("Aucun commentaire")).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "Pièce suivante" }));
+    fireEvent.keyDown(window, { key: "ArrowDown" });
     expect(screen.getByText("Aucun commentaire")).toBeTruthy();
   });
 
@@ -279,10 +299,7 @@ describe("PiecesWorkspace", () => {
     // The favorite is listed (and shown) first, before the server's first pièce.
     expect(screen.getByRole("heading", { name: "annexe.pdf" })).toBeTruthy();
     expect(screen.getByText("Favori")).toBeTruthy();
-    expect(
-      (screen.getByRole("button", { name: "Pièce précédente" }) as HTMLButtonElement).disabled,
-    ).toBe(true);
-    fireEvent.click(screen.getByRole("button", { name: "Pièce suivante" }));
+    fireEvent.keyDown(window, { key: "ArrowDown" });
     expect(screen.getByRole("heading", { name: "Requête introductive" })).toBeTruthy();
   });
 

@@ -96,32 +96,26 @@ describe("pieceNameFromFileName", () => {
 
   it("drops piece prefixes (PJ, P, Piece, piece n°) before the number", () => {
     expect(pieceNameFromFileName("PJ5_Mail_OPAC_20180329.pdf")).toBe("005 Mail OPAC 20180329");
-    expect(pieceNameFromFileName("1141718428_P12_-_COPIE_TITRE.pdf")).toBe(
-      "1141718428 012 COPIE TITRE",
-    );
+    expect(pieceNameFromFileName("1141718428_P12_-_COPIE_TITRE.pdf")).toBe("012 COPIE TITRE");
     expect(pieceNameFromFileName("41818856_piece_n_4_Attestation.pdf")).toBe(
       "41818856 004 Attestation",
     );
-    expect(pieceNameFromFileName("1118543015_Piece_33_Commandement.pdf")).toBe(
-      "1118543015 033 Commandement",
-    );
+    expect(pieceNameFromFileName("1118543015_Piece_33_Commandement.pdf")).toBe("033 Commandement");
     expect(pieceNameFromFileName("Pièce n°3 bail.pdf")).toBe("003 bail");
     expect(pieceNameFromFileName("Pièce_3.pdf")).toBe("003");
   });
 
   it("keeps leading dates as text", () => {
     expect(pieceNameFromFileName("2025-01-17_Requete_DALO_1146530602.pdf")).toBe(
-      "2025-01-17 Requete DALO 1146530602",
+      "2025-01-17 Requete DALO",
     );
-    expect(pieceNameFromFileName("100764654_18_05_18_memoire.pdf")).toBe(
-      "100764654 18 05 18 memoire",
-    );
+    expect(pieceNameFromFileName("100764654_18_05_18_memoire.pdf")).toBe("18 05 18 memoire");
     expect(pieceNameFromFileName("001_21.01.2025_rejet.pdf")).toBe("001 21.01.2025 rejet");
   });
 
   it("collapses repeated underscores into a single space", () => {
     expect(pieceNameFromFileName("015_Moisissures__ds_les_sanitaires__1159052506.pdf")).toBe(
-      "015 Moisissures ds les sanitaires 1159052506",
+      "015 Moisissures ds les sanitaires",
     );
   });
 

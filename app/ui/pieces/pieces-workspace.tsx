@@ -9,7 +9,11 @@ import { Alert } from "@codegouvfr/react-dsfr/Alert";
 import { Checkbox } from "@codegouvfr/react-dsfr/Checkbox";
 import { createModal } from "@codegouvfr/react-dsfr/Modal";
 import { caseFileHref, type CaseFileKey } from "@/app/lib/case-file-key";
-import { pieceDisplayLabel, pieceDownloadFileName } from "@/app/lib/piece-display";
+import {
+  pieceDisplayLabel,
+  pieceDownloadFileName,
+  shouldShowPieceTypeTagInSidebar,
+} from "@/app/lib/piece-display";
 import {
   savePieceMetadataAction,
   setPieceFavoriteAction,
@@ -34,6 +38,7 @@ export type WorkspacePiece = {
   comment: string | null;
   isFavorite: boolean;
   typeLabel: string | null;
+  fileFamilyTypeCode: string | null;
   // Event creation date, formatted on the server (dd/mm/yyyy, empty when absent).
   eventDate: string;
   dataUrl: string;
@@ -191,7 +196,7 @@ export function PiecesWorkspace({ caseFileKey, pieces, initialPieceId }: Props) 
     pieceEditModal.open();
   }
 
-  // Arrow keys show the previous / next pièce, like the header arrows.
+  // Arrow keys show the previous / next pièce.
   const previousId = previous?.encodedFileId ?? null;
   const nextId = next?.encodedFileId ?? null;
   useEffect(() => {
@@ -230,12 +235,7 @@ export function PiecesWorkspace({ caseFileKey, pieces, initialPieceId }: Props) 
         favoriteError={favoriteError}
       />
 
-      <PieceDetailPane
-        piece={current}
-        onPrevious={previous ? () => selectPiece(previous.encodedFileId) : undefined}
-        onNext={next ? () => selectPiece(next.encodedFileId) : undefined}
-        onEdit={openEdit}
-      />
+      <PieceDetailPane piece={current} onEdit={openEdit} />
 
       <pieceEditModal.Component title="Modifier la pièce">
         {/* Mounted on the first "Modifier" click only, so the hidden modal does not
@@ -397,12 +397,6 @@ function PiecesSidebar({
             >
               {label}
             </span>
-            <CaseFileTelerecoursTitle
-              title={piece.fileName}
-              displayName={label}
-              singleLine
-              as="span"
-            />
             {piece.eventDate && (
               <span
                 className={clsx(
@@ -414,7 +408,7 @@ function PiecesSidebar({
                 {piece.eventDate}
               </span>
             )}
-            {piece.typeLabel && (
+            {shouldShowPieceTypeTagInSidebar(piece) && (
               <span className={clsx(fr.cx("fr-tag", "fr-tag--sm"), fr.cx("fr-mt-1v"))}>
                 {piece.typeLabel}
               </span>
@@ -575,13 +569,10 @@ function FavoriteButton({ piece, label, onToggle }: FavoriteButtonProps) {
 
 type DetailPaneProps = {
   piece: MergedPiece | null;
-  // Undefined at either end of the list: the matching arrow is disabled.
-  onPrevious?: () => void;
-  onNext?: () => void;
   onEdit: () => void;
 };
 
-function PieceDetailPane({ piece, onPrevious, onNext, onEdit }: DetailPaneProps) {
+function PieceDetailPane({ piece, onEdit }: DetailPaneProps) {
   if (!piece) {
     return (
       <div className={clsx(fr.cx("fr-p-3w"), "flex-1")}>
@@ -592,7 +583,7 @@ function PieceDetailPane({ piece, onPrevious, onNext, onEdit }: DetailPaneProps)
 
   return (
     <div className={clsx("flex", "min-h-0", "min-w-0", "flex-1", "flex-col")}>
-      <PieceHeader piece={piece} onPrevious={onPrevious} onNext={onNext} onEdit={onEdit} />
+      <PieceHeader piece={piece} onEdit={onEdit} />
 
       <div className={clsx(fr.cx("fr-p-3w"), "flex", "min-h-0", "flex-1", "flex-col")}>
         <PieceViewer
@@ -608,16 +599,13 @@ function PieceDetailPane({ piece, onPrevious, onNext, onEdit }: DetailPaneProps)
 
 type HeaderProps = {
   piece: MergedPiece;
-  onPrevious?: () => void;
-  onNext?: () => void;
   onEdit: () => void;
 };
 
-// Viewed pièce header: previous/next arrows around the DAHLIA name (Télérecours
-// file name and comment underneath), favorite badge, edit and new-tab actions.
-// The comment lives in the title column, so the stacked action buttons on the
-// right never push it down.
-function PieceHeader({ piece, onPrevious, onNext, onEdit }: HeaderProps) {
+// Viewed pièce header: DAHLIA name (Télérecours file name and comment underneath),
+// favorite badge, edit and new-tab actions. The comment lives in the title column,
+// so the stacked action buttons on the right never push it down.
+function PieceHeader({ piece, onEdit }: HeaderProps) {
   const label = pieceDisplayLabel(piece);
   const comment = piece.comment?.trim();
 
@@ -634,30 +622,10 @@ function PieceHeader({ piece, onPrevious, onNext, onEdit }: HeaderProps) {
       )}
     >
       <div className={clsx("flex", "items-start", "gap-3")}>
-        <div className={clsx("flex", "min-w-0", "flex-1", "items-start", "gap-1")}>
-          <Button
-            priority="tertiary"
-            size="small"
-            iconId="fr-icon-arrow-left-s-line"
-            title="Pièce précédente"
-            nativeButtonProps={{ "aria-keyshortcuts": "ArrowUp ArrowLeft" }}
-            onClick={onPrevious}
-            disabled={!onPrevious}
-          />
-          <div className={clsx("min-w-0", "flex-1", fr.cx("fr-px-1v"))}>
-            <h2 className={clsx(fr.cx("fr-h6", "fr-mb-0"), "wrap-anywhere")}>{label}</h2>
-            <CaseFileTelerecoursTitle title={piece.fileName} displayName={label} singleLine />
-            <PieceComment comment={comment} />
-          </div>
-          <Button
-            priority="tertiary"
-            size="small"
-            iconId="fr-icon-arrow-right-s-line"
-            title="Pièce suivante"
-            nativeButtonProps={{ "aria-keyshortcuts": "ArrowDown ArrowRight" }}
-            onClick={onNext}
-            disabled={!onNext}
-          />
+        <div className={clsx("min-w-0", "flex-1")}>
+          <h2 className={clsx(fr.cx("fr-h6", "fr-mb-0"), "wrap-anywhere")}>{label}</h2>
+          <CaseFileTelerecoursTitle title={piece.fileName} displayName={label} singleLine />
+          <PieceComment comment={comment} />
         </div>
 
         {piece.isFavorite && (
