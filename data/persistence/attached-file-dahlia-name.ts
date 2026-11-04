@@ -19,25 +19,54 @@ const LEADING_DATE =
 // Piece label before its number (P_34, PJ5, PJ_1, Piece_33, piece_n_4, Pièce n°3).
 const PIECE_PREFIX = /^(?:PJ|P|Pi[eè]ces?)[^\p{L}\p{N}]*(?:n[°o]?[^\p{L}\p{N}]*)?(?=\d)/iu;
 const LEADING_NUMBER = /^(\d+)[^\p{L}\p{N}]*/u;
-// Words Telerecours glues in its generated file names, spelled out for display
+// Telerecours internal attachment ids (9+ digits, optional -N… index suffix).
+const TELERECOURS_ATTACHMENT_ID = String.raw`\d{9,}(?:-\d+)*`;
+const TELERECOURS_ID_MIN_LENGTH = 9;
+const STRIP_LEADING_TELERECOURS_ID = new RegExp(
+  String.raw`^${TELERECOURS_ATTACHMENT_ID}(?:_|[^\p{L}\p{N}])+`,
+  "iu",
+);
+const STRIP_TRAILING_TELERECOURS_ID = new RegExp(
+  String.raw`(?:_|[^\p{L}\p{N}])+${TELERECOURS_ATTACHMENT_ID}$`,
+  "iu",
+);
+// Words Telerecours glued in its generated file names, spelled out for display
 // (e.g. "1105771952_inventaireAutomatique_803008652.pdf").
 const WORD_REPLACEMENTS: [RegExp, string][] = [
   [/(?<![\p{L}\p{N}])inventaireAutomatique(?![\p{L}\p{N}])/giu, "Inventaire automatique"],
 ];
 
+// Remove Telerecours attachment ids from the start and end of a file stem (no extension).
+export function stripTelerecoursLongIdsFromStem(stem: string): string {
+  let s = stem;
+  for (;;) {
+    const next = s
+      .replace(STRIP_LEADING_TELERECOURS_ID, "")
+      .replace(STRIP_TRAILING_TELERECOURS_ID, "");
+    if (next === s) break;
+    s = next;
+  }
+  return s.replace(/^_+|_+$/g, "").trim();
+}
+
 // Derive a Dahlia display name from a Telerecours file name: drop the ".pdf"
-// extension and piece prefixes (P_, PJ, Pièce n°…), zero-pad every leading
-// number to at least 3 digits, keep leading dates as text, then replace
-// underscores with single spaces in the remaining text.
+// extension and piece prefixes (P_, PJ, Pièce n°…), strip Telerecours ids (9+
+// digits) from the ends of the stem, zero-pad every other leading number to at
+// least 3 digits, keep leading dates as text, then replace underscores with
+// single spaces in the remaining text.
 // e.g. "P_20261021_34_requête.pdf" → "20261021 034 requête". Returns null
 // when nothing is left.
 export function pieceNameFromFileName(fileName: string): string | null {
-  let rest = fileName.replace(/\.pdf$/i, "");
+  let rest = stripTelerecoursLongIdsFromStem(fileName.replace(/\.pdf$/i, ""));
   const numbers: string[] = [];
   while (!LEADING_DATE.test(rest)) {
     rest = rest.replace(PIECE_PREFIX, "");
     const match = rest.match(LEADING_NUMBER);
     if (!match) break;
+    if (match[1].length >= TELERECOURS_ID_MIN_LENGTH) {
+      rest = rest.slice(match[0].length);
+      continue;
+    }
     numbers.push(match[1].padStart(3, "0"));
     rest = rest.slice(match[0].length);
   }
@@ -54,11 +83,17 @@ export function pieceNameFromFileName(fileName: string): string | null {
 // notjuge_1167250019.pdf, r611-11_1164887605.pdf): the id is internal and the
 // code (notreq, comrqsoc, letgre…) always stands for the piece type (checked on
 // the whole TA069 base: 83 codes, each tied to exactly one fileTypeLabel and
-// never used outside COUK). The code is replaced by the type label, and the id
-// is kept where it stands.
+// never used outside COUK). The code is replaced by the type label; ids are not
+// kept in the Dahlia name.
 const COURT_CORRESPONDENCE_FAMILY = "COUK";
-const ID_THEN_CODE_FILE_NAME = /^(\d+)_[a-z][a-z0-9-]*\.pdf$/i;
-const CODE_THEN_ID_FILE_NAME = /^[a-z][a-z0-9-]*_(\d+)\.pdf$/i;
+const ID_THEN_CODE_FILE_NAME = new RegExp(
+  String.raw`^${TELERECOURS_ATTACHMENT_ID}_[a-z][a-z0-9-]*\.pdf$`,
+  "i",
+);
+const CODE_THEN_ID_FILE_NAME = new RegExp(
+  String.raw`^[a-z][a-z0-9-]*_${TELERECOURS_ATTACHMENT_ID}\.pdf$`,
+  "i",
+);
 
 export type AutoNamedPiece = {
   fileName: string;
@@ -66,18 +101,18 @@ export type AutoNamedPiece = {
   fileFamilyTypeCode?: string | null;
 };
 
-// Automatic Dahlia name of a pièce: for code-named court correspondence, its
-// type label with the id kept in place ("1083731924_notreq.pdf" →
-// "1083731924 Communication de la requête", "notjuge_1167250019.pdf" →
-// "Notification de jugement 1167250019"); otherwise the name derived from its
-// file name.
+// Automatic Dahlia name of a pièce: for code-named court correspondence, the
+// type label only ("1083731924_notreq.pdf" → "Communication de la requête");
+// otherwise the name derived from its file name.
 export function autoDahliaName(piece: AutoNamedPiece): string | null {
   const typeLabel = piece.fileTypeLabel?.trim();
   if (typeLabel && piece.fileFamilyTypeCode === COURT_CORRESPONDENCE_FAMILY) {
-    const idFirst = piece.fileName.match(ID_THEN_CODE_FILE_NAME);
-    if (idFirst) return `${idFirst[1]} ${typeLabel}`;
-    const idLast = piece.fileName.match(CODE_THEN_ID_FILE_NAME);
-    if (idLast) return `${typeLabel} ${idLast[1]}`;
+    if (
+      ID_THEN_CODE_FILE_NAME.test(piece.fileName) ||
+      CODE_THEN_ID_FILE_NAME.test(piece.fileName)
+    ) {
+      return typeLabel;
+    }
   }
   return pieceNameFromFileName(piece.fileName);
 }

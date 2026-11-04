@@ -47,6 +47,8 @@ export type CaseFileQualificationPanelProps = {
   fieldsToReview?: ClassifierQualificationField[];
   // Formatted on the server, in the court's time zone.
   validatedAtLabel: string;
+  // Inline PDF route for the dossier's requête pièce, when present.
+  requetePieceDataUrl?: string | null;
 };
 
 const REVIEW_MESSAGE = "Qualification automatique à valider";
@@ -146,6 +148,7 @@ export function CaseFileQualificationPanel(props: CaseFileQualificationPanelProp
     reviewState,
     validatedAtLabel,
     fieldsToReview = [],
+    requetePieceDataUrl = null,
   } = props;
   const [result, formAction, isPending] = useActionState(
     validateCaseFileQualificationFormAction,
@@ -307,9 +310,21 @@ export function CaseFileQualificationPanel(props: CaseFileQualificationPanelProp
         )}
 
         <div className={fr.cx("fr-mt-2w")}>
-          <Button type="submit" disabled={isPending} iconId="fr-icon-save-line">
-            {isPending ? "Enregistrement…" : submitLabel}
-          </Button>
+          <div className={clsx("flex", "flex-wrap", "items-center", "gap-2")}>
+            <Button type="submit" disabled={isPending} iconId="fr-icon-save-line">
+              {isPending ? "Enregistrement…" : submitLabel}
+            </Button>
+            {fieldsToReview.length > 0 && requetePieceDataUrl && (
+              <a
+                href={requetePieceDataUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={fr.cx("fr-link")}
+              >
+                Voir la requête
+              </a>
+            )}
+          </div>
           {isToReview && (
             <p className={fr.cx("fr-hint-text", "fr-mt-1w", "fr-mb-0")}>{SAVE_HINT}</p>
           )}

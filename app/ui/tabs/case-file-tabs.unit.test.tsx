@@ -1,7 +1,11 @@
 import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 import { CaseFileTabs } from "./case-file-tabs";
-import { fetchCaseFilePiecesFiltered, fetchCommentedPieces } from "@/app/lib/data/attached-files";
+import {
+  fetchCaseFilePiecesFiltered,
+  fetchCommentedPieces,
+  fetchRequetePiece,
+} from "@/app/lib/data/attached-files";
 import { fetchCaseFileEventsTableData } from "@/app/lib/data/case-file-events";
 import { fetchRelatedCaseFiles } from "@/app/lib/data/related-case-files";
 import { fetchCaseFileDebugSnapshot, type CaseFileDetail } from "@/app/lib/data/case-files";
@@ -14,6 +18,7 @@ vi.mock("@/app/lib/prisma", () => ({ prisma: {} }));
 vi.mock("@/app/lib/data/attached-files", () => ({
   fetchCaseFilePiecesFiltered: vi.fn(),
   fetchCommentedPieces: vi.fn(),
+  fetchRequetePiece: vi.fn(),
 }));
 
 vi.mock(
@@ -58,6 +63,7 @@ const pieces = [
     isFavorite: false,
     mimeType: "application/pdf",
     fileTypeLabel: "Requête",
+    fileFamilyTypeCode: "REQ",
     fileFamilyTypeLabel: "Requête",
     fileFamilyType: { label: "Requête" },
     eventCreationDate: new Date("2026-01-15T10:00:00"),
@@ -138,6 +144,7 @@ describe("CaseFileTabs", () => {
     vi.mocked(fetchCaseFilePiecesFiltered).mockResolvedValue(pieces);
     vi.mocked(fetchRelatedCaseFiles).mockResolvedValue([]);
     vi.mocked(fetchCommentedPieces).mockResolvedValue([]);
+    vi.mocked(fetchRequetePiece).mockResolvedValue(null);
     vi.mocked(fetchCaseFileEventsTableData).mockResolvedValue(historiqueTable);
     vi.mocked(fetchCaseFileDebugSnapshot).mockResolvedValue(debugSnapshot);
   });
@@ -186,6 +193,7 @@ describe("CaseFileTabs", () => {
 
     expect(fetchRelatedCaseFiles).toHaveBeenCalledTimes(1);
     expect(fetchCommentedPieces).toHaveBeenCalledTimes(1);
+    expect(fetchRequetePiece).toHaveBeenCalledTimes(1);
     expect(screen.getByRole("heading", { name: "Informations du dossier" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Qualification du dossier" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Commentaires" })).toBeTruthy();
@@ -247,6 +255,7 @@ describe("CaseFileTabs", () => {
     expect(fetchCaseFilePiecesFiltered).toHaveBeenCalledTimes(1);
     expect(fetchRelatedCaseFiles).not.toHaveBeenCalled();
     expect(fetchCommentedPieces).not.toHaveBeenCalled();
+    expect(fetchRequetePiece).not.toHaveBeenCalled();
     expect(fetchCaseFileEventsTableData).not.toHaveBeenCalled();
     expect(fetchCaseFileDebugSnapshot).not.toHaveBeenCalled();
   });
