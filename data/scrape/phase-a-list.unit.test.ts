@@ -15,6 +15,7 @@ const baseArgs: Args = {
   anonymize: true,
   enrich: "ongoing",
   updatePieceName: false,
+  forceUpdatePieceName: false,
   force: false,
   classify: false,
   classifyOverwrite: false,
@@ -133,12 +134,24 @@ describe("phaseA", () => {
     const res = await phaseA(baseArgs, makeDeps(prisma, client));
 
     expect(getCaseFiles).toHaveBeenCalledTimes(3);
-    expect(getCaseFiles).toHaveBeenNthCalledWith(2, "TA069", 1, 30, undefined, expect.anything(), [
-      2488,
-    ]);
-    expect(getCaseFiles).toHaveBeenNthCalledWith(3, "TA069", 2, 30, undefined, expect.anything(), [
-      2488,
-    ]);
+    expect(getCaseFiles).toHaveBeenNthCalledWith(
+      2,
+      "TA069",
+      1,
+      30,
+      undefined,
+      expect.anything(),
+      [2488],
+    );
+    expect(getCaseFiles).toHaveBeenNthCalledWith(
+      3,
+      "TA069",
+      2,
+      30,
+      undefined,
+      expect.anything(),
+      [2488],
+    );
     expect(res.failedPages).toEqual([1]);
     expect(res.seen.sort()).toEqual(["A", "C"]);
     expect(res.processed).toBe(2);

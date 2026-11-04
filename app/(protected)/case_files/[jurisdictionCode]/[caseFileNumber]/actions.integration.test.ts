@@ -612,13 +612,14 @@ describe("validateCaseFileQualificationFormAction (integration)", () => {
   }
 
   async function seedClassifierChange(changedAt: Date): Promise<void> {
-    await testPrisma.classificationFieldChange.create({
+    await testPrisma.fieldChange.create({
       data: {
         jurisdictionCode: "TA069",
-        caseFileNumber: CASE_FILE_NUMBER,
+        model: "CaseFile",
+        modelId: CASE_FILE_NUMBER,
         field: "litigationType",
         newValue: "INJONCTION",
-        ruleId: "test",
+        origin: "test",
         changedAt,
       },
     });

@@ -12,7 +12,11 @@ import {
   type CaseFileDashboardRow,
 } from "@/app/lib/case-files-dashboard-columns";
 import type { CaseFileKey } from "@/app/lib/case-file-key";
-import { CLASSIFIER_QUALIFICATION_FIELDS } from "@/app/lib/case-file-qualification";
+import {
+  CLASSIFIER_QUALIFICATION_FIELDS,
+  type ClassifierFieldChange,
+} from "@/app/lib/case-file-qualification";
+import { fieldChangeTargetCaseFile } from "@/app/lib/field-change";
 import { prisma } from "@/app/lib/prisma";
 import {
   caseFileScopeWhere,
@@ -240,15 +244,6 @@ const CASE_FILE_DETAIL_INCLUDE = {
     include: { measure: true, actor: true, attachedFiles: true },
     orderBy: { eventDate: "desc" as const },
   },
-  // Most recent classifier change of each qualification field: drives the
-  // review warning of the "Qualification du dossier" block and its per-field
-  // status (`distinct` keeps the first row of each field in this order).
-  classificationFieldChanges: {
-    where: { field: { in: [...CLASSIFIER_QUALIFICATION_FIELDS] } },
-    orderBy: [{ field: "asc" as const }, { changedAt: "desc" as const }],
-    distinct: ["field" as const],
-    select: { field: true, changedAt: true },
-  },
   // Tab counters. Events and pièces are only filtered by case file, so these
   // totals match the unfiltered historique and pièces tabs.
   _count: { select: { events: true, attachedFiles: true } },
@@ -267,10 +262,30 @@ export const fetchCaseFileDetail = cache(
     });
     if (!caseFile) {
       await logCaseFileScopeMiss({ resource: "case_file", jurisdictionCode, caseFileNumber });
+      return null;
     }
-    return caseFile;
+    return {
+      ...caseFile,
+      fieldChanges: await fetchClassifierFieldChanges({ jurisdictionCode, caseFileNumber }),
+    };
   },
 );
+
+// Most recent classifier change of each qualification field: drives the review
+// warning of the "Qualification du dossier" block and its per-field status
+// (`distinct` keeps the first row of each field in this order). Only case-file
+// rows of the polymorphic history are read, never pièce renames.
+async function fetchClassifierFieldChanges(key: CaseFileKey): Promise<ClassifierFieldChange[]> {
+  return prisma.fieldChange.findMany({
+    where: {
+      ...fieldChangeTargetCaseFile(key),
+      field: { in: [...CLASSIFIER_QUALIFICATION_FIELDS] },
+    },
+    orderBy: [{ field: "asc" }, { changedAt: "desc" }],
+    distinct: ["field"],
+    select: { field: true, changedAt: true },
+  });
+}
 
 export type CaseFileDetail = Prisma.PromiseReturnType<typeof fetchCaseFileDetail>;
 

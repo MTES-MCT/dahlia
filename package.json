@@ -26,6 +26,7 @@
     "classify:case-files": "ts-node -P data/tsconfig.json data/cli/classify-case-files.ts",
     "check:id-collisions": "ts-node -P data/tsconfig.json data/cli/check-id-collisions.ts",
     "flag:requete-favorites": "ts-node -P data/tsconfig.json data/cli/flag-requete-favorites.ts",
+    "update:piece-names": "ts-node -P data/tsconfig.json data/cli/update-piece-names.ts",
     "test:unit": "vitest run --config vitest.unit.config.mts",
     "test:integration": "vitest run --config vitest.integration.config.mts",
     "test": "pnpm test:unit && pnpm test:integration",

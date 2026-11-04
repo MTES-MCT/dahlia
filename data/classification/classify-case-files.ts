@@ -1,4 +1,5 @@
 import type { LitigationType, Prisma, PrismaClient, RightType } from "@prisma/client";
+import { fieldChangeData, fieldChangeTargetCaseFile } from "../../app/lib/field-change";
 import type { ClassificationChange } from "./classification-csv";
 import { classify, hasClassification } from "./engine";
 import { DEFAULT_RULES } from "./rules";
@@ -105,24 +106,25 @@ export function planCaseFileUpdate(
   return update;
 }
 
-// One history row per written field, attributed to the rule that produced the
-// new value (see the `classification_field_changes` table).
+// One history row per written field (`field_changes` table, model CaseFile),
+// attributed to the rule that produced the new value.
 export function fieldChangesOf(
   current: CaseFileClassificationState,
   update: CaseFileClassificationUpdate,
   result: ClassificationResult,
-): Prisma.ClassificationFieldChangeCreateManyInput[] {
+): Prisma.FieldChangeCreateManyInput[] {
   const ruleIdOf = (field: ClassificationAttribute) =>
     result.matches.find((match) => match.attributes.includes(field))?.ruleId ?? "unknown";
+  const target = fieldChangeTargetCaseFile(current);
 
-  return (Object.keys(update) as (keyof CaseFileClassificationUpdate)[]).map((field) => ({
-    jurisdictionCode: current.jurisdictionCode,
-    caseFileNumber: current.caseFileNumber,
-    field,
-    previousValue: current[field],
-    newValue: String(update[field]),
-    ruleId: ruleIdOf(field),
-  }));
+  return (Object.keys(update) as (keyof CaseFileClassificationUpdate)[]).map((field) =>
+    fieldChangeData(target, {
+      field,
+      previousValue: current[field],
+      newValue: String(update[field]),
+      origin: ruleIdOf(field),
+    }),
+  );
 }
 
 function caseFilesWhere(options: ClassifyCaseFilesOptions): Prisma.CaseFileWhereInput {
@@ -223,7 +225,7 @@ export async function classifyCaseFiles(
           },
           data: update,
         }),
-        prisma.classificationFieldChange.createMany({
+        prisma.fieldChange.createMany({
           data: fieldChangesOf(caseFile, update, result),
         }),
       ]);
