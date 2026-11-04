@@ -62,6 +62,33 @@ describe("CaseFileQualificationPanel", () => {
       ).toBeNull();
     });
 
+    it("affiche « Voir la requête » à côté du bouton quand une requête est disponible", () => {
+      renderPanel({
+        fieldsToReview: ["litigationType"],
+        requetePieceDataUrl: "/case_files/TA069/2600001/pieces/enc-req/data",
+      });
+
+      const link = screen.getByRole("link", { name: "Voir la requête" });
+      expect(link.getAttribute("href")).toBe("/case_files/TA069/2600001/pieces/enc-req/data");
+      expect(link.getAttribute("target")).toBe("_blank");
+      expect(link.getAttribute("rel")).toBe("noopener noreferrer");
+    });
+
+    it("masque « Voir la requête » sans pièce requête ou sans champ à valider", () => {
+      renderPanel({
+        fieldsToReview: ["litigationType"],
+        requetePieceDataUrl: null,
+      });
+      expect(screen.queryByRole("link", { name: "Voir la requête" })).toBeNull();
+
+      cleanup();
+      renderPanel({
+        fieldsToReview: [],
+        requetePieceDataUrl: "/case_files/TA069/2600001/pieces/enc-req/data",
+      });
+      expect(screen.queryByRole("link", { name: "Voir la requête" })).toBeNull();
+    });
+
     it("garde le libellé « Enregistrer » quand aucun champ n'est à valider", () => {
       renderPanel({ fieldsToReview: [] });
 
