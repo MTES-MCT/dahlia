@@ -15,8 +15,8 @@ export const DEFAULT_STATUS_GROUP: StatusGroup = "en_cours";
 
 export const STATUS_GROUP_LABELS: Record<StatusGroup, string> = {
   en_cours: "En cours",
-  termine: "Terminé",
-  tous: "Tous",
+  termine: "Terminés",
+  tous: "Tous les dossiers",
 };
 
 export const TERMINATED_STATUS_LABELS: readonly string[] = ["Terminé", "Dossier rayé"];

@@ -26,7 +26,11 @@ import {
 } from "@/app/lib/case-file-scope";
 import { normalizeForSearch, parseSearchQuery, type FacetKey } from "@/app/lib/case-file-search";
 import { buildWordAndFilter, combineAnd, facetSearchWords } from "@/app/lib/search-where";
-import { TERMINATED_STATUS_LABELS, type StatusGroup } from "@/app/lib/dashboard-filter";
+import {
+  STATUS_GROUPS,
+  TERMINATED_STATUS_LABELS,
+  type StatusGroup,
+} from "@/app/lib/dashboard-filter";
 
 export { HEARING_CONVOCATION_SORT_KEY } from "@/app/lib/case-files-dashboard-columns";
 
@@ -269,6 +273,17 @@ async function fetchCaseFilesCount(
 ): Promise<number> {
   const where = await buildScopedWhere(query, statusLabel, statusGroup);
   return prisma.caseFile.count({ where });
+}
+
+export type StatusGroupCounts = Record<StatusGroup, number>;
+
+// Dashboard tab counters: number of accessible case files in each status group,
+// independent of the current search so the tabs stay a stable overview.
+export async function fetchCaseFilesStatusGroupCounts(): Promise<StatusGroupCounts> {
+  const [enCours, termine, tous] = await Promise.all(
+    STATUS_GROUPS.map((group) => fetchCaseFilesCount(null, null, group)),
+  );
+  return { en_cours: enCours, termine, tous };
 }
 
 const CASE_FILE_DETAIL_INCLUDE = {

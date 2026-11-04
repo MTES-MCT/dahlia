@@ -1,10 +1,13 @@
 import { fr } from "@codegouvfr/react-dsfr";
-import clsx from "clsx";
 import { Alert } from "@codegouvfr/react-dsfr/Alert";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { getCurrentCaseFileScope } from "@/app/lib/case-file-scope";
-import { fetchCaseFilesTableData, HEARING_CONVOCATION_SORT_KEY } from "@/app/lib/data/case-files";
+import {
+  fetchCaseFilesStatusGroupCounts,
+  fetchCaseFilesTableData,
+  HEARING_CONVOCATION_SORT_KEY,
+} from "@/app/lib/data/case-files";
 import { fetchDashboardStatusFilterOptions } from "@/app/lib/data/statuses";
 import { fetchTagOptions } from "@/app/lib/data/tags";
 import {
@@ -33,11 +36,11 @@ import {
   type StatusGroup,
 } from "@/app/lib/dashboard-filter";
 import { buildCaseFilesSearchConfig } from "@/app/ui/form/case-files-search";
-import { CaseFilesStatusGroupToggle } from "@/app/ui/form/case-files-status-group-toggle";
 import { caseFileHref } from "@/app/lib/case-file-key";
 import { CaseFileDossierCell } from "@/app/ui/table/case-file-dossier-cell";
 import { DataTable, type DataTableColumn } from "@/app/ui/table/data-table";
 import { MemoryDeadlineCell } from "@/app/ui/table/memory-deadline-cell";
+import { CaseFilesStatusGroupTabs } from "@/app/ui/tabs/case-files-status-group-tabs";
 
 export const metadata: Metadata = {
   title: "Tableau de bord",
@@ -138,9 +141,10 @@ export default async function Page({ searchParams }: Props) {
     },
   );
 
-  const [statusFilterOptions, tagOptions] = await Promise.all([
+  const [statusFilterOptions, tagOptions, statusGroupCounts] = await Promise.all([
     fetchDashboardStatusFilterOptions(),
     fetchTagOptions(),
+    fetchCaseFilesStatusGroupCounts(),
   ]);
   const group = resolveStatusGroup(groupeParam);
   const groupStatusOptions = filterStatusOptionsByGroup(statusFilterOptions, group);
@@ -175,44 +179,34 @@ export default async function Page({ searchParams }: Props) {
 
   return (
     <>
-      <div
-        className={clsx(
-          "flex",
-          "flex-wrap",
-          "items-center",
-          "gap-x-8",
-          "gap-y-4",
-          fr.cx("fr-mt-3w", "fr-mb-3w"),
-        )}
-      >
-        <h1 className={fr.cx("fr-h2", "fr-mb-0")}>{PAGE_HEADING}</h1>
-        <CaseFilesStatusGroupToggle key={group} currentGroup={group} />
-      </div>
+      <h1 className={fr.cx("fr-h2", "fr-mt-3w", "fr-mb-3w")}>{PAGE_HEADING}</h1>
 
-      <DataTable
-        minWidth="50rem"
-        search={buildCaseFilesSearchConfig({
-          currentQuery: tableState.query ?? "",
-          sortByParam,
-          sortOrderParam,
-          statusGroup: group,
-          facetFields: dashboardFacetFields(groupStatusOptions),
-          availableTags: tagOptions,
-        })}
-        columns={dashboardColumns(currentQueryString)}
-        rows={rows}
-        totalCount={totalCount}
-        totalPages={totalPages}
-        currentPage={tableState.page}
-        pageSize={pageSize}
-        params={DASHBOARD_TABLE_PARAMS}
-        tableId="dashboard"
-        facetKeys={FACET_KEYS}
-        caption={(count) =>
-          `${count} dossier${count > 1 ? "s" : ""}${currentStatut ? ` ${statusLabelForCount(count, currentStatut)}` : statusGroupCaptionSuffix(group, count)}`
-        }
-        exportPath="/case_files/export"
-      />
+      <CaseFilesStatusGroupTabs currentGroup={group} counts={statusGroupCounts}>
+        <DataTable
+          minWidth="50rem"
+          search={buildCaseFilesSearchConfig({
+            currentQuery: tableState.query ?? "",
+            sortByParam,
+            sortOrderParam,
+            statusGroup: group,
+            facetFields: dashboardFacetFields(groupStatusOptions),
+            availableTags: tagOptions,
+          })}
+          columns={dashboardColumns(currentQueryString)}
+          rows={rows}
+          totalCount={totalCount}
+          totalPages={totalPages}
+          currentPage={tableState.page}
+          pageSize={pageSize}
+          params={DASHBOARD_TABLE_PARAMS}
+          tableId="dashboard"
+          facetKeys={FACET_KEYS}
+          caption={(count) =>
+            `${count} dossier${count > 1 ? "s" : ""}${currentStatut ? ` ${statusLabelForCount(count, currentStatut)}` : statusGroupCaptionSuffix(group, count)}`
+          }
+          exportPath="/case_files/export"
+        />
+      </CaseFilesStatusGroupTabs>
     </>
   );
 }
