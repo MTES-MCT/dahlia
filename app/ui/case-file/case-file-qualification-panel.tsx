@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useActionState, useId, useState } from "react";
+import { Fragment, useActionState, useId } from "react";
 import clsx from "clsx";
 import { fr } from "@codegouvfr/react-dsfr";
 import { Alert } from "@codegouvfr/react-dsfr/Alert";
@@ -69,6 +69,33 @@ const SELECT_WIDTH_CLASSNAME = clsx("w-max!");
 
 const SAVE_HINT =
   "En enregistrant, vous confirmez avoir vérifié les informations proposées automatiquement.";
+
+function QualificationPanelTitle({
+  showValidatedStatus,
+  validatedAtLabel,
+}: {
+  showValidatedStatus: boolean;
+  validatedAtLabel: string;
+}) {
+  const validatedTitle = `Qualification revue et validée le ${validatedAtLabel}`;
+
+  return (
+    <span className={clsx("inline-flex", "flex-wrap", "items-center", "gap-1")}>
+      <span>Qualification du dossier</span>
+      {showValidatedStatus && (
+        <span
+          role="img"
+          className={clsx(
+            fr.cx("fr-icon-checkbox-circle-line", "fr-icon--sm"),
+            "text-(--text-default-success)",
+          )}
+          title={validatedTitle}
+          aria-label={validatedTitle}
+        />
+      )}
+    </span>
+  );
+}
 
 function QualificationSummary({
   litigationType,
@@ -162,18 +189,8 @@ export function CaseFileQualificationPanel(props: CaseFileQualificationPanelProp
   const rightTypeReviewId = `${formId}-right-type-review`;
   // Saving also validates the classifier values when at least one field awaits review.
   const submitLabel = fieldsToReview.length > 0 ? "Valider et enregistrer" : "Enregistrer";
-
-  // The success notice is a feedback on the save the agent just made, not a
-  // persistent state: it only follows a save that settled a pending review, and
-  // a page reload drops it. Whether a review was pending is captured on submit,
-  // before the revalidated props report the case file as validated.
-  const [submittedWhileToReview, setSubmittedWhileToReview] = useState(false);
-  const [showValidated, setShowValidated] = useState(false);
-  const [handledResult, setHandledResult] = useState(result);
-  if (result !== handledResult) {
-    setHandledResult(result);
-    setShowValidated(Boolean(result?.ok) && submittedWhileToReview);
-  }
+  const showValidatedStatus =
+    reviewState === "validated" && fieldsToReview.length === 0 && validatedAtLabel.length > 0;
 
   // Remount the form when the saved values change, so uncontrolled fields show
   // what is now stored.
@@ -194,28 +211,22 @@ export function CaseFileQualificationPanel(props: CaseFileQualificationPanelProp
         small
         description="Données générées automatiquement : vérification par un agent de l’État indispensable"
       />
-    ) : showValidated && reviewState === "validated" ? (
-      <Alert
-        severity="success"
-        small
-        description={`Qualification revue et validée le ${validatedAtLabel}`}
-      />
     ) : null;
 
   return (
     <CollapsiblePanel
-      title="Qualification du dossier"
+      title={
+        <QualificationPanelTitle
+          showValidatedStatus={showValidatedStatus}
+          validatedAtLabel={validatedAtLabel}
+        />
+      }
       openLabel="Afficher et éditer"
       defaultOpen={isToReview}
       banner={banner}
       summary={<QualificationSummary {...props} />}
     >
-      <form
-        key={formKey}
-        id={formId}
-        action={formAction}
-        onSubmit={() => setSubmittedWhileToReview(isToReview)}
-      >
+      <form key={formKey} id={formId} action={formAction}>
         {/* autoComplete="off" on every control: Firefox otherwise restores, on
             reload, the values fields had before, matched by position, over the
             server-rendered ones (uncontrolled fields, variable hidden inputs). */}
