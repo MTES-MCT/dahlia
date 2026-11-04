@@ -1,6 +1,13 @@
 import { PrismaClient } from "@prisma/client";
+import {
+  anonymizeCaseFileDetail,
+  createNameScrubber,
+  KEEP_NAMES,
+  type NameScrubber,
+} from "../anonymize";
 import { TelerecoursClient } from "../telerecours/client.interface";
 import {
+  Actor,
   AttachedFile,
   CaseFileActorDto,
   CaseFileDetail,
@@ -10,6 +17,7 @@ import {
 } from "../telerecours/types";
 import {
   applyDahliaNameUpdate,
+  DAHLIA_NAME_FIELD,
   hasTelerecoursChanges,
   wasRenamedByUser,
   pieceNameFromFileName,
@@ -149,6 +157,7 @@ async function upsertCaseFileEvent(
   key: CaseFileKey,
   event: CaseFileEvent,
   anonymize: boolean,
+  scrubNames: NameScrubber,
 ): Promise<void> {
   await prisma.measure.upsert({
     where: { code: event.measure.id },
@@ -177,7 +186,7 @@ async function upsertCaseFileEvent(
     deadlineLabel: event.deadlineLabel,
     receiptDate: parseDate(event.receiptDate),
     instructionClosingDate: parseDate(event.instructionClosingDate),
-    comment: event.comment,
+    comment: event.comment && scrubNames(event.comment),
     hasAttachment: event.hasAttachment,
     generateAR: event.generateAR,
     nbEventFile: event.nbEventFile,
@@ -208,11 +217,40 @@ export type PieceNameOptions = {
   forceUpdatePieceName: boolean;
 };
 
+// Names logged in `field_changes` may date from before the pièce's file name was
+// scrubbed.
+async function scrubPieceNameHistory(
+  prisma: PrismaClient,
+  jurisdictionCode: string,
+  encodedFileId: string,
+  scrubNames: NameScrubber,
+): Promise<void> {
+  const changes = await prisma.fieldChange.findMany({
+    where: {
+      jurisdictionCode,
+      model: "AttachedFile",
+      modelId: encodedFileId,
+      field: DAHLIA_NAME_FIELD,
+    },
+    select: { id: true, previousValue: true, newValue: true },
+  });
+  for (const change of changes) {
+    const previousValue = change.previousValue && scrubNames(change.previousValue);
+    const newValue = scrubNames(change.newValue);
+    if (previousValue === change.previousValue && newValue === change.newValue) continue;
+    await prisma.fieldChange.update({
+      where: { id: change.id },
+      data: { previousValue, newValue },
+    });
+  }
+}
+
 async function upsertAttachedFile(
   prisma: PrismaClient,
   key: CaseFileKey,
   file: AttachedFile,
   pieceNameOptions: PieceNameOptions,
+  scrubNames: NameScrubber,
 ): Promise<{ upserted: boolean; reason?: string }> {
   const { jurisdictionCode } = key;
   const { encodedFileId } = file;
@@ -244,8 +282,8 @@ async function upsertAttachedFile(
   });
 
   const data: AttachedFileTelerecoursData = {
-    originalFileName: file.originalFileName,
-    fileName: file.fileName,
+    originalFileName: scrubNames(file.originalFileName),
+    fileName: scrubNames(file.fileName),
     mimeType: file.mimeType,
     documentType: file.documentType,
     subEventId: file.subEventId,
@@ -287,6 +325,23 @@ async function upsertAttachedFile(
         where,
         data: { ...data, updatedAt: now, telerecoursUpdatedAt: now },
       });
+    }
+    // A name derived from a file imported before its names were scrubbed. Not
+    // logged as a rename: the history would keep the real name.
+    const scrubbedName = dahliaName && scrubNames(dahliaName);
+    if (scrubbedName !== dahliaName) {
+      await prisma.attachedFile.update({
+        where,
+        data: { dahliaName: scrubbedName, updatedAt: now },
+      });
+      dahliaName = scrubbedName;
+    }
+    if (
+      scrubbedName !== existing.dahliaName ||
+      data.fileName !== file.fileName ||
+      data.originalFileName !== file.originalFileName
+    ) {
+      await scrubPieceNameHistory(prisma, jurisdictionCode, encodedFileId, scrubNames);
     }
   }
 
@@ -365,6 +420,24 @@ async function deleteStaleEventsAndFiles(
   }
 }
 
+// Every person of the case file whose name may appear in its free texts.
+export function caseFileActors(
+  detail: CaseFileDetail,
+  actors: CaseFileActorDto[],
+  events: CaseFileEvent[],
+): Actor[] {
+  const withRepresentatives = (actor: CaseFileActorDto): Actor[] => [
+    actor,
+    ...(actor.representedBy ?? []).flatMap(withRepresentatives),
+  ];
+  return [
+    detail.mainClaimant,
+    detail.mainDefender,
+    ...actors.flatMap(withRepresentatives),
+    ...events.map((event) => event.actor),
+  ].filter((actor): actor is Actor => Boolean(actor));
+}
+
 // Fetch the enriched detail, all hearings, all events (measures) and all
 // attached files for a single case file, and upsert them. `jurisdiction` is the
 // Dahlia instance (e.g. "TA069bis"): it selects the credentials and resolves the
@@ -395,20 +468,36 @@ export async function enrichCaseFile(
 
   // 1. Enriched detail
   const detail = await client.getCaseFileDetail(caseFileNumber, jurisdiction);
-  // Re-upsert the base CaseFile (in case the detail brings fields missing from
-  // the list view) then fill the detail columns.
-  if (detail.lastStatus && detail.mainClaimant) {
-    await upsertCaseFile(prisma, detail, anonymize, resolvedJurisdiction);
-  }
-  await upsertCaseFileDetail(prisma, key, detail);
-
-  // 2. All actors (parties, lawyers, etc.)
+  // Actors and events are fetched before any write: free texts must be scrubbed
+  // with the names of all the actors, so that no real name ever reaches the base.
   const actors: CaseFileActorDto[] = [];
   for await (const actor of paginate<CaseFileActorDto>((page) =>
     client.getCaseFileActors(caseFileNumber, jurisdiction, page),
   )) {
     actors.push(actor);
   }
+  const events: CaseFileEvent[] = [];
+  for await (const event of paginate<CaseFileEvent>((page) =>
+    client.getCaseFileMeasures(caseFileNumber, jurisdiction, page),
+  )) {
+    events.push(event);
+  }
+  const scrubNames = anonymize
+    ? createNameScrubber(caseFileActors(detail, actors, events))
+    : KEEP_NAMES;
+
+  // Re-upsert the base CaseFile (in case the detail brings fields missing from
+  // the list view) then fill the detail columns.
+  if (detail.lastStatus && detail.mainClaimant) {
+    await upsertCaseFile(prisma, detail, anonymize, resolvedJurisdiction);
+  }
+  await upsertCaseFileDetail(
+    prisma,
+    key,
+    anonymize ? anonymizeCaseFileDetail(detail, scrubNames) : detail,
+  );
+
+  // 2. All actors (parties, lawyers, etc.)
   await upsertCaseFileActorsFromApi(prisma, key, actors, anonymize);
   const actorsCount = actors.length;
 
@@ -430,12 +519,8 @@ export async function enrichCaseFile(
   const hearingsCount = hearings.length;
 
   // 4. All events (measures)
-  const events: CaseFileEvent[] = [];
-  for await (const event of paginate<CaseFileEvent>((page) =>
-    client.getCaseFileMeasures(caseFileNumber, jurisdiction, page),
-  )) {
-    await upsertCaseFileEvent(prisma, key, event, anonymize);
-    events.push(event);
+  for (const event of events) {
+    await upsertCaseFileEvent(prisma, key, event, anonymize, scrubNames);
   }
   const eventsCount = events.length;
 
@@ -446,7 +531,7 @@ export async function enrichCaseFile(
   for await (const file of paginate<AttachedFile>((page) =>
     client.getCaseFileAttachedFiles(caseFileNumber, jurisdiction, page),
   )) {
-    const result = await upsertAttachedFile(prisma, key, file, pieceNameOptions);
+    const result = await upsertAttachedFile(prisma, key, file, pieceNameOptions, scrubNames);
     files.push(file);
     if (result.upserted) {
       filesCount++;

@@ -30,7 +30,7 @@ export const SCRAPE_USAGE = `Usage: pnpm scrape:telerecours -- [options]
   --all                            Récupère tous les dossiers, sans filtre de statut.
   --legalEntityDivisionIds <ids>   Filtre de divisions, séparées par des virgules (ex. 2488,1234).
                                    Défaut : <JURIDICTION>_TELERECOURS_DIVISIONS.
-  --anonymize                      Anonymise les acteurs avant insertion (défaut hors production).
+  --anonymize                      Anonymise les acteurs et leurs noms dans les textes du dossier avant insertion (défaut hors production).
   --no-anonymize                   Désactive l'anonymisation.
   --enrich <all|ongoing|none>      Phases B et C : ongoing (défaut, hors « Terminé »),
                                    all (y compris terminés), none (saute B et C).

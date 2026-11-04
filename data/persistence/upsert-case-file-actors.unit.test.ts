@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { anonymizeActor } from "../anonymize";
 import { upsertCaseFileActorLink } from "./upsert-case-file-actors";
 import { actorFixture } from "../test-support/fixtures";
 
@@ -25,6 +26,20 @@ describe("upsertCaseFileActorLink", () => {
     mockActorUpsert.mockResolvedValue({});
     mockCaseFileActorUpdateMany.mockResolvedValue({ count: 0 });
     mockCaseFileActorUpsert.mockResolvedValue({});
+  });
+
+  it("n'anonymise l'acteur qu'une fois, pour garder les noms des pièces cohérents", async () => {
+    const actor = actorFixture();
+
+    await upsertCaseFileActorLink(
+      prisma,
+      caseFileKey,
+      actor,
+      { isMainClaimant: true, isMainDefender: false },
+      true,
+    );
+
+    expect(mockActorUpsert.mock.calls[0][0].create.lastName).toBe(anonymizeActor(actor).lastName);
   });
 
   it("retire isMainClaimant des autres acteurs avant d'assigner le nouveau main", async () => {
