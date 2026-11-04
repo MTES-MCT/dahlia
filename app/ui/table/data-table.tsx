@@ -25,10 +25,14 @@ export type DataTableSearchConfig = {
   action: string;
   currentQuery: string;
   hiddenParams: TableSearchHiddenParam[];
-  resetHref: string;
+  // « Ré-initialiser la recherche » link target; no link when omitted.
+  resetHref?: string;
   label: string;
   placeholder?: string;
   searchSlot?: React.ReactNode;
+  actionsSlot?: React.ReactNode;
+  // Extra classes on the search form (e.g. a framed background).
+  className?: string;
 };
 
 export type DataTableProps<T> = {
@@ -43,7 +47,6 @@ export type DataTableProps<T> = {
   facetKeys: readonly string[];
   caption: (totalCount: number) => string;
   search: DataTableSearchConfig;
-  preserveParams?: Record<string, string | undefined>;
   // When set, a "download" button (flush right of the pagination) exports every
   // matching row to this route, preserving the current filter and sort.
   exportPath?: string;
@@ -73,7 +76,6 @@ export function DataTable<T>({
   facetKeys,
   caption,
   search,
-  preserveParams,
   exportPath,
   minWidth,
   leadingColumn,
@@ -158,7 +160,6 @@ export function DataTable<T>({
         currentPage={currentPage}
         totalPages={totalPages}
         pageSize={pageSize}
-        preserveParams={preserveParams}
         exportPath={exportPath}
       />
     </>

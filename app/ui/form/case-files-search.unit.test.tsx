@@ -2,14 +2,17 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 import { DASHBOARD_TABLE_PARAMS } from "@/app/lib/case-file-search";
 import { buildCaseFilesSearchConfig } from "./case-files-search";
+import { SavedSearches } from "@/app/ui/form/saved-searches";
 import { TableSearchForm } from "@/app/ui/form/table-search-form";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
 }));
 
-const DEFAULT_STATUT = "En cours d'instruction";
-const STATUS_FILTER_OPTIONS = ["En cours d'instruction", "Terminé", "Recours en appel"];
+vi.mock("@/app/(protected)/case_files/actions", () => ({
+  saveSearchFormAction: vi.fn(),
+  deleteSavedSearchFormAction: vi.fn(),
+}));
 
 function getForm(): HTMLFormElement {
   return screen.getByRole("search") as HTMLFormElement;
@@ -23,7 +26,9 @@ function hiddenValue(form: HTMLFormElement, name: string): string | undefined {
 
 function renderDashboardSearch(props: Parameters<typeof buildCaseFilesSearchConfig>[0]) {
   render(
-    <TableSearchForm params={DASHBOARD_TABLE_PARAMS} {...buildCaseFilesSearchConfig(props)} />,
+    <SavedSearches searches={[]} currentQuery={props.currentQuery} currentGroup="en_cours">
+      <TableSearchForm params={DASHBOARD_TABLE_PARAMS} {...buildCaseFilesSearchConfig(props)} />
+    </SavedSearches>,
   );
 }
 
@@ -34,8 +39,6 @@ describe("buildCaseFilesSearchConfig", () => {
 
   it("est un form GET vers /case_files sans champ page", () => {
     renderDashboardSearch({
-      statusFilterOptions: STATUS_FILTER_OPTIONS,
-      defaultStatut: DEFAULT_STATUT,
       currentQuery: "",
     });
 
@@ -46,44 +49,41 @@ describe("buildCaseFilesSearchConfig", () => {
     expect(form.querySelector('input[name="page"]')).toBeNull();
   });
 
-  it("englobe le filtre statut et le champ texte", () => {
-    renderDashboardSearch({
-      statusFilterOptions: STATUS_FILTER_OPTIONS,
-      defaultStatut: DEFAULT_STATUT,
-      currentQuery: "dupont",
-      statutParam: "Terminé",
-    });
+  it("contient le champ principal et le panneau « Filtres avancés », sans select statut", () => {
+    renderDashboardSearch({ currentQuery: "dupont" });
 
     const form = getForm();
-    const select = screen.getByRole("combobox") as HTMLSelectElement;
-    const input = screen.getByRole("searchbox") as HTMLInputElement;
-    // Both fields live inside the same form.
-    expect(form.contains(select)).toBe(true);
+    const input = screen.getByLabelText("Rechercher") as HTMLInputElement;
     expect(form.contains(input)).toBe(true);
-    expect(select.name).toBe("statut");
-    expect(select.value).toBe("Terminé");
-    expect(input.name).toBe("dahliaq");
-    expect(input.defaultValue).toBe("dupont");
+    expect(input.value).toBe("dupont");
+    // The query is submitted through a hidden field combining text and facets.
+    expect(hiddenValue(form, "dahliaq")).toBe("dupont");
+    expect(screen.queryByRole("combobox")).toBeNull();
+
+    const summary = screen.getByText("Filtres avancés");
+    expect(summary.tagName).toBe("SUMMARY");
+    expect(form.contains(summary)).toBe(true);
   });
 
-  it("affiche un bouton « Rechercher » et un lien de réinitialisation", () => {
+  it("rend le groupe de statuts en champ caché", () => {
+    renderDashboardSearch({ currentQuery: "", statusGroup: "termine" });
+
+    expect(hiddenValue(getForm(), "groupe")).toBe("termine");
+  });
+
+  it("affiche un bouton « Rechercher » sans lien de réinitialisation", () => {
     renderDashboardSearch({
-      statusFilterOptions: STATUS_FILTER_OPTIONS,
-      defaultStatut: DEFAULT_STATUT,
       currentQuery: "",
     });
 
     const button = screen.getByRole("button", { name: "Rechercher" });
     expect(button.getAttribute("type")).toBe("submit");
 
-    const resetLink = screen.getByRole("link", { name: /Ré-initialiser la recherche/ });
-    expect(resetLink.getAttribute("href")).toBe("/case_files");
+    expect(screen.queryByRole("link", { name: /Ré-initialiser la recherche/ })).toBeNull();
   });
 
   it("rend les champs cachés sortBy/sortOrder quand ils sont fournis", () => {
     renderDashboardSearch({
-      statusFilterOptions: STATUS_FILTER_OPTIONS,
-      defaultStatut: DEFAULT_STATUT,
       currentQuery: "",
       sortByParam: "caseFileNumber",
       sortOrderParam: "ascending",
@@ -96,8 +96,6 @@ describe("buildCaseFilesSearchConfig", () => {
 
   it("n'émet pas de tri caché tant que sortBy est absent", () => {
     renderDashboardSearch({
-      statusFilterOptions: STATUS_FILTER_OPTIONS,
-      defaultStatut: DEFAULT_STATUT,
       currentQuery: "",
       sortOrderParam: "ascending",
     });
@@ -105,5 +103,19 @@ describe("buildCaseFilesSearchConfig", () => {
     const form = getForm();
     expect(hiddenValue(form, "sortBy")).toBeUndefined();
     expect(hiddenValue(form, "sortOrder")).toBeUndefined();
+  });
+
+  it("propose la sauvegarde à côté du bouton Rechercher quand une recherche est affichée", () => {
+    renderDashboardSearch({ currentQuery: "dupont" });
+
+    const searchButton = screen.getByRole("button", { name: "Rechercher" });
+    const saveButton = screen.getByRole("button", { name: "Sauvegarder la recherche courante" });
+    expect(searchButton.parentElement?.contains(saveButton)).toBe(true);
+  });
+
+  it("ne propose pas de sauvegarde à côté du bouton Rechercher sans critère affiché", () => {
+    renderDashboardSearch({ currentQuery: "" });
+
+    expect(screen.queryByRole("button", { name: /Sauvegarder la recherche/ })).toBeNull();
   });
 });

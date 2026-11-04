@@ -59,6 +59,27 @@ describe("ColumnFilterButton", () => {
     );
   });
 
+  it("affiche un select quand le champ a des options", () => {
+    render(
+      <ColumnFilterButton
+        label="Statut"
+        facetFields={[
+          { key: "statut", label: "Statut", options: ["Terminé", "En cours d'instruction"] },
+        ]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Filtrer par Statut/ }));
+
+    const select = screen.getByRole("combobox") as HTMLSelectElement;
+    expect(select.value).toBe("");
+    fireEvent.change(select, { target: { value: "Terminé" } });
+    fireEvent.click(screen.getByRole("button", { name: "Filtrer" }));
+
+    const pushedUrl = decodeURIComponent(mockPush.mock.calls[0][0] as string);
+    expect(pushedUrl).toContain("dahliaq=statut:Terminé");
+  });
+
   it("injecte la facette dans la recherche et réinitialise la page au submit", () => {
     setSearchParams("page=3");
     render(<ColumnFilterButton label="Requérant" facetFields={REQUERANT_FACET_FIELDS} />);
@@ -119,7 +140,7 @@ describe("ColumnFilterButton", () => {
       fireEvent.click(getDossierToggleButton());
 
       expect(screen.getByPlaceholderText("Numéro")).toBeTruthy();
-      expect(screen.getByPlaceholderText("Titre")).toBeTruthy();
+      expect(screen.queryByPlaceholderText("Titre")).toBeNull();
       expect(screen.getByPlaceholderText("Requérant")).toBeTruthy();
       expect(screen.getByPlaceholderText("Défendeur")).toBeTruthy();
       expect(screen.getByPlaceholderText("Mots-clés")).toBeTruthy();
@@ -142,14 +163,13 @@ describe("ColumnFilterButton", () => {
     });
 
     it("seede chaque champ avec la facette courante", () => {
-      setSearchParams("dahliaq=dossier:TA069%20requerant:dupont%20titre:prefet");
+      setSearchParams("dahliaq=dossier:TA069%20requerant:dupont");
       render(<ColumnFilterButton label="Dossier" facetFields={DOSSIER_FACET_FIELDS} />);
 
       fireEvent.click(getDossierToggleButton());
 
       expect((screen.getByPlaceholderText("Numéro") as HTMLInputElement).value).toBe("TA069");
       expect((screen.getByPlaceholderText("Requérant") as HTMLInputElement).value).toBe("dupont");
-      expect((screen.getByPlaceholderText("Titre") as HTMLInputElement).value).toBe("prefet");
     });
   });
 });

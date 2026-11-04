@@ -4,18 +4,19 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@codegouvfr/react-dsfr/Button";
 import { Input } from "@codegouvfr/react-dsfr/Input";
+import { Select } from "@codegouvfr/react-dsfr/Select";
 import {
+  type FacetField,
   type TableParamNames,
   DASHBOARD_TABLE_PARAMS,
   getFacetValue,
+  resolveFacetFieldValue,
   setFacetValues,
 } from "@/app/lib/case-file-search";
 import { fr } from "@codegouvfr/react-dsfr";
 
-export type FacetField = {
-  key: string;
-  label: string;
-};
+export type { FacetField };
+export { resolveFacetFieldValue };
 
 type Props = {
   // Column label, used to build accessible names.
@@ -52,7 +53,10 @@ function buildFieldValues(
   facetKeys: readonly string[] | undefined,
 ): Record<string, string> {
   return Object.fromEntries(
-    fields.map((field) => [field.key, getFacetValue(currentQuery, field.key, facetKeys)]),
+    fields.map((field) => [
+      field.key,
+      resolveFacetFieldValue(field, getFacetValue(currentQuery, field.key, facetKeys)),
+    ]),
   );
 }
 
@@ -183,27 +187,52 @@ export function ColumnFilterButton({
           }}
         >
           <span style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-            {fields.map((field, index) => (
-              <Input
-                key={field.key}
-                label={field.label}
-                className={fr.cx("fr-mb-0")}
-                hideLabel
-                nativeInputProps={{
-                  ref: index === 0 ? firstFieldRef : undefined,
-                  id: `${popoverId}-${field.key}`,
-                  type: "search",
-                  value: fieldValues[field.key] ?? "",
-                  placeholder: field.label,
-                  onChange: (event) =>
-                    setFieldValues((current) => ({
-                      ...current,
-                      [field.key]: event.target.value,
-                    })),
-                  onKeyDown: handleFieldKeyDown,
-                }}
-              />
-            ))}
+            {fields.map((field, index) =>
+              field.options ? (
+                <Select
+                  key={field.key}
+                  label={<span className={fr.cx("fr-sr-only")}>{field.label}</span>}
+                  className={fr.cx("fr-mb-0")}
+                  nativeSelectProps={{
+                    id: `${popoverId}-${field.key}`,
+                    value: fieldValues[field.key] ?? "",
+                    onChange: (event) =>
+                      setFieldValues((current) => ({
+                        ...current,
+                        [field.key]: event.target.value,
+                      })),
+                  }}
+                >
+                  {/* Placeholder (like the inputs' placeholder); selecting it clears the facet. */}
+                  <option value="">{field.label}</option>
+                  {field.options.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </Select>
+              ) : (
+                <Input
+                  key={field.key}
+                  label={field.label}
+                  className={fr.cx("fr-mb-0")}
+                  hideLabel
+                  nativeInputProps={{
+                    ref: index === 0 ? firstFieldRef : undefined,
+                    id: `${popoverId}-${field.key}`,
+                    type: "search",
+                    value: fieldValues[field.key] ?? "",
+                    placeholder: field.label,
+                    onChange: (event) =>
+                      setFieldValues((current) => ({
+                        ...current,
+                        [field.key]: event.target.value,
+                      })),
+                    onKeyDown: handleFieldKeyDown,
+                  }}
+                />
+              ),
+            )}
             <Button type="button" size="small" title="Appliquer le filtre" onClick={submit}>
               Filtrer
             </Button>

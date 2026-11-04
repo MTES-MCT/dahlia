@@ -859,6 +859,16 @@ erDiagram
         DateTime createdAt
     }
 
+    SavedSearch {
+        int id PK
+        string userId FK "unique avec name"
+        string name
+        string query "recherche dahliaq brute"
+        string statusGroup "onglet : en_cours, termine, tous"
+        DateTime createdAt
+        DateTime updatedAt
+    }
+
     TelerecoursSyncRateLimit {
         string key PK "user id préfixé"
         int points
@@ -869,6 +879,7 @@ erDiagram
     Jurisdiction        ||--o{ CaseFile : "scrapedFrom"
     User                ||--o{ UserJurisdictionScope : "périmètre de droit"
     Jurisdiction        ||--o{ UserJurisdictionScope : "périmètre de droit"
+    User                ||--o{ SavedSearch : "recherches sauvegardées"
     Urgency             ||--o{ CaseFile : "has urgency"
     Status              ||--o{ CaseFile : "lastStatus"
     Chamber             ||--o{ CaseFile : "chamber"

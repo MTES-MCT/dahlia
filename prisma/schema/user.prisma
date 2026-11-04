@@ -26,6 +26,9 @@ model User {
   // Permission scope: jurisdictions this user is allowed to work on.
   jurisdictionScopes UserJurisdictionScope[]
 
+  // Dashboard searches saved by this user.
+  savedSearches SavedSearch[]
+
   @@map("users")
 }
 

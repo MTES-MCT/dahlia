@@ -55,14 +55,18 @@ describe("case-file-search", () => {
     });
 
     it("keeps free text alongside facets", () => {
-      expect(parseSearchQuery("prefet titre:cours")).toEqual({
+      expect(parseSearchQuery("prefet defendeur:cours")).toEqual({
         freeText: "prefet",
-        facets: [{ key: "titre", value: "cours" }],
+        facets: [{ key: "defendeur", value: "cours" }],
       });
     });
 
     it("keeps an unknown key as free text", () => {
       expect(parseSearchQuery("foo:bar")).toEqual({ freeText: "foo:bar", facets: [] });
+    });
+
+    it("keeps the removed titre key as free text", () => {
+      expect(parseSearchQuery("titre:dalo")).toEqual({ freeText: "titre:dalo", facets: [] });
     });
 
     it("keeps a key with an empty value as free text", () => {
@@ -77,9 +81,9 @@ describe("case-file-search", () => {
     });
 
     it("keeps quoted free text alongside unquoted tokens and facets", () => {
-      expect(parseSearchQuery('prefet "jean dupont" titre:cours')).toEqual({
+      expect(parseSearchQuery('prefet "jean dupont" defendeur:cours')).toEqual({
         freeText: "prefet jean dupont",
-        facets: [{ key: "titre", value: "cours" }],
+        facets: [{ key: "defendeur", value: "cours" }],
       });
     });
 
@@ -98,12 +102,12 @@ describe("case-file-search", () => {
     });
 
     it("extracts dossier facets separately from other dossier fields", () => {
-      expect(parseSearchQuery("dossier:TA069 requerant:prefet titre:dupont")).toEqual({
+      expect(parseSearchQuery("dossier:TA069 requerant:prefet defendeur:dupont")).toEqual({
         freeText: null,
         facets: [
           { key: "dossier", value: "TA069" },
           { key: "requerant", value: "prefet" },
-          { key: "titre", value: "dupont" },
+          { key: "defendeur", value: "dupont" },
         ],
       });
     });
@@ -132,14 +136,14 @@ describe("case-file-search", () => {
           freeText: "dupont",
           facets: [
             { key: "requerant", value: "prefet" },
-            { key: "titre", value: "dalo" },
+            { key: "defendeur", value: "dalo" },
           ],
         }),
-      ).toBe("dupont requerant:prefet titre:dalo");
+      ).toBe("dupont requerant:prefet defendeur:dalo");
     });
 
     it("round-trips through parseSearchQuery", () => {
-      const query = 'dupont requerant:"le prefet" titre:dalo';
+      const query = 'dupont requerant:"le prefet" defendeur:dalo';
       expect(serializeSearch(parseSearchQuery(query))).toBe(query);
     });
   });
@@ -150,7 +154,7 @@ describe("case-file-search", () => {
         setFacetValues("", {
           dossier: "TA069",
           requerant: "prefet",
-          titre: "",
+          defendeur: "",
         }),
       ).toBe("dossier:TA069 requerant:prefet");
     });

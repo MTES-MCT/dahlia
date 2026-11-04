@@ -649,47 +649,6 @@ describe("case-files", () => {
       );
     });
 
-    it("filters with the titre facet across display-name fields and title", async () => {
-      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
-      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
-
-      await fetchCaseFilesTableData(1, 10, null, "descending", "titre:dalo");
-
-      const expectedWhere = {
-        AND: [
-          { isDeleted: false },
-          {
-            OR: [
-              { caseFileNumber: { contains: "dalo", mode: "insensitive" } },
-              { title: { contains: "dalo", mode: "insensitive" } },
-              { summary: { contains: "dalo", mode: "insensitive" } },
-              {
-                caseFileActors: {
-                  some: {
-                    isMainClaimant: true,
-                    actor: { displayNameNormalized: { contains: "dalo" } },
-                  },
-                },
-              },
-              {
-                caseFileActors: {
-                  some: {
-                    isMainDefender: true,
-                    actor: { displayNameNormalized: { contains: "dalo" } },
-                  },
-                },
-              },
-              { rightType: { in: ["DALO"] } },
-            ],
-          },
-        ],
-      };
-
-      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
-        expect.objectContaining({ where: expectedWhere }),
-      );
-    });
-
     it("filtre sur les mots-clés avec la facette mc:", async () => {
       vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
       vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
@@ -827,36 +786,77 @@ describe("case-files", () => {
       );
     });
 
-    it("filters by status label only when statusLabel is provided alone", async () => {
+    it("restreint au groupe « en cours » (statuts non terminés)", async () => {
       vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
       vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
 
-      await fetchCaseFilesTableData(1, 10, null, "descending", null, "En cours d'instruction");
+      await fetchCaseFilesTableData(1, 10, null, "descending", null, "en_cours");
 
       const expectedWhere = {
-        AND: [{ isDeleted: false }, { lastStatus: { label: "En cours d'instruction" } }],
+        AND: [
+          { isDeleted: false },
+          { lastStatus: { label: { notIn: ["Terminé", "Dossier rayé"] } } },
+        ],
       };
-
       expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
         expect.objectContaining({ where: expectedWhere }),
       );
-      expect(vi.mocked(prisma.caseFile.count)).toHaveBeenCalledWith({ where: expectedWhere });
     });
 
-    it("combines query and status filter with AND", async () => {
+    it("restreint au groupe « terminé »", async () => {
       vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
       vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
 
-      await fetchCaseFilesTableData(1, 10, null, "descending", "dupont", "Terminé");
+      await fetchCaseFilesTableData(1, 10, null, "descending", null, "termine");
+
+      const expectedWhere = {
+        AND: [{ isDeleted: false }, { lastStatus: { label: { in: ["Terminé", "Dossier rayé"] } } }],
+      };
+      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expectedWhere }),
+      );
+    });
+
+    it("filtre par facette statut sur labelNormalized", async () => {
+      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
+      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
+
+      await fetchCaseFilesTableData(1, 10, null, "descending", "statut:Terminé", "tous");
 
       expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {
-            AND: [
-              { isDeleted: false },
-              expect.objectContaining({ OR: expect.any(Array) }),
-              { lastStatus: { label: "Terminé" } },
-            ],
+            AND: [{ isDeleted: false }, { lastStatus: { labelNormalized: "termine" } }],
+          },
+        }),
+      );
+    });
+
+    it("filtre par facette droit opposable", async () => {
+      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
+      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
+
+      await fetchCaseFilesTableData(1, 10, null, "descending", "droit:DALO", "tous");
+
+      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            AND: [{ isDeleted: false }, { rightType: { in: ["DALO"] } }],
+          },
+        }),
+      );
+    });
+
+    it("filtre par facette recours (libellé court REP)", async () => {
+      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
+      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
+
+      await fetchCaseFilesTableData(1, 10, null, "descending", "recours:REP", "tous");
+
+      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            AND: [{ isDeleted: false }, { litigationType: { in: ["EXCES_DE_POUVOIR"] } }],
           },
         }),
       );
