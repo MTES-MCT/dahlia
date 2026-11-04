@@ -8,6 +8,11 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
 }));
 
+vi.mock("@/app/(protected)/case_files/actions", () => ({
+  saveSearchFormAction: vi.fn(),
+  deleteSavedSearchFormAction: vi.fn(),
+}));
+
 function getForm(): HTMLFormElement {
   return screen.getByRole("search") as HTMLFormElement;
 }
@@ -95,5 +100,19 @@ describe("buildCaseFilesSearchConfig", () => {
     const form = getForm();
     expect(hiddenValue(form, "sortBy")).toBeUndefined();
     expect(hiddenValue(form, "sortOrder")).toBeUndefined();
+  });
+
+  it("propose « Sauvegarder la recherche » à côté du bouton Rechercher quand demandé", () => {
+    renderDashboardSearch({ currentQuery: "dupont", canSaveSearch: true });
+
+    const link = screen.getByRole("button", { name: "Sauvegarder la recherche" });
+    expect(getForm().contains(link)).toBe(true);
+    expect(link.getAttribute("type")).toBe("button");
+  });
+
+  it("ne propose pas de sauvegarde par défaut", () => {
+    renderDashboardSearch({ currentQuery: "" });
+
+    expect(screen.queryByRole("button", { name: "Sauvegarder la recherche" })).toBeNull();
   });
 });
