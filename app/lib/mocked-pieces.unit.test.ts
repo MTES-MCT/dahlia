@@ -8,9 +8,22 @@ vi.mock("node:fs/promises", () => ({
   readFile: readFileMock,
 }));
 
+const { isS3ConfiguredMock, readS3ObjectMock } = vi.hoisted(() => ({
+  isS3ConfiguredMock: vi.fn(() => false),
+  readS3ObjectMock: vi.fn(),
+}));
+
+vi.mock("@/app/lib/s3", () => ({
+  isS3Configured: isS3ConfiguredMock,
+  readS3Object: readS3ObjectMock,
+}));
+
 afterEach(() => {
   vi.restoreAllMocks();
   readFileMock.mockReset();
+  readS3ObjectMock.mockReset();
+  isS3ConfiguredMock.mockReset();
+  isS3ConfiguredMock.mockReturnValue(false);
 });
 
 describe("mocked-pieces", () => {
@@ -69,6 +82,20 @@ describe("mocked-pieces", () => {
 
       expect(result.fileName).toBe(MOCKED_PDF_FALLBACK);
       expect(readFileMock.mock.calls[0][0] as string).toContain(MOCKED_PDF_FALLBACK);
+    });
+
+    it("reads the chosen file from S3 when configured", async () => {
+      const bytes = Buffer.from("%PDF-1.4 from s3");
+      isS3ConfiguredMock.mockReturnValue(true);
+      readS3ObjectMock.mockResolvedValue(bytes);
+
+      const result = await readMockedPdf("Accusé de réception de la requête");
+
+      expect(result).toEqual({ data: bytes, fileName: "Accuse_de_reception_de_la_requete.pdf" });
+      expect(readS3ObjectMock).toHaveBeenCalledWith(
+        "mocked_pdfs/Accuse_de_reception_de_la_requete.pdf",
+      );
+      expect(readFileMock).not.toHaveBeenCalled();
     });
   });
 });

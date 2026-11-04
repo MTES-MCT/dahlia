@@ -1,14 +1,17 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { isS3Configured, readS3Object } from "@/app/lib/s3";
 
 // In non-production environments we never reach Télérecours to download the real
-// pièce content. Instead we serve a fake PDF picked from `files/mocked_pdfs`,
+// pièce content. Instead we serve a fake PDF picked from `mocked_pdfs` (S3
+// bucket when configured, local `files/mocked_pdfs` otherwise),
 // chosen according to the pièce type (`fileTypeLabel`). When a type maps to
 // several files we pick one at random; unknown types fall back to `Autre.pdf`.
 
 export const MOCKED_PDF_FALLBACK = "Autre.pdf";
 
 const MOCKED_PDF_DIR = path.join(process.cwd(), "files", "mocked_pdfs");
+const MOCKED_PDF_S3_DIR = "mocked_pdfs";
 
 // Mapping from a pièce type (`fileTypeLabel`) to the candidate mocked PDF files.
 // Keys are matched after trimming surrounding whitespace.
@@ -245,6 +248,10 @@ export async function readMockedPdf(
   fileTypeLabel: string | null | undefined,
 ): Promise<{ data: Buffer; fileName: string }> {
   const fileName = pickMockedPdfFileName(fileTypeLabel);
-  const data = await readFile(path.join(MOCKED_PDF_DIR, fileName));
+  // Prefer the S3 bucket (`<S3_PREFIX>/mocked_pdfs/<file>`) when configured;
+  // fall back to the local `files/mocked_pdfs` directory otherwise.
+  const data = isS3Configured()
+    ? await readS3Object(`${MOCKED_PDF_S3_DIR}/${fileName}`)
+    : await readFile(path.join(MOCKED_PDF_DIR, fileName));
   return { data, fileName };
 }
