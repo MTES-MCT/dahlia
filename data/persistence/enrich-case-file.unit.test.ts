@@ -2,9 +2,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { mockDeep, type DeepMockProxy } from "vitest-mock-extended";
 import type { PrismaClient } from "@prisma/client";
 import { enrichCaseFile, findLastProducerId, pieceNameFromFileName } from "./enrich-case-file";
+import { anonymizeActor, FAKE_EMAIL } from "../anonymize";
 import { fakeTelerecoursClient } from "../test-support/fake-client";
 import {
+  actorFixture,
   attachedFileFixture,
+  caseFileActorDtoFixture,
   caseFileDetailFixture,
   eventFixture,
   hearingFixture,
@@ -352,6 +355,209 @@ describe("enrichCaseFile", () => {
       expect(data.telerecoursUpdatedAt).toBeInstanceOf(Date);
       expect(data.updatedAt).toBe(data.telerecoursUpdatedAt);
       expect(data).not.toHaveProperty("dahliaName");
+    });
+  });
+
+  describe("anonymisation des textes du dossier", () => {
+    const { lastName } = anonymizeActor(actorFixture());
+    const rawName = "P_34_requete_DUPONT.pdf";
+    const fakeName = `P_34_requete_${lastName}.pdf`;
+
+    beforeEach(() => {
+      prisma.caseFileEvent.findUnique.mockResolvedValue({ id: 90001 } as never);
+      prisma.fileFamilyType.upsert.mockResolvedValue({ code: "FAM", label: "Requête" } as never);
+      prisma.fieldChange.findMany.mockResolvedValue([]);
+    });
+
+    const client = () =>
+      fakeTelerecoursClient({
+        getCaseFileDetail: vi.fn().mockResolvedValue(caseFileDetailFixture()),
+        getCaseFileAttachedFiles: vi
+          .fn()
+          .mockResolvedValue(
+            page([attachedFileFixture({ fileName: rawName, originalFileName: rawName })]),
+          ),
+      });
+
+    it("anonymise les noms de fichier d'une nouvelle pièce", async () => {
+      prisma.attachedFile.findUnique.mockResolvedValue(null);
+      await enrichCaseFile(prisma, client(), "TA069-001", "TA069", true);
+
+      expect(prisma.attachedFile.create.mock.calls[0][0].data).toMatchObject({
+        fileName: fakeName,
+        originalFileName: fakeName,
+      });
+    });
+
+    it("conserve les noms de fichier sans anonymisation", async () => {
+      prisma.attachedFile.findUnique.mockResolvedValue(null);
+      await enrichCaseFile(prisma, client(), "TA069-001", "TA069", false);
+
+      expect(prisma.attachedFile.create.mock.calls[0][0].data).toMatchObject({
+        fileName: rawName,
+        originalFileName: rawName,
+      });
+    });
+
+    it("anonymise le nom Dahlia déduit du fichier avec --update-piece-name", async () => {
+      prisma.attachedFile.findUnique.mockResolvedValue(null);
+      await enrichCaseFile(prisma, client(), "TA069-001", "TA069", true, false, true);
+
+      expect(prisma.attachedFile.update.mock.calls[0][0].data.dahliaName).toBe(
+        `034 requete ${lastName}`,
+      );
+    });
+
+    it("nettoie une pièce déjà importée et son historique, sans tracer de renommage", async () => {
+      prisma.attachedFile.findUnique.mockResolvedValue(
+        storedPiece({
+          fileName: rawName,
+          originalFileName: rawName,
+          dahliaName: "034 requete DUPONT",
+        }) as never,
+      );
+      prisma.fieldChange.findMany.mockResolvedValue([
+        { id: 1, previousValue: null, newValue: "034 requete DUPONT" },
+        { id: 2, previousValue: "034 requete DUPONT", newValue: "Requête" },
+        { id: 3, previousValue: null, newValue: "Sans nom" },
+      ] as never);
+
+      await enrichCaseFile(prisma, client(), "TA069-001", "TA069", true);
+
+      const updates = prisma.attachedFile.update.mock.calls.map((call) => call[0].data);
+      expect(updates[0]).toMatchObject({ fileName: fakeName, originalFileName: fakeName });
+      expect(updates[1]).toMatchObject({ dahliaName: `034 requete ${lastName}` });
+      expect(prisma.fieldChange.create).not.toHaveBeenCalled();
+      expect(prisma.fieldChange.update.mock.calls.map((call) => call[0])).toEqual([
+        { where: { id: 1 }, data: { previousValue: null, newValue: `034 requete ${lastName}` } },
+        {
+          where: { id: 2 },
+          data: { previousValue: `034 requete ${lastName}`, newValue: "Requête" },
+        },
+      ]);
+    });
+
+    it("anonymise le titre du dossier avec tous ses acteurs, avant toute écriture", async () => {
+      const lawyer = caseFileActorDtoFixture({ id: 3, firstName: "Paul", lastName: "Durand" });
+      await enrichCaseFile(
+        prisma,
+        fakeTelerecoursClient({
+          getCaseFileDetail: vi
+            .fn()
+            .mockResolvedValue(caseFileDetailFixture({ title: "M. Dupont, Me Durand" })),
+          getCaseFileActors: vi.fn().mockResolvedValue(page([lawyer])),
+        }),
+        "TA069-001",
+        "TA069",
+        true,
+      );
+
+      expect(prisma.caseFile.update.mock.calls[0][0].data.title).toBe(
+        `M. ${lastName}, Me ${anonymizeActor(lawyer).lastName}`,
+      );
+    });
+
+    it("anonymise les commentaires d'événements, même avec l'acteur d'un événement suivant", async () => {
+      const laterActor = actorFixture({ id: 5, firstName: "Anne", lastName: "Bernard" });
+      await enrichCaseFile(
+        prisma,
+        fakeTelerecoursClient({
+          getCaseFileDetail: vi.fn().mockResolvedValue(caseFileDetailFixture()),
+          getCaseFileMeasures: vi
+            .fn()
+            .mockResolvedValue(
+              page([
+                eventFixture({ id: 1, comment: "Relance de Mme Bernard" }),
+                eventFixture({ id: 2, comment: null, actor: laterActor }),
+              ]),
+            ),
+        }),
+        "TA069-001",
+        "TA069",
+        true,
+      );
+
+      const comments = prisma.caseFileEvent.upsert.mock.calls.map((call) => call[0].create.comment);
+      expect(comments).toEqual([`Relance de Mme ${anonymizeActor(laterActor).lastName}`, null]);
+    });
+
+    it("écrit le dispositif et les e-mails anonymisés en base", async () => {
+      await enrichCaseFile(
+        prisma,
+        fakeTelerecoursClient({
+          getCaseFileDetail: vi.fn().mockResolvedValue(
+            caseFileDetailFixture({
+              directory: { reference: "R1", complementaryRecipientEmails: "reel@exemple.fr" },
+              lastDecisionReading: {
+                readingDate: "2026-01-01",
+                notificationDate: null,
+                nature: "Jugement",
+                operativePart: "La requête de M. Dupont est rejetée.",
+              },
+            }),
+          ),
+        }),
+        "TA069-001",
+        "TA069",
+        true,
+      );
+
+      expect(prisma.caseFile.update.mock.calls[0][0].data.directoryComplementaryEmails).toBe(
+        FAKE_EMAIL,
+      );
+      expect(prisma.lastDecisionReading.upsert.mock.calls[0][0].create.operativePart).toBe(
+        `La requête de M. ${lastName} est rejetée.`,
+      );
+    });
+
+    it("conserve le titre et les commentaires sans anonymisation", async () => {
+      await enrichCaseFile(
+        prisma,
+        fakeTelerecoursClient({
+          getCaseFileDetail: vi
+            .fn()
+            .mockResolvedValue(caseFileDetailFixture({ title: "M. Dupont" })),
+          getCaseFileMeasures: vi
+            .fn()
+            .mockResolvedValue(page([eventFixture({ comment: "Relance de M. Dupont" })])),
+        }),
+        "TA069-001",
+        "TA069",
+        false,
+      );
+
+      expect(prisma.caseFile.update.mock.calls[0][0].data.title).toBe("M. Dupont");
+      expect(prisma.caseFileEvent.upsert.mock.calls[0][0].create.comment).toBe(
+        "Relance de M. Dupont",
+      );
+    });
+
+    it("reconnaît les avocats et les acteurs des événements", async () => {
+      const lawyer = caseFileActorDtoFixture({ id: 3, firstName: "Paul", lastName: "Durand" });
+      const claimant = caseFileActorDtoFixture({ id: 4, representedBy: [lawyer] });
+      const eventActor = actorFixture({ id: 5, firstName: "Anne", lastName: "Bernard" });
+      prisma.attachedFile.findUnique.mockResolvedValue(null);
+
+      await enrichCaseFile(
+        prisma,
+        fakeTelerecoursClient({
+          getCaseFileDetail: vi.fn().mockResolvedValue(caseFileDetailFixture()),
+          getCaseFileActors: vi.fn().mockResolvedValue(page([claimant])),
+          getCaseFileMeasures: vi
+            .fn()
+            .mockResolvedValue(page([eventFixture({ actor: eventActor })])),
+          getCaseFileAttachedFiles: vi
+            .fn()
+            .mockResolvedValue(page([attachedFileFixture({ fileName: "Durand_Bernard.pdf" })])),
+        }),
+        "TA069-001",
+        "TA069",
+        true,
+      );
+
+      expect(prisma.attachedFile.create.mock.calls[0][0].data.fileName).toBe(
+        `${anonymizeActor(lawyer).lastName}_${anonymizeActor(eventActor).lastName}.pdf`,
+      );
     });
   });
 
