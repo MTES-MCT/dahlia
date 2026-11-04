@@ -115,7 +115,7 @@ const mockCaseFile = {
   caseFileActors: [],
   lastStatus: { label: "Jugé" },
   caseFileTags: [],
-  classificationFieldChanges: [],
+  fieldChanges: [],
   qualificationValidatedAt: null,
   comment: null,
   _count: { events: 4, attachedFiles: 2 },

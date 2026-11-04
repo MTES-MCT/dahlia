@@ -234,19 +234,21 @@ describe("fieldChangesOf", () => {
     expect(changes).toEqual([
       {
         jurisdictionCode: "TA069",
-        caseFileNumber: "TA069-001",
+        model: "CaseFile",
+        modelId: "TA069-001",
         field: "rightType",
         previousValue: null,
         newValue: "DALO",
-        ruleId: "right-type-dalo-explicit",
+        origin: "right-type-dalo-explicit",
       },
       {
         jurisdictionCode: "TA069",
-        caseFileNumber: "TA069-001",
+        model: "CaseFile",
+        modelId: "TA069-001",
         field: "summary",
         previousValue: "Saisi à la main",
         newValue: "Liquidation d'astreinte",
-        ruleId: "litigation-liquidation-astreinte",
+        origin: "litigation-liquidation-astreinte",
       },
     ]);
   });
@@ -269,23 +271,25 @@ describe("classifyCaseFiles history", () => {
     await classifyCaseFiles(prisma, { overwrite: false });
 
     expect(prisma.$transaction).toHaveBeenCalledOnce();
-    expect(prisma.classificationFieldChange.createMany).toHaveBeenCalledExactlyOnceWith({
+    expect(prisma.fieldChange.createMany).toHaveBeenCalledExactlyOnceWith({
       data: [
         {
           jurisdictionCode: "TA069",
-          caseFileNumber: "TA069-001",
+          model: "CaseFile",
+          modelId: "TA069-001",
           field: "rightType",
           previousValue: null,
           newValue: "DALO",
-          ruleId: "right-type-dalo-explicit",
+          origin: "right-type-dalo-explicit",
         },
         {
           jurisdictionCode: "TA069",
-          caseFileNumber: "TA069-001",
+          model: "CaseFile",
+          modelId: "TA069-001",
           field: "summary",
           previousValue: null,
           newValue: "Liquidation d'astreinte",
-          ruleId: "litigation-liquidation-astreinte",
+          origin: "litigation-liquidation-astreinte",
         },
       ],
     });
@@ -300,6 +304,6 @@ describe("classifyCaseFiles history", () => {
     await classifyCaseFiles(prisma, { overwrite: false, dryRun: true });
 
     expect(prisma.$transaction).not.toHaveBeenCalled();
-    expect(prisma.classificationFieldChange.createMany).not.toHaveBeenCalled();
+    expect(prisma.fieldChange.createMany).not.toHaveBeenCalled();
   });
 });

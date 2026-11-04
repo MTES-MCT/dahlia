@@ -1,7 +1,7 @@
 // Review state of the "Qualification du dossier" block.
 //
 // The classifier (data/cli/classify-case-files.ts) writes some qualification
-// fields and logs each change in `classification_field_changes`. An agent must
+// fields and logs each change in `field_changes` (model CaseFile). An agent must
 // review those values: the block asks for it as long as a classifier change is
 // more recent than the last validation.
 

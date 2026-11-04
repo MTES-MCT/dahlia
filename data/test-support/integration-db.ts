@@ -117,6 +117,8 @@ const TABLES = [
   "related_case_files",
   "last_decision_readings",
   "case_files",
+  // No foreign key (polymorphic target): not reached by the CASCADE.
+  "field_changes",
   "hearings",
   "conclusions",
   "conclusion_operative_parts",

@@ -1,13 +1,16 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import type { Prisma } from "@prisma/client";
 import { caseFileHref, type CaseFileKey } from "@/app/lib/case-file-key";
 import { prisma } from "@/app/lib/prisma";
 import { fetchAttachedFile } from "@/app/lib/data/attached-files";
 import { describePrismaError } from "@/app/lib/form-actions";
 import { PIECE_COMMENT_MAX_LENGTH } from "@/app/lib/piece-comment";
 import { dahliaNameValidationError } from "@/app/lib/sanitize-file-name";
+import {
+  applyDahliaNameUpdate,
+  type DahliaNamePiece,
+} from "@/data/persistence/attached-file-dahlia-name";
 
 export type UpdatePieceResult = { ok: true } | { ok: false; error: string };
 
@@ -18,25 +21,25 @@ type PieceMetadataInput = {
   isFavorite?: boolean;
 };
 
-// Persist user-editable metadata (renamed name, comment, favorite) of a pièce,
-// after checking it lies within the caller's permission scope.
+// Persist user-editable metadata (renamed name, comment, favorite) of a pièce
+// through `write`, after checking it lies within the caller's permission scope.
 async function persistPieceData(
   key: CaseFileKey,
   encodedFileId: string,
-  data: Prisma.AttachedFileUpdateInput,
+  write: (piece: DahliaNamePiece) => Promise<unknown>,
 ): Promise<UpdatePieceResult> {
   try {
     // Scoped read: null when the pièce is unknown, belongs to another case file
     // *or* to a case file outside the caller's permission scope. Same wording.
-    if (!(await fetchAttachedFile(key, encodedFileId))) {
+    const piece = await fetchAttachedFile(key, encodedFileId);
+    if (!piece) {
       return { ok: false, error: "Pièce introuvable." };
     }
 
-    await prisma.attachedFile.update({
-      where: {
-        jurisdictionCode_encodedFileId: { jurisdictionCode: key.jurisdictionCode, encodedFileId },
-      },
-      data,
+    await write({
+      jurisdictionCode: key.jurisdictionCode,
+      encodedFileId,
+      dahliaName: piece.dahliaName ?? null,
     });
 
     revalidatePath(caseFileHref(key));
@@ -68,12 +71,16 @@ export async function savePieceMetadataAction(
       return { ok: false, error: dahliaNameError };
     }
   }
-  // Empty strings are stored as null.
-  return persistPieceData(key, trimmed, {
-    dahliaName: trimmedDahliaName || null,
-    comment: comment || null,
-    ...(input.isFavorite === undefined ? {} : { isFavorite: input.isFavorite }),
-  });
+  // Empty strings are stored as null. A rename is logged in the pièce history
+  // (`field_changes`, origin "user").
+  return persistPieceData(key, trimmed, (piece) =>
+    applyDahliaNameUpdate(prisma, piece, trimmedDahliaName || null, "user", {
+      otherData: {
+        comment: comment || null,
+        ...(input.isFavorite === undefined ? {} : { isFavorite: input.isFavorite }),
+      },
+    }),
+  );
 }
 
 // Star toggle of the pièces sidebar: only flips the favorite flag.
@@ -86,5 +93,15 @@ export async function setPieceFavoriteAction(
   if (!trimmed) {
     return { ok: false, error: "Identifiant de pièce manquant." };
   }
-  return persistPieceData(key, trimmed, { isFavorite });
+  return persistPieceData(key, trimmed, (piece) =>
+    prisma.attachedFile.update({
+      where: {
+        jurisdictionCode_encodedFileId: {
+          jurisdictionCode: piece.jurisdictionCode,
+          encodedFileId: piece.encodedFileId,
+        },
+      },
+      data: { isFavorite, updatedAt: new Date() },
+    }),
+  );
 }

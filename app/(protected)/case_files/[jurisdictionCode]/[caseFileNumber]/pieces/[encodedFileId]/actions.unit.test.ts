@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 const mockFetchAttachedFile = vi.fn();
 const mockAttachedFileUpdate = vi.fn();
+const mockFieldChangeCreate = vi.fn();
 const mockRevalidatePath = vi.fn();
 
 vi.mock("@/app/lib/data/attached-files", () => ({
@@ -13,6 +14,10 @@ vi.mock("@/app/lib/prisma", () => ({
     attachedFile: {
       update: (...args: unknown[]) => mockAttachedFileUpdate(...args),
     },
+    fieldChange: {
+      create: (...args: unknown[]) => mockFieldChangeCreate(...args),
+    },
+    $transaction: (operations: Promise<unknown>[]) => Promise.all(operations),
   },
 }));
 
@@ -44,9 +49,39 @@ describe("savePieceMetadataAction", () => {
       where: {
         jurisdictionCode_encodedFileId: { jurisdictionCode: "TA069", encodedFileId: "piece-1" },
       },
-      data: { dahliaName: "Requête", comment: null },
+      data: { dahliaName: "Requête", comment: null, updatedAt: expect.any(Date) },
     });
     expect(mockRevalidatePath).toHaveBeenCalledWith("/case_files/TA069/TA069-001");
+  });
+
+  it("historise le renommage avec l'origine user", async () => {
+    mockFetchAttachedFile.mockResolvedValue({ encodedFileId: "piece-1", dahliaName: "Ancien" });
+    mockAttachedFileUpdate.mockResolvedValue({});
+
+    expect(await savePieceMetadataAction(KEY, "piece-1", INPUT)).toEqual({ ok: true });
+    expect(mockFieldChangeCreate).toHaveBeenCalledWith({
+      data: {
+        jurisdictionCode: "TA069",
+        model: "AttachedFile",
+        modelId: "piece-1",
+        field: "dahliaName",
+        previousValue: "Ancien",
+        newValue: "Requête",
+        origin: "user",
+        changedAt: expect.any(Date),
+      },
+    });
+  });
+
+  it("n'historise rien quand le nom est inchangé", async () => {
+    mockFetchAttachedFile.mockResolvedValue({ encodedFileId: "piece-1", dahliaName: "Requête" });
+    mockAttachedFileUpdate.mockResolvedValue({});
+
+    expect(await savePieceMetadataAction(KEY, "piece-1", { ...INPUT, comment: "Vu" })).toEqual({
+      ok: true,
+    });
+    expect(mockAttachedFileUpdate).toHaveBeenCalledOnce();
+    expect(mockFieldChangeCreate).not.toHaveBeenCalled();
   });
 
   it("refuse une pièce hors du périmètre de droit", async () => {
@@ -70,7 +105,7 @@ describe("savePieceMetadataAction", () => {
       }),
     ).toEqual({
       ok: false,
-      error: "Le nom ne peut pas contenir / \\ : * ? \" < > |.",
+      error: 'Le nom ne peut pas contenir / \\ : * ? " < > |.',
     });
     expect(mockFetchAttachedFile).not.toHaveBeenCalled();
   });
@@ -109,7 +144,12 @@ describe("favori d'une pièce", () => {
 
     expect(mockAttachedFileUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: { dahliaName: "Requête", comment: null, isFavorite: true },
+        data: {
+          dahliaName: "Requête",
+          comment: null,
+          isFavorite: true,
+          updatedAt: expect.any(Date),
+        },
       }),
     );
   });
@@ -123,7 +163,7 @@ describe("favori d'une pièce", () => {
       where: {
         jurisdictionCode_encodedFileId: { jurisdictionCode: "TA069", encodedFileId: "piece-1" },
       },
-      data: { isFavorite: true },
+      data: { isFavorite: true, updatedAt: expect.any(Date) },
     });
     expect(mockRevalidatePath).toHaveBeenCalledWith("/case_files/TA069/TA069-001");
   });

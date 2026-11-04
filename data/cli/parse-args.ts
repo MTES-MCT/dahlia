@@ -35,7 +35,10 @@ export const SCRAPE_USAGE = `Usage: pnpm scrape:telerecours -- [options]
   --enrich <all|ongoing|none>      Phases B et C : ongoing (défaut, hors « Terminé »),
                                    all (y compris terminés), none (saute B et C).
   --update-piece-name              Renseigne le nom Dahlia des pièces sans nom à partir du
-                                   nom de fichier (ex. P_34_requete.pdf → 00034 requete).
+                                   nom de fichier (ex. P_34_requete.pdf → 034 requete).
+  --force-update-piece-name        Implique --update-piece-name ; renomme aussi les pièces déjà
+                                   nommées (par le scraper ou un script), sauf celles qu'un
+                                   utilisateur a renommées. Sans effet avec --enrich none.
   --force                          Phases B et C : supprime les événements, pièces (et leurs
                                    métadonnées Dahlia) et liens entre dossiers présents en base
                                    mais plus renvoyés par Télérecours pour le dossier.
@@ -84,6 +87,7 @@ export function parseArgs(argv: string[] = process.argv): ScrapeCliArgs {
     anonymize: process.env.ENVIRONMENT !== "production",
     enrich: "ongoing",
     updatePieceName: false,
+    forceUpdatePieceName: false,
     force: false,
     classify: false,
     classifyOverwrite: false,
@@ -117,6 +121,11 @@ export function parseArgs(argv: string[] = process.argv): ScrapeCliArgs {
       args.enrich = parseEnrichMode(argv[++i]);
     } else if (arg === "--update-piece-name") {
       args.updatePieceName = true;
+    } else if (arg === "--force-update-piece-name") {
+      // Implies --update-piece-name: forcing renames without renaming would
+      // silently do nothing.
+      args.updatePieceName = true;
+      args.forceUpdatePieceName = true;
     } else if (arg === "--force") {
       args.force = true;
     } else if (arg === "--classify") {
@@ -153,6 +162,10 @@ export function parseArgs(argv: string[] = process.argv): ScrapeCliArgs {
     }
   }
 
+  if (args.forceUpdatePieceName && args.enrich === "none") {
+    console.warn("⚠ --force-update-piece-name ignoré : --enrich none saute les phases B et C.");
+  }
+
   console.log("--------------------------------------------------");
   console.log("ARGUMENTS:");
   console.log("  - jurisdiction set to", args.jurisdiction);
@@ -165,6 +178,7 @@ export function parseArgs(argv: string[] = process.argv): ScrapeCliArgs {
   console.log("  - anonymize set to", args.anonymize);
   console.log("  - enrich set to", args.enrich);
   console.log("  - updatePieceName set to", args.updatePieceName);
+  console.log("  - forceUpdatePieceName set to", args.forceUpdatePieceName);
   console.log("  - force set to", args.force);
   console.log("  - classify set to", args.classify);
   console.log("  - classifyOverwrite set to", args.classifyOverwrite);

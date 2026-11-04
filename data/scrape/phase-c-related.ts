@@ -16,12 +16,14 @@ export interface RelatedImportOptions {
   anonymize: boolean;
   enrich: boolean;
   updatePieceName: boolean;
+  forceUpdatePieceName: boolean;
 }
 
 const DEFAULT_RELATED_IMPORT: RelatedImportOptions = {
   anonymize: false,
   enrich: false,
   updatePieceName: false,
+  forceUpdatePieceName: false,
 };
 
 // Fetch a related case file absent from the DB and upsert it. Returns false
@@ -42,6 +44,7 @@ async function importRelatedCaseFile(
       options.anonymize,
       false,
       options.updatePieceName,
+      options.forceUpdatePieceName,
     );
     return true;
   }
@@ -148,6 +151,7 @@ export async function phaseC(
     anonymize: args.anonymize,
     enrich: args.enrich === "all",
     updatePieceName: args.updatePieceName,
+    forceUpdatePieceName: args.forceUpdatePieceName,
   };
   const rateLimitMs = deps.rateLimitMs ?? DEFAULT_RATE_LIMIT_MS;
   console.log(`\n══ Phase C — liens entre dossiers (related-case-files) ══`);

@@ -57,6 +57,7 @@ describe("linkRelatedCaseFiles", () => {
       anonymize: false,
       enrich: false,
       updatePieceName: false,
+      forceUpdatePieceName: false,
     };
 
     beforeEach(() => {

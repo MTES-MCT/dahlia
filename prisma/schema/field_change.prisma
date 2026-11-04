@@ -1,0 +1,36 @@
+// Kind of record a field change applies to (see FieldChange.modelId).
+enum FieldChangeModel {
+  CaseFile
+  AttachedFile
+}
+
+// Generic audit trail of automated or user field changes: one row per change.
+//   - CaseFile: fields written by the classification script
+//     (data/cli/classify-case-files.ts), `origin` = id of the rule.
+//   - AttachedFile: `dahliaName` renames, `origin` = user | scraper | script.
+// The target is polymorphic (`model` + `modelId`), so there is no foreign key:
+// the code removes the rows of deleted pièces itself (scraper --force).
+model FieldChange {
+  id Int @id @default(autoincrement())
+
+  // Telerecours ids are only unique per court.
+  jurisdictionCode String
+  model            FieldChangeModel
+  // caseFileNumber for CaseFile, encodedFileId for AttachedFile.
+  modelId          String
+
+  // Attribute written (e.g. "litigationType", "rightType", "summary", "dahliaName").
+  field         String
+  // Value stored before the change (null when the field was empty).
+  previousValue String?
+  newValue      String
+  // Classification rule id (see data/classification/rules.ts), or
+  // "user" | "scraper" | "script" for pièce renames.
+  origin        String
+
+  changedAt DateTime @default(now())
+
+  @@index([jurisdictionCode, model, modelId, changedAt])
+  @@index([jurisdictionCode, model, modelId, field, changedAt])
+  @@map("field_changes")
+}

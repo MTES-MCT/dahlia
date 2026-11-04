@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { parseArgs, parseDivisionIds } from "./parse-args";
 
 const argv = (...rest: string[]) => ["node", "scrape.ts", ...rest];
@@ -28,6 +28,7 @@ describe("parseArgs", () => {
       all: false,
       enrich: "ongoing",
       updatePieceName: false,
+      forceUpdatePieceName: false,
       classify: false,
       classifyOverwrite: false,
     });
@@ -68,6 +69,22 @@ describe("parseArgs", () => {
   it("active --force (désactivé par défaut)", () => {
     expect(parseArgs(argv()).force).toBe(false);
     expect(parseArgs(argv("--force")).force).toBe(true);
+  });
+
+  it("--force-update-piece-name implies --update-piece-name", () => {
+    const args = parseArgs(argv("--force-update-piece-name"));
+    expect(args).toMatchObject({ updatePieceName: true, forceUpdatePieceName: true });
+  });
+
+  it("--update-piece-name alone does not force renames", () => {
+    expect(parseArgs(argv("--update-piece-name")).forceUpdatePieceName).toBe(false);
+  });
+
+  it("warns that --force-update-piece-name is ignored with --enrich none", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    parseArgs(argv("--enrich", "none", "--force-update-piece-name"));
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("--force-update-piece-name ignoré"));
+    warn.mockRestore();
   });
 
   it("--classify-overwrite implies --classify", () => {

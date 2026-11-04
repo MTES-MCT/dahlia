@@ -69,8 +69,8 @@ model CaseFile {
   // User-managed tags (M2M via case_file_tags), edited from the "Qualification du dossier" block.
   caseFileTags CaseFileTag[]
 
-  // History of the fields written by the classification script.
-  classificationFieldChanges ClassificationFieldChange[]
+  // History of the fields written by the classification script: see
+  // FieldChange (model = CaseFile, modelId = caseFileNumber), no relation.
 
   procedureState String?
 

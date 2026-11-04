@@ -53,6 +53,14 @@ model AttachedFile {
   fileFamilyTypeCode String
   fileFamilyType     FileFamilyType @relation(fields: [fileFamilyTypeCode], references: [code])
 
+  // Row creation date.
+  createdAt            DateTime  @default(now())
+  // Last write of the pièce (Telerecours data or Dahlia metadata). Set by the
+  // code, not by Prisma (`@updatedAt` would move on no-op scraper upserts).
+  updatedAt            DateTime  @default(now())
+  // Last time a scrape actually changed the Telerecours fields of the pièce.
+  telerecoursUpdatedAt DateTime?
+
   @@id([jurisdictionCode, encodedFileId])
   @@index([jurisdictionCode, caseFileNumber])
   @@index([jurisdictionCode, eventId])
