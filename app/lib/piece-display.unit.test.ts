@@ -3,7 +3,54 @@ import {
   comparePiecesByDateDescThenName,
   pieceDisplayLabel,
   pieceDownloadFileName,
+  shouldShowPieceTypeTagInSidebar,
 } from "@/app/lib/piece-display";
+
+describe("shouldShowPieceTypeTagInSidebar", () => {
+  it("affiche le tag hors famille COUK", () => {
+    expect(
+      shouldShowPieceTypeTagInSidebar({
+        fileName: "requete.pdf",
+        dahliaName: "Requête introductive",
+        typeLabel: "Requête",
+        fileFamilyTypeCode: "REQ",
+      }),
+    ).toBe(true);
+  });
+
+  it("masque le tag COUK quand le libellé affiché contient déjà le type", () => {
+    expect(
+      shouldShowPieceTypeTagInSidebar({
+        fileName: "1083731924_notreq.pdf",
+        dahliaName: "Communication de la requête",
+        typeLabel: "Communication de la requête",
+        fileFamilyTypeCode: "COUK",
+      }),
+    ).toBe(false);
+  });
+
+  it("affiche le tag COUK quand le nom affiché ne reprend pas le type", () => {
+    expect(
+      shouldShowPieceTypeTagInSidebar({
+        fileName: "P_34_courrier.pdf",
+        dahliaName: "034 courrier du greffe",
+        typeLabel: "Lettre du greffier",
+        fileFamilyTypeCode: "COUK",
+      }),
+    ).toBe(true);
+  });
+
+  it("n'affiche pas de tag sans libellé de type", () => {
+    expect(
+      shouldShowPieceTypeTagInSidebar({
+        fileName: "a.pdf",
+        dahliaName: null,
+        typeLabel: "",
+        fileFamilyTypeCode: "COUK",
+      }),
+    ).toBe(false);
+  });
+});
 
 describe("pieceDisplayLabel", () => {
   it("returns dahliaName when set", () => {

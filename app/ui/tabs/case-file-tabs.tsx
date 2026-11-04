@@ -5,7 +5,11 @@ import { formatDateFr, formatDateTimeFr, getActorDisplayName } from "@/app/lib/c
 import { type CaseFileEventListRow } from "@/app/lib/data/case-file-events";
 import { fetchCaseFileDebugSnapshot, type CaseFileDetail } from "@/app/lib/data/case-files";
 import { fetchCaseFileEventsTableData } from "@/app/lib/data/case-file-events";
-import { fetchCaseFilePiecesFiltered, fetchCommentedPieces } from "@/app/lib/data/attached-files";
+import {
+  fetchCaseFilePiecesFiltered,
+  fetchCommentedPieces,
+  fetchRequetePiece,
+} from "@/app/lib/data/attached-files";
 import { fetchRelatedCaseFiles } from "@/app/lib/data/related-case-files";
 import { HISTORIQUE_FACET_KEYS, HISTORIQUE_PARAMS } from "@/app/lib/historique-table";
 import { PIECES_DEFAULT_ORDER, PIECES_DEFAULT_SORT_BY } from "@/app/lib/pieces-table";
@@ -92,10 +96,11 @@ export async function CaseFileTabs({
   };
   const showDebugTab = isDebugTabEnabled(searchParams, isAdmin);
 
-  const [relatedCaseFiles, commentedPieces, pieces, historiqueTable, debugSnapshot] =
+  const [relatedCaseFiles, commentedPieces, requetePiece, pieces, historiqueTable, debugSnapshot] =
     await Promise.all([
       tab === "synthese" ? fetchRelatedCaseFiles(caseFileKey) : null,
       tab === "synthese" ? fetchCommentedPieces(caseFileKey) : null,
+      tab === "synthese" ? fetchRequetePiece(caseFileKey) : null,
       tab === "pieces"
         ? fetchCaseFilePiecesFiltered(
             caseFileKey,
@@ -120,6 +125,7 @@ export async function CaseFileTabs({
       comment: piece.comment,
       isFavorite: piece.isFavorite,
       typeLabel: piece.fileTypeLabel,
+      fileFamilyTypeCode: piece.fileFamilyTypeCode,
       eventDate: formatDateFr(piece.eventCreationDate),
       dataUrl: `${caseFilePath}/pieces/${encodeURIComponent(piece.encodedFileId)}/data`,
       // Outside production the data route serves a mocked PDF regardless of the
@@ -169,6 +175,11 @@ export async function CaseFileTabs({
                 caseFile.fieldChanges,
               )}
               validatedAtLabel={formatDateTimeFr(caseFile.qualificationValidatedAt)}
+              requetePieceDataUrl={
+                requetePiece
+                  ? `${caseFilePath}/pieces/${encodeURIComponent(requetePiece.encodedFileId)}/data`
+                  : null
+              }
             />
             <CaseFileCommentsPanel
               jurisdictionCode={caseFile.jurisdictionCode}

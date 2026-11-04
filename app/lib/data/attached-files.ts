@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import type { CaseFileKey } from "@/app/lib/case-file-key";
 import { prisma } from "@/app/lib/prisma";
+import { FAVORITE_ON_CREATE_FAMILY_TYPE } from "@/data/persistence/enrich-case-file";
 import { caseFileRelationScopeWhere, logCaseFileScopeMiss } from "@/app/lib/case-file-scope";
 import { normalizeForSearch, parseSearchQuery } from "@/app/lib/case-file-search";
 import {
@@ -20,6 +21,7 @@ const PIECES_LIST_SELECT = {
   isFavorite: true,
   mimeType: true,
   fileTypeLabel: true,
+  fileFamilyTypeCode: true,
   fileFamilyTypeLabel: true,
   fileFamilyType: { select: { label: true } },
   eventCreationDate: true,
@@ -123,6 +125,20 @@ export async function fetchCaseFilePiecesFiltered(
     where,
     select: PIECES_LIST_SELECT,
     orderBy: buildPiecesOrderBy(sortBy, toSortOrder(sortOrder)),
+  });
+}
+
+// Most recent pièce of family "Requête" (REQ), for the qualification block link.
+export async function fetchRequetePiece(key: CaseFileKey) {
+  return prisma.attachedFile.findFirst({
+    where: {
+      jurisdictionCode: key.jurisdictionCode,
+      caseFileNumber: key.caseFileNumber,
+      fileFamilyTypeCode: FAVORITE_ON_CREATE_FAMILY_TYPE,
+      ...(await caseFileRelationScopeWhere()),
+    },
+    select: { encodedFileId: true },
+    orderBy: { eventCreationDate: "desc" },
   });
 }
 

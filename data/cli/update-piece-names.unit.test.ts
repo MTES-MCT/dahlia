@@ -131,7 +131,7 @@ describe("updatePieceNames", () => {
     expect(prisma.fieldChange.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         previousValue: "1083731924 notreq",
-        newValue: "1083731924 Communication de la requête",
+        newValue: "Communication de la requête",
         origin: "script",
       }),
     });

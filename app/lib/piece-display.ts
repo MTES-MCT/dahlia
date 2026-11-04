@@ -1,13 +1,31 @@
+import { normalizeForSearch } from "@/app/lib/case-file-search";
 import { sanitizeFileName } from "@/app/lib/sanitize-file-name";
+
+const COURT_CORRESPONDENCE_FAMILY_CODE = "COUK";
 
 export type PieceLabelInput = {
   fileName: string;
   dahliaName?: string | null;
 };
 
+export type PieceSidebarTypeTagInput = PieceLabelInput & {
+  typeLabel?: string | null;
+  fileFamilyTypeCode?: string | null;
+};
+
 // User-facing label for a pièce: DAHLIA name when set, otherwise Télérecours filename.
 export function pieceDisplayLabel(piece: PieceLabelInput): string {
   return piece.dahliaName || piece.fileName;
+}
+
+// Sidebar type badge: hidden for COUK when the display name already contains the type label.
+export function shouldShowPieceTypeTagInSidebar(piece: PieceSidebarTypeTagInput): boolean {
+  const typeLabel = piece.typeLabel?.trim();
+  if (!typeLabel) return false;
+  if (piece.fileFamilyTypeCode !== COURT_CORRESPONDENCE_FAMILY_CODE) return true;
+  const display = normalizeForSearch(pieceDisplayLabel(piece));
+  const type = normalizeForSearch(typeLabel);
+  return !display.includes(type);
 }
 
 export type PieceSortInput = PieceLabelInput & { eventCreationDate: Date | null };
