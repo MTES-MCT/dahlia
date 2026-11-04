@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import {
   CaseFileQualificationPanel,
   type CaseFileQualificationPanelProps,
@@ -98,10 +98,13 @@ describe("CaseFileQualificationPanel", () => {
   });
 
   describe("validé", () => {
-    it("est replié avec le résumé, sans bandeau de validation au chargement", () => {
+    it("est replié avec le résumé et le statut validé dans l'en-tête", () => {
       renderPanel({ reviewState: "validated", validatedAtLabel: "14/10/2026 à 09h30" });
 
       expect(screen.getByRole("button", { name: "Afficher et éditer" })).toBeTruthy();
+      expect(
+        screen.getByTitle("Qualification revue et validée le 14/10/2026 à 09h30"),
+      ).toBeTruthy();
       expect(screen.queryByText(/Qualification revue et validée/)).toBeNull();
       expect(screen.queryByText(/Données générées automatiquement/)).toBeNull();
       expect(screen.getByText("Recours injonction", { selector: "b" })).toBeTruthy();
@@ -183,7 +186,7 @@ describe("CaseFileQualificationPanel", () => {
     expect([select.options[0].value, select.options[0].text]).toEqual(["", ""]);
   });
 
-  describe("bandeau « Qualification revue et validée »", () => {
+  describe("statut « Qualification revue et validée » dans l'en-tête", () => {
     function panel(overrides: Partial<CaseFileQualificationPanelProps>) {
       return (
         <CaseFileQualificationPanel
@@ -205,35 +208,25 @@ describe("CaseFileQualificationPanel", () => {
       );
     }
 
-    it("apparaît après un enregistrement qui valide une revue en attente", async () => {
-      const { rerender } = render(panel({ reviewState: "toReview" }));
+    it("apparaît quand le dossier est validé sans champ à revoir", () => {
+      render(panel({ reviewState: "validated", validatedAtLabel: "16/10/2026 à 15h12" }));
 
-      fireEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
-      // The revalidated page now reports the case file as validated.
-      rerender(panel({ reviewState: "validated", validatedAtLabel: "16/10/2026 à 15h12" }));
-
-      await waitFor(() =>
-        expect(
-          screen.getByText("Qualification revue et validée le 16/10/2026 à 15h12"),
-        ).toBeTruthy(),
-      );
+      expect(
+        screen.getByTitle("Qualification revue et validée le 16/10/2026 à 15h12"),
+      ).toBeTruthy();
+      expect(screen.queryByText(/Qualification revue et validée/)).toBeNull();
       expect(screen.queryByText(/Données générées automatiquement/)).toBeNull();
     });
 
-    it("n'apparaît pas après un enregistrement sans revue en attente", async () => {
-      const { rerender } = render(
-        panel({ reviewState: "validated", validatedAtLabel: "14/10/2026 à 09h30" }),
+    it("reste masqué tant qu'un champ est à revoir", () => {
+      render(
+        panel({
+          reviewState: "toReview",
+          fieldsToReview: ["litigationType"],
+          validatedAtLabel: "14/10/2026 à 09h30",
+        }),
       );
 
-      fireEvent.click(screen.getByRole("button", { name: "Afficher et éditer" }));
-      fireEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
-      rerender(panel({ reviewState: "validated", validatedAtLabel: "14/10/2026 à 09h30" }));
-
-      await waitFor(() =>
-        expect(
-          (screen.getByRole("button", { name: "Enregistrer" }) as HTMLButtonElement).disabled,
-        ).toBe(false),
-      );
       expect(screen.queryByText(/Qualification revue et validée/)).toBeNull();
     });
   });
