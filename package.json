@@ -69,7 +69,7 @@
     "eslint-config-next": "16.4.2",
     "husky": "^9.1.7",
     "jsdom": "^30.1.0",
-    "postcss": ">=8.5.26",
+    "postcss": ">=8.5.32",
     "prettier": "3.9.10",
     "prettier-plugin-tailwindcss": "0.8.1",
     "sass": "^1.106.1",
