@@ -13,6 +13,7 @@
 # testing
 /coverage
 /pieces
+files/mocked_pdfs/
 
 # next.js
 /.next/
