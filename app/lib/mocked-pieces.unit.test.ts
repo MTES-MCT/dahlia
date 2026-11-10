@@ -29,8 +29,8 @@ afterEach(() => {
 describe("mocked-pieces", () => {
   describe("pickMockedPdfFileName", () => {
     it("returns the single candidate for a known type", () => {
-      expect(pickMockedPdfFileName("Accusé de réception de la requête")).toBe(
-        "Accuse_de_reception_de_la_requete.pdf",
+      expect(pickMockedPdfFileName("Accusé de réception de la requête - DALO")).toBe(
+        "DOSSIER_COMED_2_Accuse_reception_DALO-2.pdf",
       );
     });
 
@@ -51,12 +51,12 @@ describe("mocked-pieces", () => {
 
     it("picks the first candidate when Math.random is near 0", () => {
       vi.spyOn(Math, "random").mockReturnValue(0);
-      expect(pickMockedPdfFileName("Requête")).toBe("1136075500_Requete_TA.pdf");
+      expect(pickMockedPdfFileName("Requête")).toBe("1-Requete_2405328_IIL_1144107799-1-1.pdf");
     });
 
     it("picks the last candidate when Math.random is near 1", () => {
       vi.spyOn(Math, "random").mockReturnValue(0.999);
-      expect(pickMockedPdfFileName("Requête")).toBe("1-Requete_2405328_IIL_1144107799-1-1.pdf");
+      expect(pickMockedPdfFileName("Requête")).toBe("Requete_A.pdf");
     });
   });
 
@@ -65,14 +65,16 @@ describe("mocked-pieces", () => {
       const bytes = Buffer.from("%PDF-1.4 fake");
       readFileMock.mockResolvedValue(bytes);
 
-      const result = await readMockedPdf("Accusé de réception de la requête");
+      const result = await readMockedPdf("Accusé de réception de la requête - DALO");
 
-      expect(result).toEqual({ data: bytes, fileName: "Accuse_de_reception_de_la_requete.pdf" });
+      expect(result).toEqual({
+        data: bytes,
+        fileName: "DOSSIER_COMED_2_Accuse_reception_DALO-2.pdf",
+      });
       expect(readFileMock).toHaveBeenCalledTimes(1);
       const calledPath = readFileMock.mock.calls[0][0] as string;
-      expect(calledPath).toContain("files");
-      expect(calledPath).toContain("mocked_pdfs");
-      expect(calledPath.endsWith("Accuse_de_reception_de_la_requete.pdf")).toBe(true);
+      expect(calledPath).toContain("files/mocked_pdfs");
+      expect(calledPath.endsWith("DOSSIER_COMED_2_Accuse_reception_DALO-2.pdf")).toBe(true);
     });
 
     it("reads Autre.pdf for an unknown type", async () => {
@@ -89,11 +91,14 @@ describe("mocked-pieces", () => {
       isS3ConfiguredMock.mockReturnValue(true);
       readS3ObjectMock.mockResolvedValue(bytes);
 
-      const result = await readMockedPdf("Accusé de réception de la requête");
+      const result = await readMockedPdf("Accusé de réception de la requête - DALO");
 
-      expect(result).toEqual({ data: bytes, fileName: "Accuse_de_reception_de_la_requete.pdf" });
+      expect(result).toEqual({
+        data: bytes,
+        fileName: "DOSSIER_COMED_2_Accuse_reception_DALO-2.pdf",
+      });
       expect(readS3ObjectMock).toHaveBeenCalledWith(
-        "mocked_pdfs/Accuse_de_reception_de_la_requete.pdf",
+        "mocked_pdfs/DOSSIER_COMED_2_Accuse_reception_DALO-2.pdf",
       );
       expect(readFileMock).not.toHaveBeenCalled();
     });
