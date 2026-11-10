@@ -51,9 +51,7 @@ describe("mocked-pieces", () => {
 
     it("picks the first candidate when Math.random is near 0", () => {
       vi.spyOn(Math, "random").mockReturnValue(0);
-      expect(pickMockedPdfFileName("Requête")).toBe(
-        "1-Requete_2405328_IIL_1144107799-1-1.pdf",
-      );
+      expect(pickMockedPdfFileName("Requête")).toBe("1-Requete_2405328_IIL_1144107799-1-1.pdf");
     });
 
     it("picks the last candidate when Math.random is near 1", () => {
@@ -75,7 +73,7 @@ describe("mocked-pieces", () => {
       });
       expect(readFileMock).toHaveBeenCalledTimes(1);
       const calledPath = readFileMock.mock.calls[0][0] as string;
-      expect(calledPath).toContain("dossiers");
+      expect(calledPath).toContain("files/mocked_pdfs");
       expect(calledPath.endsWith("DOSSIER_COMED_2_Accuse_reception_DALO-2.pdf")).toBe(true);
     });
 
