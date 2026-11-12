@@ -1,4 +1,5 @@
 import { ENRICH_MODES, type Args, type EnrichMode } from "../scrape/pipeline";
+import { syncAnonymizeByDefault } from "../sync-anonymize-default";
 import { telerecoursApiJurisdictionCode } from "../telerecours/http";
 
 export function getEnv(key: string): string {
@@ -30,7 +31,7 @@ export const SCRAPE_USAGE = `Usage: pnpm scrape:telerecours -- [options]
   --all                            Récupère tous les dossiers, sans filtre de statut.
   --legalEntityDivisionIds <ids>   Filtre de divisions, séparées par des virgules (ex. 2488,1234).
                                    Défaut : <JURIDICTION>_TELERECOURS_DIVISIONS.
-  --anonymize                      Anonymise les acteurs et leurs noms dans les textes du dossier avant insertion (défaut hors production).
+  --anonymize                      Anonymise les acteurs et leurs noms dans les textes du dossier avant insertion (défaut hors production, sauf NO_ANONYMIZE=true).
   --no-anonymize                   Désactive l'anonymisation.
   --enrich <all|ongoing|none>      Phases B et C : ongoing (défaut, hors « Terminé »),
                                    all (y compris terminés), none (saute B et C).
@@ -73,7 +74,7 @@ export function parseEnrichMode(value: string): EnrichMode {
 }
 
 // Parse process.argv into the resolved run configuration. Defaults come from the
-// environment when not provided on the CLI (anonymize unless production,
+// environment when not provided on the CLI (see syncAnonymizeByDefault(),
 // divisions from <JURISDICTION>_TELERECOURS_DIVISIONS).
 export function parseArgs(argv: string[] = process.argv): ScrapeCliArgs {
   const args: ScrapeCliArgs = {
@@ -83,8 +84,7 @@ export function parseArgs(argv: string[] = process.argv): ScrapeCliArgs {
     sort: "STATUS_DATE,desc",
     all: false,
     legalEntityDivisionIds: [],
-    // Default: anonymize unless running against the prod environment.
-    anonymize: process.env.ENVIRONMENT !== "production",
+    anonymize: syncAnonymizeByDefault(),
     enrich: "ongoing",
     updatePieceName: false,
     forceUpdatePieceName: false,

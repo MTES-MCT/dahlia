@@ -90,6 +90,15 @@ describe("refreshCaseFile", () => {
     });
   });
 
+  it("n'anonymise pas quand NO_ANONYMIZE est true", async () => {
+    vi.stubEnv("NO_ANONYMIZE", "true");
+    mockedEnrichCaseFile.mockResolvedValue(undefined);
+    const key = { jurisdictionCode: "TA069", caseFileNumber: "TA069/2024/001" };
+
+    expect(await refreshCaseFile(key)).toEqual({ ok: true });
+    expect(mockedEnrichCaseFile).toHaveBeenCalledWith({}, {}, "TA069/2024/001", "TA069", false);
+  });
+
   it("rafraîchit le dossier du tribunal demandé et revalide son URL", async () => {
     mockedEnrichCaseFile.mockResolvedValue(undefined);
     const key = { jurisdictionCode: "TA034", caseFileNumber: "2401234" };

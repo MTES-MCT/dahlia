@@ -19,6 +19,7 @@ import { describePrismaError } from "@/app/lib/form-actions";
 import { getTelerecoursClientForCaseFile } from "@/app/lib/telerecours";
 import { consumeTelerecoursSyncRateLimit } from "@/app/lib/telerecours-sync-rate-limit";
 import { enrichCaseFile } from "@/data/persistence/enrich-case-file";
+import { syncAnonymizeByDefault } from "@/data/sync-anonymize-default";
 
 export type RefreshCaseFileResult =
   { ok: true } | { ok: false; error: string; retryAfterSeconds?: number };
@@ -60,8 +61,7 @@ export async function refreshCaseFile(key: CaseFileKey): Promise<RefreshCaseFile
     // Credentials follow the case file's own jurisdiction (e.g. TA034 vs TA069).
     const { client, jurisdiction } = await getTelerecoursClientForCaseFile(key);
 
-    // Anonymize everywhere except in production, mirroring the scraping script.
-    const anonymize = process.env.ENVIRONMENT !== "production";
+    const anonymize = syncAnonymizeByDefault();
 
     await enrichCaseFile(prisma, client, key.caseFileNumber, jurisdiction, anonymize);
 
