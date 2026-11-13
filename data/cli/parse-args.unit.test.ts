@@ -162,4 +162,15 @@ describe("parseArgs", () => {
     process.env.ENVIRONMENT = "production";
     expect(parseArgs(argv()).anonymize).toBe(false);
   });
+
+  it("does not anonymize when NO_ANONYMIZE is true", () => {
+    delete process.env.ENVIRONMENT;
+    process.env.NO_ANONYMIZE = "true";
+    expect(parseArgs(argv()).anonymize).toBe(false);
+  });
+
+  it("still anonymizes with --anonymize when NO_ANONYMIZE is true", () => {
+    process.env.NO_ANONYMIZE = "true";
+    expect(parseArgs(argv("--anonymize")).anonymize).toBe(true);
+  });
 });
