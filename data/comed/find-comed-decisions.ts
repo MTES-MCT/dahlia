@@ -53,11 +53,19 @@ async function loadCaseFileTitles(
   return titles;
 }
 
+export type ComedJurisdictionFilter = {
+  jurisdictionCode?: string;
+};
+
 // Load every attached file, then keep the COMED decisions.
 // Name matching stays in JS (see match-comed-decision); Postgres only supplies
 // the rows and the accent-folded names.
-export async function findComedDecisions(prisma: PrismaClient): Promise<ComedDecision[]> {
+export async function findComedDecisions(
+  prisma: PrismaClient,
+  filter: ComedJurisdictionFilter = {},
+): Promise<ComedDecision[]> {
   const files = await prisma.attachedFile.findMany({
+    where: filter.jurisdictionCode ? { jurisdictionCode: filter.jurisdictionCode } : undefined,
     select: comedDecisionSelect,
     orderBy: [{ caseFileNumber: "asc" }, { jurisdictionCode: "asc" }, { eventCreationDate: "asc" }],
   });
@@ -72,8 +80,13 @@ export async function findComedDecisions(prisma: PrismaClient): Promise<ComedDec
   }));
 }
 
-export async function countUniqueDossiers(prisma: PrismaClient): Promise<number> {
-  return await prisma.caseFile.count();
+export async function countUniqueDossiers(
+  prisma: PrismaClient,
+  filter: ComedJurisdictionFilter = {},
+): Promise<number> {
+  return await prisma.caseFile.count({
+    where: filter.jurisdictionCode ? { jurisdictionCode: filter.jurisdictionCode } : undefined,
+  });
 }
 
 export function logComedDecisionStats(
