@@ -3,6 +3,7 @@ import { writeFileSync } from "node:fs";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { toComedDecisionCsv } from "../comed/comed-decision-csv";
+import { exportComedFiles } from "../comed/export-comed-files";
 import {
   findComedDecisions,
   logComedDecisionStats,
@@ -23,12 +24,21 @@ async function main(): Promise<number> {
   const prisma = new PrismaClient({ adapter });
 
   try {
-    const decisions = await findComedDecisions(prisma);
-    const nb_dossiers = await countUniqueDossiers(prisma);
+    const jurisdictionFilter = args.jurisdiction
+      ? { jurisdictionCode: args.jurisdiction }
+      : {};
+    const decisions = await findComedDecisions(prisma, jurisdictionFilter);
+    const nb_dossiers = await countUniqueDossiers(prisma, jurisdictionFilter);
     logComedDecisionStats(decisions, nb_dossiers);
     if (args.exportCsv) {
       writeFileSync(args.exportCsv, toComedDecisionCsv(decisions), "utf8");
       console.log(`→ Export CSV : ${decisions.length} pièces écrites dans ${args.exportCsv}`);
+    }
+    if (args.exportFiles) {
+      const { failed } = await exportComedFiles(prisma, decisions);
+      if (failed > 0) {
+        return 1;
+      }
     }
     return 0;
   } finally {
