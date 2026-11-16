@@ -53,6 +53,9 @@ model AttachedFile {
   fileFamilyTypeCode String
   fileFamilyType     FileFamilyType @relation(fields: [fileFamilyTypeCode], references: [code])
 
+  // DocumentIA interpretation (classification + extraction), if any.
+  interpretation AttachedFileInterpretation?
+
   // Row creation date.
   createdAt            DateTime  @default(now())
   // Last write of the pièce (Telerecours data or Dahlia metadata). Set by the

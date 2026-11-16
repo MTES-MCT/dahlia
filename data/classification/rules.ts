@@ -49,6 +49,7 @@ export const DEFAULT_RULES: readonly ClassificationRule[] = [
     rightType: "NI_DALO_NI_DAHO",
     examples: [
       "LOGEMENT: Contestation de la fin de prise en charge d'un hébergement d'urgence - Décision du 28/07/2025",
+      "EXE - LOGEMENT : Demande de prise en charge d'un hébergement d'urgence",
     ],
   },
   {

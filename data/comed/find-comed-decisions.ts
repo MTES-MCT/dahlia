@@ -55,7 +55,16 @@ async function loadCaseFileTitles(
 
 export type ComedJurisdictionFilter = {
   jurisdictionCode?: string;
+  // Restrict to the attached files of matching case files (e.g. not closed).
+  caseFile?: Prisma.CaseFileWhereInput;
 };
+
+function attachedFileWhere(filter: ComedJurisdictionFilter): Prisma.AttachedFileWhereInput {
+  return {
+    ...(filter.jurisdictionCode ? { jurisdictionCode: filter.jurisdictionCode } : {}),
+    ...(filter.caseFile ? { caseFile: filter.caseFile } : {}),
+  };
+}
 
 // Load every attached file, then keep the COMED decisions.
 // Name matching stays in JS (see match-comed-decision); Postgres only supplies
@@ -65,7 +74,7 @@ export async function findComedDecisions(
   filter: ComedJurisdictionFilter = {},
 ): Promise<ComedDecision[]> {
   const files = await prisma.attachedFile.findMany({
-    where: filter.jurisdictionCode ? { jurisdictionCode: filter.jurisdictionCode } : undefined,
+    where: attachedFileWhere(filter),
     select: comedDecisionSelect,
     orderBy: [{ caseFileNumber: "asc" }, { jurisdictionCode: "asc" }, { eventCreationDate: "asc" }],
   });
