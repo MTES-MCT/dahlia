@@ -222,6 +222,11 @@ const cases: {
     expected: { rightType: "DALO" },
   },
   {
+    // "EXE" alone does not mean execution of a judgment; hébergement d'urgence is out of scope.
+    title: "EXE - LOGEMENT : Demande de prise en charge d'un hébergement d'urgence",
+    expected: { rightType: "NI_DALO_NI_DAHO" },
+  },
+  {
     // Out of scope: nothing to deduce.
     title: "POLICE: Suspension permis de conduire",
     expected: {},

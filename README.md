@@ -347,6 +347,8 @@ sauf si `<JURIDICTION>_TELERECOURS_JURISDICTION` la surcharge :
 | `--force`                        | `false`                        | Phases B et C : supprime les événements, les pièces (avec leurs métadonnées Dahlia : nom, commentaire) et les liens entre dossiers présents en base mais plus renvoyés par Télérecours pour le dossier. Utile pour nettoyer les données fusionnées par une collision d'identifiants.                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `--classify`                     | `false`                        | Exécute la Phase D : déduit `litigationType`, `rightType` et `summary` de chaque dossier du périmètre à partir de son texte (titre, décision). Voir « Classification automatique ».                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `--classify-overwrite`           | `false`                        | Implique `--classify`. Réécrit aussi les caractéristiques **déjà renseignées** (par défaut, seuls les champs vides sont remplis, pour ne pas écraser la saisie des utilisateurs).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `--document-ia`                  | `false`                        | Exécute la Phase E : interprétation DocumentIA des décisions COMED du périmètre (cf. `--enrich`). Voir « Interprétation DocumentIA des décisions COMED ».                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `--force-document-ia`            | `false`                        | Implique `--document-ia`. Réinterprète aussi les pièces déjà interprétées.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | `--help`, `-h`                   | —                              | Affiche la liste des options et quitte sans rien scraper.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 
 ### Anonymisation des textes du dossier
@@ -391,6 +393,10 @@ pnpm scrape:telerecours -- --enrich all --anonymize
 4. **Phase D** _(exécutée uniquement avec `--classify`)_ — applique le moteur de
    règles de classification aux dossiers du périmètre (voir « Classification
    automatique des dossiers » plus bas).
+5. **Phase E** _(exécutée uniquement avec `--document-ia`)_ — envoie à DocumentIA
+   les décisions COMED candidates des dossiers du périmètre (hors « Terminé »,
+   sauf `--enrich all`) qui ne sont pas encore interprétées (voir
+   « Interprétation DocumentIA des décisions COMED » plus bas).
 
 ### Suivi de synchronisation Télérecours
 
@@ -478,6 +484,9 @@ pnpm scrape:telerecours -- --classify
 
 # Idem, en recalculant aussi les caractéristiques déjà renseignées
 pnpm scrape:telerecours -- --classify-overwrite
+
+# Scrape complet + interprétation DocumentIA des décisions COMED pas encore interprétées
+pnpm scrape:telerecours -- --document-ia
 
 # Afficher l'aide (liste des options)
 pnpm scrape:telerecours -- --help
@@ -668,6 +677,40 @@ chaque exemple est reconnu par sa règle et qu'aucune règle antérieure ne lui 
 ses attributs, en plus du tableau de cas de bout en bout. Un
 `pnpm classify:case-files -- --jurisdiction TA069 --dry-run` liste les dossiers
 non reconnus, utile pour repérer les règles manquantes.
+
+## Interprétation DocumentIA des décisions COMED
+
+`pnpm interpret:comed` (`data/cli/interpret-comed-decisions.ts`) repère les
+décisions de la commission de médiation parmi les pièces jointes (mêmes règles
+de nommage que `pnpm find-comed-decisions`), télécharge chaque pièce depuis
+Télérecours et l'envoie à [DocumentIA](https://github.com/etalab-ia/document-ia)
+(workflow `document-classification-extraction-v2`, classification restreinte à
+`decision_comed` / `autre`, extraction du schéma `decision_comed`). Le résultat
+est stocké dans `attached_file_interpretations` (une ligne par pièce) :
+
+| Colonne        | Contenu                                                                                          |
+| -------------- | ------------------------------------------------------------------------------------------------ |
+| `status`       | `SUCCESS`, `FAILED` (réessayée au prochain lancement) ou `SKIPPED` (format/taille non supportés) |
+| `documentType` | classification DocumentIA (`decision_comed` = confirmée, `autre` = faux positif du nommage)      |
+| `confidence`   | confiance de la classification (0..1)                                                            |
+| `metadata`     | champs extraits `{ numero_recours, sens_decision, date_decision, demandeur, … }`                 |
+| `rawResult`    | réponse DocumentIA complète (sans `workflow_metadata`)                                           |
+
+Une pièce `SUCCESS` ou `SKIPPED` n'est plus renvoyée, sauf `--force-document-ia`.
+
+```sh
+# Pièces des dossiers non terminés, toutes juridictions
+pnpm interpret:comed
+# Un seul tribunal, y compris les dossiers terminés
+pnpm interpret:comed -- --jurisdiction TA034 --enrich all
+# Réinterpréter même les pièces déjà en base
+pnpm interpret:comed -- --force-document-ia
+```
+
+Variables d'environnement : `DOCUMENT_IA_URL`, `DOCUMENT_IA_API_KEY` (et,
+optionnelles, `DOCUMENT_IA_WORKFLOW_ID`, `DOCUMENT_IA_POLL_INTERVAL_MS`,
+`DOCUMENT_IA_TIMEOUT_MS`), cf. `.env.example`. Les identifiants Télérecours de
+chaque juridiction (`<JURIDICTION>_TELERECOURS_*`) sont aussi nécessaires.
 
 ## Schéma de base de données
 
@@ -908,6 +951,22 @@ erDiagram
         DateTime telerecoursUpdatedAt "nullable"
     }
 
+    AttachedFileInterpretation {
+        int id PK
+        string jurisdictionCode FK
+        string encodedFileId FK
+        enum status "SUCCESS | FAILED | SKIPPED"
+        string documentType "nullable, classification DocumentIA"
+        float confidence "nullable"
+        json metadata "nullable, champs extraits"
+        json rawResult "nullable"
+        string errorMessage "nullable"
+        string workflowId
+        string executionId "nullable"
+        DateTime createdAt
+        DateTime updatedAt
+    }
+
     RelatedCaseFile {
         string jurisdictionCode PK_FK
         string caseFileNumber PK_FK
@@ -987,6 +1046,7 @@ erDiagram
     CaseFile            ||--o{ AttachedFile : "attachedFiles"
     CaseFileEvent       ||--o{ AttachedFile : "event"
     FileFamilyType      ||--o{ AttachedFile : "family"
+    AttachedFile        ||--o| AttachedFileInterpretation : "interpretation"
     CaseFile            ||--o{ RelatedCaseFile : "source"
     CaseFile            ||--o{ RelatedCaseFile : "target"
     CaseFile            |o--o| LastDecisionReading : "lastDecisionReading"

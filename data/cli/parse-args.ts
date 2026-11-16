@@ -45,6 +45,12 @@ export const SCRAPE_USAGE = `Usage: pnpm scrape:telerecours -- [options]
                                    mais plus renvoyés par Télérecours pour le dossier.
   --classify                       Exécute la phase D : classification automatique des dossiers.
   --classify-overwrite             Implique --classify ; réécrit aussi les champs déjà renseignés.
+  --document-ia                    Exécute la phase E : interprétation DocumentIA des décisions
+                                   COMED du périmètre (cf. --enrich : ongoing hors « Terminé »,
+                                   all y compris terminés). Pièces déjà interprétées ignorées.
+                                   Nécessite DOCUMENT_IA_URL et DOCUMENT_IA_API_KEY.
+  --force-document-ia              Implique --document-ia ; réinterprète aussi les pièces déjà
+                                   interprétées.
   --help, -h                       Affiche cette aide.
 `;
 
@@ -91,6 +97,8 @@ export function parseArgs(argv: string[] = process.argv): ScrapeCliArgs {
     force: false,
     classify: false,
     classifyOverwrite: false,
+    documentIa: false,
+    forceDocumentIa: false,
     help: false,
   };
 
@@ -135,6 +143,12 @@ export function parseArgs(argv: string[] = process.argv): ScrapeCliArgs {
       // would silently do nothing.
       args.classify = true;
       args.classifyOverwrite = true;
+    } else if (arg === "--document-ia") {
+      args.documentIa = true;
+    } else if (arg === "--force-document-ia") {
+      // Implies --document-ia, for the same reason as --classify-overwrite.
+      args.documentIa = true;
+      args.forceDocumentIa = true;
     } else if (arg === "--help" || arg === "-h") {
       args.help = true;
     } else if (arg === "--") {
@@ -182,6 +196,8 @@ export function parseArgs(argv: string[] = process.argv): ScrapeCliArgs {
   console.log("  - force set to", args.force);
   console.log("  - classify set to", args.classify);
   console.log("  - classifyOverwrite set to", args.classifyOverwrite);
+  console.log("  - documentIa set to", args.documentIa);
+  console.log("  - forceDocumentIa set to", args.forceDocumentIa);
   console.log("  - divisionIdsFromCli set to", divisionIdsFromCli);
   console.log("--------------------------------------------------");
   return args;

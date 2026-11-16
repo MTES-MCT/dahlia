@@ -1,0 +1,42 @@
+// Outcome of a DocumentIA run on an attached file.
+// SUCCESS: DocumentIA answered (the document may still be classified "autre").
+// FAILED: transient error (download, DocumentIA down, timeout…), retried on the next run.
+// SKIPPED: the file cannot be sent (unsupported format, too large); not retried
+// unless --force-document-ia.
+enum InterpretationStatus {
+  SUCCESS
+  FAILED
+  SKIPPED
+}
+
+// DocumentIA interpretation of an attached file: one row per pièce, overwritten
+// when the interpretation is forced again. Never written by the Télérecours
+// upsert itself, only by the interpretation script (or scrape --document-ia).
+model AttachedFileInterpretation {
+  id Int @id @default(autoincrement())
+
+  jurisdictionCode String
+  encodedFileId    String
+  attachedFile     AttachedFile @relation(fields: [jurisdictionCode, encodedFileId], references: [jurisdictionCode, encodedFileId], onDelete: Cascade)
+
+  status       InterpretationStatus
+  // DocumentIA classification (decision_comed, autre, …). Null unless SUCCESS.
+  documentType String?
+  // Classification confidence (0..1) returned by DocumentIA.
+  confidence   Float?
+  // Extracted fields flattened as { name: value } (e.g. numero_recours, sens_decision).
+  metadata     Json?
+  // Full DocumentIA result (classification, extraction with anomalies, barcodes).
+  rawResult    Json?
+  errorMessage String?
+
+  workflowId  String
+  executionId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([jurisdictionCode, encodedFileId])
+  @@index([documentType])
+  @@map("attached_file_interpretations")
+}

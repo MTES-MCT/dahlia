@@ -15,6 +15,8 @@ const args = (over: Partial<Args> = {}): Args => ({
   force: false,
   classify: false,
   classifyOverwrite: false,
+  documentIa: false,
+  forceDocumentIa: false,
   ...over,
 });
 
