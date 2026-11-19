@@ -4,6 +4,11 @@ import { Header, type HeaderProps } from "@codegouvfr/react-dsfr/Header";
 import clsx from "clsx";
 import { LogoutLink } from "@/app/ui/header/logout-link";
 
+function documentationUrlFromEnv(): string | undefined {
+  const url = process.env.DAHLIA_DOCUMENTATION_URL?.trim();
+  return url || undefined;
+}
+
 // Minimal shape of the authenticated user needed to render the header.
 export type HeaderDahliaUser = {
   firstName?: string | null;
@@ -18,6 +23,8 @@ export type HeaderDahliaUser = {
 // the user's name and a « Se déconnecter » link. Admins also get a link to
 // the users administration page.
 export function HeaderDahlia({ user }: { user?: HeaderDahliaUser | null }) {
+  const documentationUrl = documentationUrlFromEnv();
+
   const quickAccessItems: HeaderProps["quickAccessItems"] = user
     ? [
         <p key="user" className={fr.cx("fr-m-1v", "fr-text--sm")}>
@@ -30,6 +37,19 @@ export function HeaderDahlia({ user }: { user?: HeaderDahliaUser | null }) {
                 iconId: "fr-icon-settings-5-line" as const,
                 linkProps: { href: "/admin" },
                 text: "Administration",
+              },
+            ]
+          : []),
+        ...(documentationUrl
+          ? [
+              {
+                iconId: "fr-icon-book-2-line" as const,
+                linkProps: {
+                  href: documentationUrl,
+                  target: "_blank",
+                  rel: "noopener noreferrer",
+                },
+                text: "Documentation",
               },
             ]
           : []),
