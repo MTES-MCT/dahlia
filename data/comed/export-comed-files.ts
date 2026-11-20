@@ -9,7 +9,7 @@ import type { ComedDecision } from "./match-comed-decision";
 const CASE_FILE_LOOKUP_BATCH = 10_000;
 const DOWNLOAD_RATE_LIMIT_MS = 150;
 
-function caseFileKey(jurisdictionCode: string, caseFileNumber: string): string {
+export function caseFileKey(jurisdictionCode: string, caseFileNumber: string): string {
   return `${jurisdictionCode}\0${caseFileNumber}`;
 }
 
@@ -25,7 +25,7 @@ function sanitizeFileName(name: string): string {
   return name.replace(/[/\\:*?"<>|]/g, "_");
 }
 
-function telerecoursCredentials(shortName: string): { username: string; password: string } {
+export function telerecoursCredentials(shortName: string): { username: string; password: string } {
   const username = process.env[`${shortName}_TELERECOURS_USERNAME`];
   const password = process.env[`${shortName}_TELERECOURS_PASSWORD`];
   if (!username || !password) {
@@ -37,7 +37,7 @@ function telerecoursCredentials(shortName: string): { username: string; password
   return { username, password };
 }
 
-async function loadJurisdictionShortNames(
+export async function loadJurisdictionShortNames(
   prisma: PrismaClient,
   decisions: readonly { jurisdictionCode: string; caseFileNumber: string }[],
 ): Promise<Map<string, string>> {
