@@ -1,0 +1,9 @@
+# Files the Cursor agent must not read (secrets, personal data).
+# Reads: guard-read.sh (Cursor) + permissions.deny in .agents/settings.json (Claude).
+# Keep patterns in sync; .env.example is allowed (deny .env.* + allow Read(./.env.example) on Claude).
+# (.cursorignore does NOT protect against terminal commands).
+.env
+.env.*
+!.env.example
+tmp/
+webapp_dbdata/

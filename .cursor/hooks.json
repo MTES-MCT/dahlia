@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "hooks": {
+    "beforeShellExecution": [{ "command": ".agents/hooks/guard-bash.sh", "failClosed": true }],
+    "beforeReadFile": [{ "command": ".agents/hooks/guard-read.sh", "failClosed": true }],
+    "afterFileEdit": [{ "command": ".agents/hooks/post-edit.sh" }],
+    "stop": [{ "command": ".agents/hooks/stop-check.sh", "timeout": 300, "loop_limit": 3 }]
+  }
+}

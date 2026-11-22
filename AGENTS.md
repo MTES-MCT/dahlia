@@ -5,7 +5,7 @@ Webapp beta.gouv.fr d'aide au traitement des contentieux du droit au logement et
 ## Stack
 
 - **Next.js 16** (App Router, Server Components par défaut) + **React 19**
-- **TypeScript** strict, alias `@/*` → racine du projet (`webapp/`)
+- **TypeScript** strict, alias `@/*` → racine du repo
 - **Prisma 7** + Postgres via driver adapter `@prisma/adapter-pg` (`pg`)
 - **DSFR** via `@codegouvfr/react-dsfr` (Système de Design de l'État) + Tailwind v4
 - **pnpm** (Node 22.14, cf. `.tools-version`), **Vitest** (jsdom)
@@ -13,10 +13,12 @@ Webapp beta.gouv.fr d'aide au traitement des contentieux du droit au logement et
 ## Commandes
 
 ```sh
-docker compose up -d        # Postgres — depuis la RACINE du repo (../), pas webapp/
+docker compose up -d        # Postgres local
 pnpm install                # installer les deps (postinstall lance prisma generate)
 pnpm dev                    # dev sur http://localhost:3000
-pnpm test                   # vitest
+pnpm test:unit              # tests unitaires (boucle rapide, sans BDD)
+pnpm test:integration       # tests d'intégration (Postgres requis)
+pnpm test                   # unitaires + intégration
 pnpm lint                   # eslint (next core-web-vitals + typescript)
 pnpm format                 # prettier --write (formate tout le repo)
 pnpm format:check           # prettier --check (utile en CI)
@@ -26,10 +28,9 @@ pnpm build                  # build prod
 ### Base de données (Prisma)
 
 ```sh
-pnpm db:migrate             # créer/appliquer une migration en dev
 pnpm db:generate            # régénérer le client
 pnpm db:studio              # Prisma Studio
-pnpm db:reset               # reset complet
+pnpm db:reset               # reset complet (humain uniquement, interdit aux agents)
 pnpm db:format              # formater les .prisma
 ```
 
@@ -61,7 +62,7 @@ applique aussitôt et échoue avant qu'on puisse corriger le SQL.
 
 ### Import de données
 
-`pnpm scrape:telerecours` (`data/scrape-telerecours.ts`) : scrape l'API Télérecours et **upsert** en base. Nécessite `<JURIDICTION>_TELERECOURS_USERNAME/PASSWORD` dans `.env`. Args : `--jurisdiction TA069 --page 0 --size 30 --all --legalEntityDivisionIds 2488`. Documentation complète des options et du déroulé (phases A/B/C) dans le README, section « Import des données (scraping Télérecours) ».
+`pnpm scrape:telerecours` (`data/cli/scrape-telerecours.ts`) : scrape l'API Télérecours et **upsert** en base. Nécessite `<JURIDICTION>_TELERECOURS_USERNAME/PASSWORD` dans `.env`. Args : `--jurisdiction TA069 --page 0 --size 30 --all --legalEntityDivisionIds 2488`. Documentation complète des options et du déroulé (phases A/B/C) dans le README, section « Import des données (scraping Télérecours) ».
 
 ## Architecture & conventions
 
@@ -93,6 +94,21 @@ applique aussitôt et échoue avant qu'on puisse corriger le SQL.
 - **TypeScript** : toujours vérifier que les contrôles TypeScript passent et utiliser les types générés par Prisma (ex. `Prisma.CaseFileGetPayload`) pour le code de la couche données.
 - **Titre de page (RGAA 8.5/8.6)** : toute nouvelle page doit exporter un `metadata.title` (ou `generateMetadata`) **spécifique et significatif**. Le layout racine applique le gabarit `%s - DAHLIA` : ne pas inclure « - DAHLIA » dans le titre de la page. Ajouter aussi un cas dans `app/page-titles.unit.test.tsx` (et l'inclure dans le test d'unicité des titres).
 
+## Sécurité et données personnelles
+
+Les dossiers DALO/DAHO contiennent des données personnelles sensibles (identité, logement, santé).
+
+- Ne jamais lire, afficher ni copier `.env` ou un secret. Les noms de variables sont dans `.env.example`.
+- Travailler uniquement sur des données anonymisées (`data/anonymize.ts`). Ne jamais restaurer la prod (`make db-restore-from-prod`) ni lire les exports locaux dans `tmp/` ou `webapp_dbdata/` (bloqués par le harnais) ; ne pas copier de dumps prod hors de ces dossiers vers l'agent.
+- Ne jamais coller de données de dossier dans une recherche web, un MCP ou un service externe.
+- Toute nouvelle lecture passe par `caseFileScopeWhere()`. Toute nouvelle écriture (Server Action, `route.ts`) passe d'abord par `canAccessCaseFile()` ou `requireAdmin` / `withAdminAction`.
+- Valider côté serveur toute entrée utilisateur. Pas de `dangerouslySetInnerHTML`, pas de SQL brut construit par concaténation (`$queryRaw` avec template uniquement).
+- Changement sensible (auth, périmètre, téléchargement de pièces) : lancer `/security-review` avant la PR.
+
+## Accessibilité (RGAA)
+
+Toute UI suit le skill `rgaa-dsfr` (`.agents/skills/rgaa-dsfr/SKILL.md`) : composant DSFR d'abord, HTML natif ensuite, ARIA en dernier recours. Les règles `jsx-a11y` sont actives dans ESLint. Ne pas les désactiver sans commentaire justifiant le faux positif.
+
 ## Tests
 
 - Vitest, environnement `jsdom`, alias résolus via `vite-tsconfig-paths`.
@@ -112,3 +128,36 @@ applique aussitôt et échoue avant qu'on puisse corriger le SQL.
 ## Commentaires
 
 Tous les commentaires dans les fichiers de la base de code doivent être rédigés en anglais
+
+## Harnais IA (Claude Code et Cursor)
+
+Configuration dans `.agents/` (`.claude` est un lien vers ce dossier) : `settings.json` (permissions, hooks), `hooks/`, `skills/`, `agents/`.
+Le même harnais sert à **Cursor** : `.cursor/hooks.json` branche les mêmes scripts, `.cursorignore` masque les secrets et les données, et `.cursor/agents/` contient les variantes Cursor des sous-agents. Les skills sont lus directement dans `.agents/skills/`. Résumé complet dans le README, section « Harnais IA ».
+
+### Hooks automatiques
+
+Ces contrôles tournent déjà : inutile de les relancer à la main.
+
+- `post-edit.sh` : prettier et eslint sur chaque fichier modifié.
+- `guard-read.sh` (Cursor uniquement) : refuse la lecture des mêmes chemins que `.cursorignore` / `permissions.deny` Read dans `settings.json` (`.env*`, `tmp/`, `webapp_dbdata/`). Sous Claude Code : `deny` uniquement (pas de hook Read).
+- `guard-bash.sh` : bloque l'accès à `.env`, la lecture shell de `tmp/` et `webapp_dbdata/`, l'exfiltration, les commandes destructrices et les migrations parasites sur `actors`.
+- Sous Cursor, `pnpm db:migrate` est bloqué par `guard-bash.sh` ; sous Claude, le `PreToolUse` Bash doit être branché sur ce script (pas seulement l’allow-list).
+- `stop-check.sh` : `tsc` et les tests unitaires liés en fin de tour, puis la boucle d'apprentissage.
+
+### Maintenance du harnais (boucle d'apprentissage)
+
+- Après toute modification de code, signaler si le harnais (ce fichier, un skill, un hook, les permissions) doit évoluer, et **proposer** le diff. Ne jamais modifier le harnais sans validation.
+- `.agents/harness-triggers.txt` associe les zones de code aux éléments du harnais à revoir. Le hook de fin de tour s'en sert.
+- Lancer `/harness-sync` avant une PR importante (il compare le code au dernier commit noté dans `.agents/HARNESS_SYNC`).
+- Une correction répétée par l'utilisateur devient une règle ici si elle vaut pour l'équipe, ou une règle ESLint / un hook si elle peut être vérifiée par une machine.
+
+### Délégation aux sous-agents
+
+Le modèle principal conçoit et décide. On délègue ce qui consiste à **chercher, lister, exécuter ou résumer** :
+
+- `scout` (haiku, lecture seule) : localiser du code, faire des inventaires (pages sans `metadata`, requêtes non cloisonnées, actions sans garde, `style=`), lire une section du README ou un changelog, collecter le diff pour `/harness-sync`.
+- `runner` (haiku) : lancer les suites `test` / `lint` / `tsc` complètes et ne renvoyer que les échecs.
+- `general-purpose` avec `model: sonnet` : tests calqués sur un test voisin, diagramme mermaid, description de PR, revue a11y d'un diff (rapport seul).
+- **Jamais délégués** : sécurité et périmètre de droit, authentification, migrations, données personnelles, debugging, architecture.
+
+Un sous-agent renvoie toujours un résumé borné (au plus ~30 lignes) et ne prend aucune décision de sécurité.
