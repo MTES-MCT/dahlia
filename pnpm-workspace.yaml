@@ -31,3 +31,5 @@ overrides:
   "source-map-js": ">=1.2.2"
   "uuid": ">=11.1.1"
   "@hono/node-server": ">=1.19.15"
+  # GHSA-7589-6fvf-x4pw: ReDoS in Schema.TemplateLiteral (effect <= 3.22.0); @prisma/config pins 3.20.0
+  "@prisma/config>effect": "3.22.1"
