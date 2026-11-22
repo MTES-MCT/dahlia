@@ -57,3 +57,7 @@ opencode.json
 # investigation
 tmp/
 audits/
+
+# AI harness local state
+.agents/settings.local.json
+.agents/.state/

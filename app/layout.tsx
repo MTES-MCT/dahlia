@@ -40,6 +40,8 @@ export default async function RootLayout({
   const nonce = requestHeaders.get(NONCE_HEADER) ?? undefined;
 
   return (
+    // `lang` is set through the getHtmlAttributes spread, invisible to the rule.
+    // eslint-disable-next-line jsx-a11y/html-has-lang
     <html {...getHtmlAttributes({ lang })}>
       <head>
         <DsfrHead

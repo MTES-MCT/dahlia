@@ -222,6 +222,9 @@ export function TagCombobox({
                 className={clsx("fr-my-0", "list-none", "fr-pl-0", "fr-pr-0")}
               >
                 {suggestions.map((tag, index) => (
+                  // ARIA combobox pattern: keyboard selection is handled on the
+                  // input (aria-activedescendant), the click is a mouse shortcut.
+                  // eslint-disable-next-line jsx-a11y/click-events-have-key-events
                   <li
                     key={tag.id}
                     id={optionId(index)}
