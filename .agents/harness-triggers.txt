@@ -1,0 +1,16 @@
+# Learning loop: "code path regex => harness element to review".
+# Read by .agents/hooks/stop-check.sh. Lines starting with # are ignored.
+^prisma/schema/.*\.prisma$ => AGENTS.md « Modèle métier » + diagramme mermaid du README (+ section colonnes générées si `actors` change)
+^prisma/migrations/ => AGENTS.md « Migrations et colonnes générées » + .agents/hooks/check-migrations.sh
+^package\.json$ => AGENTS.md « Stack » / « Commandes » + permissions de .agents/settings.json + pertinence des skills nextjs / vitest
+^app/lib/(case-file-scope|auth|admin-actions|form-actions)\.ts$ => AGENTS.md « Périmètre de droit » / « Sécurité et données personnelles »
+^proxy\.ts$ => AGENTS.md « Organisation des dossiers » (proxy) / « Sécurité »
+^app/.*/route\.ts$ => AGENTS.md « Sécurité » (garde d'accès des Route Handlers)
+^data/cli/ => AGENTS.md « Import de données » + scripts package.json
+^(eslint\.config\.mjs|vitest.*\.config\.mts|tsconfig\.json|\.husky/) => hooks .agents/hooks/* (post-edit, stop-check)
+^app/ui/ => skill rgaa-dsfr (nouveau motif d'accessibilité à documenter ?)
+^app/.*/page\.tsx$ => skill rgaa-dsfr + app/page-titles.unit.test.tsx
+^\.github/workflows/ => AGENTS.md « Commandes » (cohérence CI / local)
+^\.agents/agents/ => synchroniser les variantes Cursor dans .cursor/agents/ (même corps, model/readonly propres à Cursor)
+^\.agents/(settings\.json|hooks/) => cohérence avec .cursor/hooks.json et .cursorignore (Cursor n'a pas de deny : les règles vivent dans guard-bash.sh / guard-read.sh)
+^\.cursorignore$ => mêmes motifs que guard-read.sh + en-tête de commentaire ; si chemins ajoutés, mettre à jour settings.json deny (Claude)

@@ -6,8 +6,15 @@ import { HeaderDahlia } from "./header-dahlia";
 // so we assert on getAllBy*/queryAllBy* rather than the single-match queries.
 
 describe("HeaderDahlia", () => {
+  const originalDocumentationUrl = process.env.DAHLIA_DOCUMENTATION_URL;
+
   afterEach(() => {
     cleanup();
+    if (originalDocumentationUrl === undefined) {
+      delete process.env.DAHLIA_DOCUMENTATION_URL;
+    } else {
+      process.env.DAHLIA_DOCUMENTATION_URL = originalDocumentationUrl;
+    }
   });
 
   it("affiche le titre du service et le badge Beta", () => {
@@ -67,6 +74,29 @@ describe("HeaderDahlia", () => {
     const liens = screen.getAllByRole("link", { name: /Administration/ });
     expect(liens.length).toBeGreaterThan(0);
     expect(liens[0].getAttribute("href")).toBe("/admin");
+  });
+
+  it("affiche le lien Documentation quand DAHLIA_DOCUMENTATION_URL est défini", () => {
+    process.env.DAHLIA_DOCUMENTATION_URL =
+      "https://dahlia-documentation.osc-secnum-fr1.scalingo.io";
+
+    render(<HeaderDahlia user={{ firstName: "Jean", lastName: "Dupont" }} />);
+
+    const liens = screen.getAllByRole("link", { name: /Documentation/ });
+    expect(liens.length).toBeGreaterThan(0);
+    expect(liens[0].getAttribute("href")).toBe(
+      "https://dahlia-documentation.osc-secnum-fr1.scalingo.io",
+    );
+    expect(liens[0].getAttribute("target")).toBe("_blank");
+    expect(liens[0].getAttribute("rel")).toBe("noopener noreferrer");
+  });
+
+  it("masque le lien Documentation quand DAHLIA_DOCUMENTATION_URL est vide", () => {
+    process.env.DAHLIA_DOCUMENTATION_URL = "   ";
+
+    render(<HeaderDahlia user={{ firstName: "Jean", lastName: "Dupont" }} />);
+
+    expect(screen.queryAllByRole("link", { name: /Documentation/ })).toHaveLength(0);
   });
 
   it("se replie sur name quand prénom et nom sont absents", () => {
