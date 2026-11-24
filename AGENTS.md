@@ -134,13 +134,21 @@ Tous les commentaires dans les fichiers de la base de code doivent être rédig�
 Configuration dans `.agents/` (`.claude` est un lien vers ce dossier) : `settings.json` (permissions, hooks), `hooks/`, `skills/`, `agents/`.
 Le même harnais sert à **Cursor** : `.cursor/hooks.json` branche les mêmes scripts, `.cursorignore` masque les secrets et les données, et `.cursor/agents/` contient les variantes Cursor des sous-agents. Les skills sont lus directement dans `.agents/skills/`. Résumé complet dans le README, section « Harnais IA ».
 
+### Git : périmètre humain
+
+**Commit et push sont réservés au développeur**, pas à l'agent IA (agent principal ni sous-agents). L'agent ne lance jamais `git commit` ni `git push` (y compris `--amend`, force push, tags sur le remote). Il ne propose pas de committer à la place de l'humain.
+
+Ce que l'agent peut faire : modifier le code, résumer les changements, suggérer un message de commit ou une description de PR, et utiliser Git **en lecture seule** (`git status`, `git diff`, `git log`, `git show`, …). Le développeur stage, committe et pousse lui-même ; la CI et le hook `pre-commit` s'appliquent à ce moment-là.
+
+`guard-bash.sh` bloque `git commit` et `git push` pour renforcer cette règle.
+
 ### Hooks automatiques
 
 Ces contrôles tournent déjà : inutile de les relancer à la main.
 
 - `post-edit.sh` : prettier et eslint sur chaque fichier modifié.
 - `guard-read.sh` (Cursor uniquement) : refuse la lecture des mêmes chemins que `.cursorignore` / `permissions.deny` Read dans `settings.json` (`.env*`, `tmp/`, `webapp_dbdata/`). Sous Claude Code : `deny` uniquement (pas de hook Read).
-- `guard-bash.sh` : bloque l'accès à `.env`, la lecture shell de `tmp/` et `webapp_dbdata/`, l'exfiltration, les commandes destructrices et les migrations parasites sur `actors`.
+- `guard-bash.sh` : bloque l'accès à `.env`, la lecture shell de `tmp/` et `webapp_dbdata/`, l'exfiltration, les commandes destructrices, **`git commit` / `git push` (périmètre humain)** et les migrations parasites sur `actors`.
 - Sous Cursor, `pnpm db:migrate` est bloqué par `guard-bash.sh` ; sous Claude, le `PreToolUse` Bash doit être branché sur ce script (pas seulement l’allow-list).
 - `stop-check.sh` : `tsc` et les tests unitaires liés en fin de tour, puis la boucle d'apprentissage.
 

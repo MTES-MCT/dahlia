@@ -44,13 +44,21 @@ if printf '%s' "$cmd" | grep -Eq '(^|[;&| ])(nc|ncat|netcat|scp|rsync|sftp|ftp)(
   block "network copy tools are forbidden in this project."
 fi
 
-# 4. Destructive or production commands (mirrors the Claude Code deny rules,
-#    which Cursor has no project-level equivalent for).
-if printf '%s' "$cmd" | grep -Eq 'pnpm db:(migrate|reset)|prisma migrate reset|make db-restore-from-prod|(^|[;&| ])scalingo |git push[^;&|]*( --force| -f( |$))|(^|[;&| ])(env|printenv)( |$)'; then
-  block "forbidden command (migration / reset / production / force push / env dump). See AGENTS.md."
+# 4. Git writes are human-only (see AGENTS.md « Git : périmètre humain »).
+if printf '%s' "$cmd" | grep -Eq '(^|[;&| ])git commit\b'; then
+  block "git commit is reserved for human developers, not the AI. See AGENTS.md."
+fi
+if printf '%s' "$cmd" | grep -Eq '(^|[;&| ])git push\b'; then
+  block "git push is reserved for human developers, not the AI. See AGENTS.md."
 fi
 
-# 5. Prisma: unapplied migrations must not contain the bogus generated-column lines.
+# 5. Destructive or production commands (mirrors the Claude Code deny rules,
+#    which Cursor has no project-level equivalent for).
+if printf '%s' "$cmd" | grep -Eq 'pnpm db:(migrate|reset)|prisma migrate reset|make db-restore-from-prod|(^|[;&| ])scalingo |(^|[;&| ])(env|printenv)( |$)'; then
+  block "forbidden command (migration / reset / production / env dump). See AGENTS.md."
+fi
+
+# 6. Prisma: unapplied migrations must not contain the bogus generated-column lines.
 if printf '%s' "$cmd" | grep -Eq 'prisma migrate (deploy|dev)'; then
   if ! out=$("$(project_root)/.agents/hooks/check-migrations.sh" 2>&1); then
     block "$out"
