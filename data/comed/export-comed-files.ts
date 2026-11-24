@@ -4,6 +4,7 @@ import type { PrismaClient } from "@prisma/client";
 import { getTelerecoursCaseFileClient } from "../telerecours/client";
 import type { TelerecoursClient } from "../telerecours/client.interface";
 import { describeError, sleep } from "../telerecours/http";
+import { telerecoursCredentials } from "../jurisdiction-instance";
 import type { ComedDecision } from "./match-comed-decision";
 
 const CASE_FILE_LOOKUP_BATCH = 10_000;
@@ -25,17 +26,8 @@ function sanitizeFileName(name: string): string {
   return name.replace(/[/\\:*?"<>|]/g, "_");
 }
 
-export function telerecoursCredentials(shortName: string): { username: string; password: string } {
-  const username = process.env[`${shortName}_TELERECOURS_USERNAME`];
-  const password = process.env[`${shortName}_TELERECOURS_PASSWORD`];
-  if (!username || !password) {
-    throw new Error(
-      `Identifiants Télérecours manquants pour ${shortName} ` +
-        `(${shortName}_TELERECOURS_USERNAME / _PASSWORD).`,
-    );
-  }
-  return { username, password };
-}
+// Moved to data/jurisdiction-instance.ts; re-exported for existing callers.
+export { telerecoursCredentials } from "../jurisdiction-instance";
 
 export async function loadJurisdictionShortNames(
   prisma: PrismaClient,
@@ -76,11 +68,12 @@ function resolveExportFileName(
   telerecoursFileName: string | undefined,
   usedNames: Set<string>,
 ): string {
-  const base = sanitizeFileName(telerecoursFileName ?? (decision.fileName || decision.encodedFileId));
+  const base = sanitizeFileName(
+    telerecoursFileName ?? (decision.fileName || decision.encodedFileId),
+  );
   let candidate = base;
   if (usedNames.has(candidate)) {
-    const ext =
-      base.includes(".") && !base.endsWith(".") ? base.slice(base.lastIndexOf(".")) : "";
+    const ext = base.includes(".") && !base.endsWith(".") ? base.slice(base.lastIndexOf(".")) : "";
     const stem = ext ? base.slice(0, -ext.length) : base;
     candidate = sanitizeFileName(`${stem}_${decision.encodedFileId}${ext}`);
   }
@@ -161,8 +154,6 @@ export async function exportComedFiles(
     }
   }
 
-  console.log(
-    `→ Export fichiers : ${downloaded} téléchargé(s), ${failed} échec(s) → ${exportDir}`,
-  );
+  console.log(`→ Export fichiers : ${downloaded} téléchargé(s), ${failed} échec(s) → ${exportDir}`);
   return { exportDir, downloaded, failed };
 }

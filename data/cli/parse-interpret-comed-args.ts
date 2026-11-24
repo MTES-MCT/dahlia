@@ -4,11 +4,22 @@ Repère les décisions de la commission de médiation (COMED) parmi les pièces
 jointes (mêmes règles que find-comed-decisions), puis envoie chaque pièce pas
 encore interprétée à DocumentIA pour confirmer qu'il s'agit d'une décision COMED
 et en extraire les métadonnées (table attached_file_interpretations).
+Reporte ensuite la décision COMED la plus récente de chaque dossier (n° ComDalo,
+date de décision, champs vides uniquement sauf --force-document-ia, à valider
+par un agent) et type les
+pièces confirmées « décision COMED ».
 
-  --jurisdiction <code>    Limite à un tribunal (ex. TA069). Défaut : toutes les juridictions.
+  --jurisdiction <code>    Limite à une juridiction Dahlia (ex. TA069, TA069bis), comme
+                           scrape:telerecours. Défaut : toutes les juridictions.
   --enrich <all|ongoing>   ongoing (défaut) : pièces des dossiers non terminés uniquement ;
                            all : pièces de tous les dossiers (y compris « Terminé »).
-  --force-document-ia      Relance l'interprétation même si la pièce est déjà interprétée.
+  --force-document-ia      Relance l'interprétation même si la pièce est déjà interprétée,
+                           et remplace le n° ComDalo / la date COMED déjà renseignés s'ils
+                           diffèrent de la décision la plus récente (y compris une saisie
+                           manuelle).
+  --dry-run                Interprète et stocke les résultats DocumentIA, mais n'écrit ni le
+                           n° ComDalo / la date COMED du dossier, ni le type des pièces ;
+                           affiche les changements prévus.
   --help, -h               Affiche cette aide.
 
 Variables d'environnement : DOCUMENT_IA_URL, DOCUMENT_IA_API_KEY (cf. .env.example).
@@ -21,6 +32,8 @@ export interface InterpretComedCliArgs {
   jurisdiction: string | null;
   enrich: InterpretEnrichMode;
   forceDocumentIa: boolean;
+  // Absent means false.
+  dryRun?: boolean;
   help: boolean;
 }
 
@@ -41,7 +54,9 @@ export function parseInterpretComedArgs(argv: string[] = process.argv): Interpre
     } else if (arg === "--jurisdiction") {
       const value = argv[++i];
       if (!value || value.startsWith("--")) {
-        throw new Error("--jurisdiction attend un code de juridiction (ex. TA069).");
+        throw new Error(
+          "--jurisdiction attend un code de juridiction Dahlia (ex. TA069, TA069bis).",
+        );
       }
       args.jurisdiction = value;
     } else if (arg === "--enrich") {
@@ -53,6 +68,8 @@ export function parseInterpretComedArgs(argv: string[] = process.argv): Interpre
       args.enrich = mode;
     } else if (arg === "--force-document-ia") {
       args.forceDocumentIa = true;
+    } else if (arg === "--dry-run") {
+      args.dryRun = true;
     } else if (arg === "--help" || arg === "-h") {
       args.help = true;
     } else {

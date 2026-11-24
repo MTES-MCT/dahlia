@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import type { Prisma } from "@prisma/client";
 import { getActorDisplayName } from "@/app/lib/case-file-format";
+import { CLASSIFIER_QUALIFICATION_FIELDS } from "@/app/lib/case-file-qualification";
 import {
   CASE_FILES_DASHBOARD_INCLUDE,
   HEARING_CONVOCATION_SORT_KEY,
@@ -231,14 +232,14 @@ describe("case-files", () => {
       const result = await fetchCaseFileDetail("TA069", "CF-2024-001");
 
       expect(result).toEqual({ ...mockCaseFile, fieldChanges: [] });
-      // Only the case file's own classifier history, never pièce renames.
+      // Only the case file's automated qualification history, never pièce renames.
       expect(vi.mocked(prisma.fieldChange.findMany)).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {
             jurisdictionCode: "TA069",
             model: "CaseFile",
             modelId: "CF-2024-001",
-            field: { in: ["litigationType", "rightType"] },
+            field: { in: [...CLASSIFIER_QUALIFICATION_FIELDS] },
           },
         }),
       );

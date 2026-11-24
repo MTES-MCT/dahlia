@@ -8,6 +8,15 @@ model FileFamilyType {
   @@map("file_family_types")
 }
 
+// Nature of a pièce as established by DAHLIA (not by Telerecours).
+//   - REQUETE: the dossier's requête.
+//   - DECISION_COMED: COMED decision confirmed by DocumentIA
+//     (interpret:comed, or scrape --document-ia).
+enum AttachedFileDahliaType {
+  REQUETE
+  DECISION_COMED
+}
+
 // Pièce jointe d'un dossier. `encodedFileId` est l'identifiant opaque
 // fourni par Télérecours (sert à télécharger le contenu via une autre API).
 // On ne stocke ici que les métadonnées, pas le contenu binaire.
@@ -43,6 +52,9 @@ model AttachedFile {
   comment    String?
   // Shared by every agent of the case file: favorites are listed first.
   isFavorite Boolean @default(false)
+  // Nature established by DAHLIA, null when unknown. Never written by the
+  // Telerecours upsert.
+  dahliaType AttachedFileDahliaType?
 
   caseFileNumber String
   caseFile       CaseFile @relation(fields: [jurisdictionCode, caseFileNumber], references: [jurisdictionCode, caseFileNumber], onDelete: Cascade)

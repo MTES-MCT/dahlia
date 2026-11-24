@@ -39,6 +39,9 @@ export interface Args {
   documentIa: boolean;
   // Phase E — also re-interpret pièces already interpreted. Implies documentIa.
   forceDocumentIa: boolean;
+  // Phases D and E — report the automated qualification without writing it.
+  // Absent means false.
+  dryRun?: boolean;
 }
 
 // Everything the pipeline needs from the outside world. Injected so the phases

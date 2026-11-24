@@ -1,13 +1,20 @@
 // Review state of the "Qualification du dossier" block.
 //
-// The classifier (data/cli/classify-case-files.ts) writes some qualification
-// fields and logs each change in `field_changes` (model CaseFile). An agent must
-// review those values: the block asks for it as long as a classifier change is
-// more recent than the last validation.
+// Automated scripts write some qualification fields and log each change in
+// `field_changes` (model CaseFile): the classifier (data/cli/classify-case-files.ts)
+// for litigationType / rightType, and the COMED interpretation
+// (data/comed/apply-comed-decisions.ts) for comDaloNumber / comedDecisionDate.
+// An agent must review those values: the block asks for it as long as an
+// automated change is more recent than the last validation.
 
-// Fields of the block the classifier may write. `summary` is deprecated and no
-// longer displayed, so its changes do not call for a review.
-export const CLASSIFIER_QUALIFICATION_FIELDS = ["litigationType", "rightType"] as const;
+// Fields of the block automated scripts may write. `summary` is deprecated and
+// no longer displayed, so its changes do not call for a review.
+export const CLASSIFIER_QUALIFICATION_FIELDS = [
+  "litigationType",
+  "rightType",
+  "comDaloNumber",
+  "comedDecisionDate",
+] as const;
 
 export type ClassifierQualificationField = (typeof CLASSIFIER_QUALIFICATION_FIELDS)[number];
 

@@ -6,7 +6,8 @@ jointes, à partir du nom et de la famille de pièce.
   --export-csv <fichier>   Écrit le résultat (une pièce par ligne) dans un fichier CSV.
   --export-files           Télécharge chaque pièce COMED depuis Télérecours dans
                            un dossier comed-files-AAAA-MM-JJ (répertoire courant).
-  --jurisdiction <code>    Limite à un tribunal (ex. TA069). Défaut : toutes les juridictions.
+  --jurisdiction <code>    Limite à une juridiction Dahlia (ex. TA069, TA069bis), comme
+                           scrape:telerecours. Défaut : toutes les juridictions.
   --help, -h               Affiche cette aide.
 `;
 
@@ -40,7 +41,9 @@ export function parseComedArgs(argv: string[] = process.argv): ComedCliArgs {
     } else if (arg === "--jurisdiction") {
       const value = argv[++i];
       if (!value || value.startsWith("--")) {
-        throw new Error("--jurisdiction attend un code de juridiction (ex. TA069).");
+        throw new Error(
+          "--jurisdiction attend un code de juridiction Dahlia (ex. TA069, TA069bis).",
+        );
       }
       args.jurisdiction = value;
     } else if (arg === "--help" || arg === "-h") {

@@ -2,7 +2,8 @@ import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { createDocumentIaClient, documentIaConfigFromEnv } from "../document-ia/client";
-import { telerecoursCredentials } from "../comed/export-comed-files";
+import { logApplyComedStats } from "../comed/apply-comed-decisions";
+import { jurisdictionInstanceWhere, telerecoursCredentials } from "../jurisdiction-instance";
 import {
   comedCaseFileScope,
   interpretComedDecisions,
@@ -14,8 +15,9 @@ import type { TelerecoursClient } from "../telerecours/client.interface";
 import { describeError } from "../telerecours/http";
 import { INTERPRET_COMED_USAGE, parseInterpretComedArgs } from "./parse-interpret-comed-args";
 
-// CLI entrypoint: find COMED-decision candidates, interpret them with DocumentIA
-// and store the results in attached_file_interpretations.
+// CLI entrypoint: find COMED-decision candidates, interpret them with DocumentIA,
+// store the results in attached_file_interpretations, then copy the confirmed
+// decisions onto the case files and pièces (unless --dry-run).
 async function main(): Promise<number> {
   const args = parseInterpretComedArgs();
   if (args.help) {
@@ -40,16 +42,22 @@ async function main(): Promise<number> {
   };
 
   try {
+    const dryRun = args.dryRun ?? false;
     const stats = await interpretComedDecisions(prisma, {
       filter: {
-        ...(args.jurisdiction ? { jurisdictionCode: args.jurisdiction } : {}),
-        caseFile: comedCaseFileScope(args.enrich, EXCLUDED_ENRICHMENT_STATUS_LABELS),
+        caseFile: {
+          ...comedCaseFileScope(args.enrich, EXCLUDED_ENRICHMENT_STATUS_LABELS),
+          ...(args.jurisdiction ? jurisdictionInstanceWhere(args.jurisdiction) : {}),
+        },
       },
       force: args.forceDocumentIa,
       documentIa,
       getTelerecoursClient,
+      // Each case file is updated as soon as its pièces are interpreted.
+      apply: { dryRun, overwrite: args.forceDocumentIa },
     });
     logInterpretComedStats(stats);
+    if (stats.applied) logApplyComedStats(stats.applied, dryRun);
     return stats.failed > 0 ? 1 : 0;
   } finally {
     await prisma.$disconnect();

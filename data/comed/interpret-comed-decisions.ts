@@ -10,6 +10,12 @@ import {
 } from "../document-ia/client";
 import type { TelerecoursClient } from "../telerecours/client.interface";
 import { describeError, sleep } from "../telerecours/http";
+import {
+  addApplyComedStats,
+  applyComedDecisions,
+  emptyApplyComedStats,
+  type ApplyComedStats,
+} from "./apply-comed-decisions";
 import { caseFileKey, loadJurisdictionShortNames } from "./export-comed-files";
 import { findComedDecisions, type ComedJurisdictionFilter } from "./find-comed-decisions";
 import type { ComedDecision } from "./match-comed-decision";
@@ -29,6 +35,9 @@ export interface InterpretComedOptions {
   // Télérecours client for a Dahlia jurisdiction short name (TA069, TA069bis…).
   getTelerecoursClient: (shortName: string) => TelerecoursClient;
   rateLimitMs?: number;
+  // When set, copy each case file's confirmed decisions onto it right after its
+  // pièces are interpreted (see apply-comed-decisions).
+  apply?: { dryRun: boolean; overwrite: boolean };
 }
 
 export interface InterpretComedStats {
@@ -42,6 +51,8 @@ export interface InterpretComedStats {
   // Case files with several confirmed COMED decisions (recto/verso, duplicates,
   // successive decisions): to be reviewed.
   multipleDecisionCaseFiles: number;
+  // Totals of the per-case-file reports, when `apply` is set.
+  applied?: ApplyComedStats;
 }
 
 type InterpretationOutcome = Omit<
@@ -197,7 +208,11 @@ async function interpretOne(
 
 // Find the COMED-decision candidates (by name, see match-comed-decision), send
 // each one not yet interpreted to DocumentIA, and store the result in
-// attached_file_interpretations.
+// attached_file_interpretations. Candidates are processed case file by case
+// file: with `apply`, the confirmed decisions of a case file are copied onto it
+// as soon as its pièces are interpreted, so an interrupted run keeps the
+// dossiers already done. Case files whose pièces were all interpreted before
+// are updated too (no DocumentIA call).
 export async function interpretComedDecisions(
   prisma: PrismaClient,
   options: InterpretComedOptions,
@@ -207,9 +222,9 @@ export async function interpretComedDecisions(
   const done = options.force
     ? new Set<string>()
     : await loadDoneInterpretations(prisma, candidates);
-  const todo = candidates.filter(
-    (decision) => !done.has(interpretationKey(decision.jurisdictionCode, decision.encodedFileId)),
-  );
+  const isTodo = (decision: ComedDecision) =>
+    !done.has(interpretationKey(decision.jurisdictionCode, decision.encodedFileId));
+  const todo = candidates.filter(isTodo);
 
   const stats: InterpretComedStats = {
     candidates: candidates.length,
@@ -220,70 +235,111 @@ export async function interpretComedDecisions(
     skipped: 0,
     failed: 0,
     multipleDecisionCaseFiles: 0,
+    ...(options.apply ? { applied: emptyApplyComedStats() } : {}),
   };
   console.log(
     `→ ${candidates.length} pièce(s) candidate(s), ${stats.alreadyInterpreted} déjà interprétée(s), ` +
       `${todo.length} à envoyer à DocumentIA${options.force ? " (--force-document-ia)" : ""}.`,
   );
-  if (todo.length === 0) return stats;
+  if (todo.length === 0 && !options.apply) return stats;
 
-  const shortNames = await loadJurisdictionShortNames(prisma, todo);
+  const shortNames =
+    todo.length > 0 ? await loadJurisdictionShortNames(prisma, todo) : new Map<string, string>();
   const confirmedByCaseFile = new Map<string, number>();
 
-  for (let index = 0; index < todo.length; index++) {
-    const decision = todo[index]!;
+  // Candidates come sorted by case file (see findComedDecisions).
+  const byCaseFile = new Map<string, ComedDecision[]>();
+  for (const decision of options.apply ? candidates : todo) {
     const key = caseFileKey(decision.jurisdictionCode, decision.caseFileNumber);
-    const shortName = shortNames.get(key) ?? decision.jurisdictionCode;
-    const label =
-      `  [${index + 1}/${todo.length}] ${decision.jurisdictionCode} ${decision.caseFileNumber} ` +
-      `${decision.fileName}`;
+    byCaseFile.set(key, [...(byCaseFile.get(key) ?? []), decision]);
+  }
 
-    let outcome: InterpretationOutcome;
-    try {
-      outcome = await interpretOne(
-        decision,
-        options.getTelerecoursClient(shortName),
-        shortName,
-        options.documentIa,
-      );
-    } catch (error) {
-      outcome = { status: "FAILED", errorMessage: describeError(error) };
-    }
+  let index = 0;
+  for (const [key, group] of byCaseFile) {
+    for (const decision of group.filter(isTodo)) {
+      index++;
+      const shortName = shortNames.get(key) ?? decision.jurisdictionCode;
+      const label =
+        `  [${index}/${todo.length}] ${decision.jurisdictionCode} ${decision.caseFileNumber} ` +
+        `${decision.fileName}`;
 
-    try {
-      await saveInterpretation(prisma, decision, options.documentIa.workflowId, outcome);
-    } catch (error) {
-      stats.failed++;
-      console.error(`${label} → échec d'enregistrement : ${describeError(error)}`);
-      continue;
-    }
-
-    if (outcome.status === "SKIPPED") {
-      stats.skipped++;
-      console.warn(`${label} → ignorée : ${outcome.errorMessage}`);
-    } else if (outcome.status === "FAILED") {
-      stats.failed++;
-      console.error(`${label} → échec : ${outcome.errorMessage}`);
-    } else if (outcome.documentType === COMED_DOCUMENT_TYPE) {
-      stats.confirmed++;
-      confirmedByCaseFile.set(key, (confirmedByCaseFile.get(key) ?? 0) + 1);
-      const missing = missingComedFields(outcome.metadata);
-      if (missing.length > 0) {
-        stats.incomplete++;
-        console.warn(`${label} → décision COMED incomplète (manque : ${missing.join(", ")})`);
-      } else {
-        console.log(`${label} → décision COMED (confiance ${outcome.confidence ?? "?"})`);
+      let outcome: InterpretationOutcome;
+      try {
+        outcome = await interpretOne(
+          decision,
+          options.getTelerecoursClient(shortName),
+          shortName,
+          options.documentIa,
+        );
+      } catch (error) {
+        outcome = { status: "FAILED", errorMessage: describeError(error) };
       }
-    } else {
-      stats.notComed++;
-      console.log(`${label} → pas une décision COMED (${outcome.documentType ?? "inconnu"})`);
+
+      try {
+        await saveInterpretation(prisma, decision, options.documentIa.workflowId, outcome);
+      } catch (error) {
+        stats.failed++;
+        console.error(`${label} → échec d'enregistrement : ${describeError(error)}`);
+        continue;
+      }
+
+      if (outcome.status === "SKIPPED") {
+        stats.skipped++;
+        console.warn(`${label} → ignorée : ${outcome.errorMessage}`);
+      } else if (outcome.status === "FAILED") {
+        stats.failed++;
+        console.error(`${label} → échec : ${outcome.errorMessage}`);
+      } else if (outcome.documentType === COMED_DOCUMENT_TYPE) {
+        stats.confirmed++;
+        confirmedByCaseFile.set(key, (confirmedByCaseFile.get(key) ?? 0) + 1);
+        const missing = missingComedFields(outcome.metadata);
+        if (missing.length > 0) {
+          stats.incomplete++;
+          console.warn(`${label} → décision COMED incomplète (manque : ${missing.join(", ")})`);
+        } else {
+          console.log(`${label} → décision COMED (confiance ${outcome.confidence ?? "?"})`);
+        }
+      } else {
+        stats.notComed++;
+        console.log(`${label} → pas une décision COMED (${outcome.documentType ?? "inconnu"})`);
+      }
+
+      if (index < todo.length && rateLimitMs > 0) await sleep(rateLimitMs);
     }
 
-    if (index + 1 < todo.length && rateLimitMs > 0) await sleep(rateLimitMs);
+    if (options.apply && stats.applied) {
+      const first = group[0]!;
+      try {
+        const applied = await applyComedDecisions(prisma, {
+          filter: caseFileOnlyFilter(options.filter, first.jurisdictionCode, first.caseFileNumber),
+          ...options.apply,
+          verbose: true,
+        });
+        addApplyComedStats(stats.applied, applied);
+      } catch (error) {
+        stats.failed++;
+        console.error(
+          `  ${first.jurisdictionCode} ${first.caseFileNumber} → échec du report sur le dossier : ` +
+            describeError(error),
+        );
+      }
+    }
   }
 
   stats.multipleDecisionCaseFiles = [...confirmedByCaseFile.values()].filter((n) => n > 1).length;
   return stats;
+}
+
+// The run's perimeter, narrowed to one case file.
+function caseFileOnlyFilter(
+  filter: ComedJurisdictionFilter,
+  jurisdictionCode: string,
+  caseFileNumber: string,
+): ComedJurisdictionFilter {
+  return {
+    jurisdictionCode,
+    caseFile: { AND: [filter.caseFile ?? {}, { jurisdictionCode, caseFileNumber }] },
+  };
 }
 
 export function logInterpretComedStats(stats: InterpretComedStats): void {

@@ -17,9 +17,14 @@ files=$(
 )
 [ -z "$files" ] && exit 0
 
-bad=$(printf '%s\n' "$files" | xargs grep -HnE 'ALTER TABLE "actors" ALTER COLUMN .*DROP DEFAULT' 2>/dev/null || true)
+# Generated columns: actors.displayName*, every *Normalized search column,
+# case_files.memoryDeadlineDate (and its raw-SQL index). Prisma often emits the
+# ALTER COLUMN as a continuation line, without the ALTER TABLE prefix.
+bad=$(printf '%s\n' "$files" | xargs grep -HnE \
+  'ALTER COLUMN "(displayName|[A-Za-z]*Normalized|memoryDeadlineDate)" DROP DEFAULT|DROP INDEX "case_files_memoryDeadlineDate_idx"' \
+  2>/dev/null || true)
 if [ -n "$bad" ]; then
-  echo "❌ Bogus Prisma lines on generated columns (displayName*):"
+  echo "❌ Bogus Prisma lines on generated columns / raw-SQL index:"
   echo "$bad"
   echo "→ Remove these lines from migration.sql, then rerun 'pnpm exec prisma migrate deploy'."
   exit 1

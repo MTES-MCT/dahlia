@@ -43,7 +43,11 @@ describe("flagRequeteFavorites", () => {
 
     await flagRequeteFavorites(prisma, { jurisdiction: "TA069", dryRun: false });
     expect(prisma.attachedFile.updateMany).toHaveBeenCalledWith({
-      where: { fileFamilyTypeCode: "REQ", isFavorite: false, jurisdictionCode: "TA069" },
+      where: {
+        fileFamilyTypeCode: "REQ",
+        isFavorite: false,
+        caseFile: { jurisdiction: { shortName: "TA069" } },
+      },
       data: { isFavorite: true },
     });
   });

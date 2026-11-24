@@ -50,7 +50,14 @@ export const SCRAPE_USAGE = `Usage: pnpm scrape:telerecours -- [options]
                                    all y compris terminés). Pièces déjà interprétées ignorées.
                                    Nécessite DOCUMENT_IA_URL et DOCUMENT_IA_API_KEY.
   --force-document-ia              Implique --document-ia ; réinterprète aussi les pièces déjà
-                                   interprétées.
+                                   interprétées, et remplace le n° ComDalo / la date COMED déjà
+                                   renseignés s'ils diffèrent de la décision la plus récente
+                                   (y compris une saisie manuelle).
+  --dry-run                        Qualification automatique sans écriture : la phase D et le
+                                   report des décisions COMED de la phase E (n° ComDalo, date
+                                   COMED, type des pièces) affichent les changements prévus sans
+                                   les écrire. Les phases A à C et le stockage des
+                                   interprétations DocumentIA écrivent normalement.
   --help, -h                       Affiche cette aide.
 `;
 
@@ -149,6 +156,8 @@ export function parseArgs(argv: string[] = process.argv): ScrapeCliArgs {
       // Implies --document-ia, for the same reason as --classify-overwrite.
       args.documentIa = true;
       args.forceDocumentIa = true;
+    } else if (arg === "--dry-run") {
+      args.dryRun = true;
     } else if (arg === "--help" || arg === "-h") {
       args.help = true;
     } else if (arg === "--") {
@@ -198,6 +207,7 @@ export function parseArgs(argv: string[] = process.argv): ScrapeCliArgs {
   console.log("  - classifyOverwrite set to", args.classifyOverwrite);
   console.log("  - documentIa set to", args.documentIa);
   console.log("  - forceDocumentIa set to", args.forceDocumentIa);
+  console.log("  - dryRun set to", args.dryRun ?? false);
   console.log("  - divisionIdsFromCli set to", divisionIdsFromCli);
   console.log("--------------------------------------------------");
   return args;

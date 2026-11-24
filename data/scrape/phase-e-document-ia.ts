@@ -1,3 +1,4 @@
+import { logApplyComedStats } from "../comed/apply-comed-decisions";
 import {
   interpretComedDecisions,
   logInterpretComedStats,
@@ -10,7 +11,9 @@ import { scrapedPerimeterWhere } from "./where";
 // Same candidates as find-comed-decisions, restricted to the scraped perimeter
 // (jurisdiction, divisions, not deleted; closed dossiers only with --enrich all).
 // Enabled with --document-ia; already interpreted pièces are skipped unless
-// --force-document-ia.
+// --force-document-ia. Each case file's confirmed decisions are copied onto it
+// (see apply-comed-decisions) as soon as its pièces are interpreted, unless
+// --dry-run.
 export async function phaseE(args: Args, deps: ScrapeDeps): Promise<InterpretComedStats> {
   console.log(
     `\n══ Phase E — interprétation DocumentIA des décisions COMED` +
@@ -20,6 +23,7 @@ export async function phaseE(args: Args, deps: ScrapeDeps): Promise<InterpretCom
     throw new Error("Phase E : client DocumentIA non configuré.");
   }
 
+  const dryRun = args.dryRun ?? false;
   const stats = await interpretComedDecisions(deps.prisma, {
     filter: { caseFile: scrapedPerimeterWhere(args, args.enrich !== "all") },
     force: args.forceDocumentIa,
@@ -27,8 +31,10 @@ export async function phaseE(args: Args, deps: ScrapeDeps): Promise<InterpretCom
     // The scrape runs against a single Dahlia jurisdiction: reuse its client.
     getTelerecoursClient: () => deps.client,
     rateLimitMs: deps.rateLimitMs,
+    apply: { dryRun, overwrite: args.forceDocumentIa },
   });
 
   logInterpretComedStats(stats);
+  if (stats.applied) logApplyComedStats(stats.applied, dryRun);
   return stats;
 }

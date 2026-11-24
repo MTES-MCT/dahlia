@@ -94,7 +94,10 @@ export async function countUniqueDossiers(
   filter: ComedJurisdictionFilter = {},
 ): Promise<number> {
   return await prisma.caseFile.count({
-    where: filter.jurisdictionCode ? { jurisdictionCode: filter.jurisdictionCode } : undefined,
+    where: {
+      ...(filter.jurisdictionCode ? { jurisdictionCode: filter.jurisdictionCode } : {}),
+      ...filter.caseFile,
+    },
   });
 }
 
