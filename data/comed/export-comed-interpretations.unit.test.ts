@@ -54,6 +54,7 @@ describe("buildComedDecisionRows", () => {
     expect(rows[0]).toMatchObject({
       caseFileNumber: "2601",
       claimant: "DOE John",
+      defender: "Préfet",
       caseFileName: "2601 - DOE John c/ Préfet - Injonction - DALO",
       telerecoursTitle: "Title 2601",
       detectedCount: 3,
@@ -80,7 +81,9 @@ describe("toComedInterpretationCsv", () => {
       ]),
     );
     const [header, line] = csv.replace(/^﻿/, "").trimEnd().split("\n");
-    expect(header.split(",").slice(-3)).toEqual(["numero_recours", "date_decision", "motif"]);
+    const headerCols = header.split(",");
+    expect(headerCols.slice(2, 4)).toEqual(["requerant", "defendeur"]);
+    expect(headerCols.slice(-3)).toEqual(["numero_recours", "date_decision", "motif"]);
     expect(line.endsWith('R1,2025-01-01,"a, b"')).toBe(true);
   });
 });

@@ -44,6 +44,7 @@ export interface ComedDecisionRow {
   jurisdictionCode: string;
   caseFileNumber: string;
   claimant: string;
+  defender: string;
   caseFileName: string;
   telerecoursTitle: string;
   detectedCount: number;
@@ -157,6 +158,8 @@ export function buildComedDecisionRows(
         caseFileNumber: caseFile.caseFileNumber,
         claimant:
           caseFile.caseFileActors.find((link) => link.isMainClaimant)?.actor.displayName ?? "",
+        defender:
+          caseFile.caseFileActors.find((link) => link.isMainDefender)?.actor.displayName ?? "",
         caseFileName: caseFileName(caseFile),
         telerecoursTitle: caseFile.title ?? "",
         detectedCount: group.length,
@@ -193,6 +196,7 @@ export function toComedInterpretationCsv(rows: readonly ComedDecisionRow[]): str
     "TA",
     "caseFileNumber",
     "requerant",
+    "defendeur",
     "nom_dossier",
     "nom_dossier_telerecours",
     "nb_decisions_comed_detectees",
@@ -210,6 +214,7 @@ export function toComedInterpretationCsv(rows: readonly ComedDecisionRow[]): str
         row.jurisdictionCode,
         row.caseFileNumber,
         row.claimant,
+        row.defender,
         row.caseFileName,
         row.telerecoursTitle,
         row.detectedCount,
