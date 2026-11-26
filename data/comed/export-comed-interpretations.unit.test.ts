@@ -2,7 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { describe, expect, it } from "vitest";
 import {
   buildComedDecisionRows,
-  toComedInterpretationCsv,
+  comedInterpretationSheetData,
   type ComedInterpretation,
 } from "./export-comed-interpretations";
 
@@ -24,6 +24,7 @@ function interpretation(
         title: `Title ${caseFileNumber}`,
         litigationType: "INJONCTION",
         rightType: "DALO",
+        lastStatus: { label: "En cours d'instruction" },
         caseFileActors: [
           { isMainClaimant: true, isMainDefender: false, actor: { displayName: "DOE John" } },
           { isMainClaimant: false, isMainDefender: true, actor: { displayName: "Préfet" } },
@@ -57,6 +58,7 @@ describe("buildComedDecisionRows", () => {
       defender: "Préfet",
       caseFileName: "2601 - DOE John c/ Préfet - Injonction - DALO",
       telerecoursTitle: "Title 2601",
+      caseFileStatus: "En cours d'instruction",
       detectedCount: 3,
       distinctCount: 2,
       pieceCount: 2,
@@ -67,11 +69,30 @@ describe("buildComedDecisionRows", () => {
     });
     expect(rows[2]).toMatchObject({ caseFileNumber: "2602", detectedCount: 1, distinctCount: 1 });
   });
+
+  it("adds one empty row per dossier missing from interpretations when export-all", () => {
+    const caseFile2603 = interpretation("2603", "X", {}).attachedFile.caseFile;
+    const rows = buildComedDecisionRows(
+      [interpretation("2601", "A", { numero_recours: "R1", date_decision: "2025-01-01" })],
+      { allCaseFiles: [caseFile2603] },
+    );
+
+    expect(rows).toHaveLength(2);
+    expect(rows.map((row) => row.caseFileNumber)).toEqual(["2601", "2603"]);
+    expect(rows[1]).toMatchObject({
+      caseFileNumber: "2603",
+      detectedCount: 0,
+      distinctCount: 0,
+      pieceCount: 0,
+      encodedFileIds: [],
+      parameters: {},
+    });
+  });
 });
 
-describe("toComedInterpretationCsv", () => {
-  it("writes one line per decision with the extracted parameters as columns", () => {
-    const csv = toComedInterpretationCsv(
+describe("comedInterpretationSheetData", () => {
+  it("writes one row per decision with status and extracted parameters as columns", () => {
+    const { headers, data } = comedInterpretationSheetData(
       buildComedDecisionRows([
         interpretation("2601", "A", {
           numero_recours: "R1",
@@ -80,10 +101,11 @@ describe("toComedInterpretationCsv", () => {
         }),
       ]),
     );
-    const [header, line] = csv.replace(/^﻿/, "").trimEnd().split("\n");
-    const headerCols = header.split(",");
-    expect(headerCols.slice(2, 4)).toEqual(["requerant", "defendeur"]);
-    expect(headerCols.slice(-3)).toEqual(["numero_recours", "date_decision", "motif"]);
-    expect(line.endsWith('R1,2025-01-01,"a, b"')).toBe(true);
+    expect(headers.slice(2, 5)).toEqual(["requerant", "defendeur", "nom_dossier"]);
+    expect(headers).toContain("statut_dossier");
+    expect(headers.slice(-3)).toEqual(["numero_recours", "date_decision", "motif"]);
+    expect(data).toHaveLength(1);
+    expect(data[0][6]).toBe("En cours d'instruction");
+    expect(data[0].slice(-3)).toEqual(["R1", "2025-01-01", "a, b"]);
   });
 });

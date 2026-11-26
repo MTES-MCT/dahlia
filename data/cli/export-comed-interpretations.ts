@@ -5,28 +5,32 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import {
   buildComedDecisionRows,
   loadComedInterpretations,
-  toComedInterpretationCsv,
+  loadJurisdictionCaseFilesForComedExport,
+  writeComedInterpretationXlsx,
 } from "../comed/export-comed-interpretations";
 
-const USAGE = `Usage: pnpm export:comed -- --jurisdiction <code> [--output <fichier>]
+const USAGE = `Usage: pnpm export:comed -- --jurisdiction <code> [--output <fichier>] [--export-all]
 
-Exporte en CSV les décisions COMED interprétées par DocumentIA (une ligne par
+Exporte en XLSX les décisions COMED interprétées par DocumentIA (une ligne par
 décision distincte, pivot : numero_recours + date_decision).
 
   --jurisdiction <code>   Juridiction Dahlia à exporter (ex. TA069, TA069bis), comme
                           scrape:telerecours. Obligatoire.
-  --output <fichier>      Fichier CSV. Défaut : comed-decisions-<code>-AAAA-MM-JJ.csv
+  --output <fichier>      Fichier XLSX. Défaut : comed-decisions-<code>-AAAA-MM-JJ.xlsx
+  --export-all            Ajoute une ligne par dossier de la juridiction même sans
+                          décision COMED interprétée (compteurs et paramètres vides).
   --help, -h              Affiche cette aide.
 `;
 
 interface ExportComedArgs {
   jurisdiction: string | null;
   output: string | null;
+  exportAll: boolean;
   help: boolean;
 }
 
 export function parseExportComedArgs(argv: string[] = process.argv): ExportComedArgs {
-  const args: ExportComedArgs = { jurisdiction: null, output: null, help: false };
+  const args: ExportComedArgs = { jurisdiction: null, output: null, exportAll: false, help: false };
   for (let i = 2; i < argv.length; i++) {
     const arg = argv[i];
     const nextValue = (): string => {
@@ -37,6 +41,7 @@ export function parseExportComedArgs(argv: string[] = process.argv): ExportComed
     if (arg === "--") continue;
     else if (arg === "--jurisdiction") args.jurisdiction = nextValue();
     else if (arg === "--output") args.output = nextValue();
+    else if (arg === "--export-all") args.exportAll = true;
     else if (arg === "--help" || arg === "-h") args.help = true;
     else throw new Error(`Unknown argument: ${arg}`);
   }
@@ -58,17 +63,25 @@ async function main(): Promise<number> {
   const prisma = new PrismaClient({ adapter });
   try {
     const interpretations = await loadComedInterpretations(prisma, args.jurisdiction);
-    const rows = buildComedDecisionRows(interpretations);
+    const allCaseFiles = args.exportAll
+      ? await loadJurisdictionCaseFilesForComedExport(prisma, args.jurisdiction)
+      : undefined;
+    const rows = buildComedDecisionRows(interpretations, { allCaseFiles });
     const output =
       args.output ??
-      `comed-decisions-${args.jurisdiction}-${new Date().toISOString().slice(0, 10)}.csv`;
-    writeFileSync(output, toComedInterpretationCsv(rows), "utf8");
-    const caseFiles = new Set(rows.map((row) => row.caseFileNumber)).size;
-    console.log(
-      `→ ${interpretations.length} pièces COMED, ${rows.length} décisions distinctes, ` +
-        `${caseFiles} dossiers, ${rows.filter((row) => row.divergentParameters.length).length} ` +
-        `décisions aux paramètres divergents → ${output}`,
-    );
+      `comed-decisions-${args.jurisdiction}-${new Date().toISOString().slice(0, 10)}.xlsx`;
+    writeFileSync(output, await writeComedInterpretationXlsx(rows));
+    const caseFilesInRows = new Set(rows.map((row) => row.caseFileNumber)).size;
+    const decisionsWithPieces = rows.filter((row) => row.pieceCount > 0).length;
+    const dossiersWithoutDecision = rows.filter((row) => row.pieceCount === 0).length;
+    let summary =
+      `→ ${interpretations.length} pièces COMED, ${decisionsWithPieces} décisions distinctes, ` +
+      `${caseFilesInRows} dossiers dans le XLSX, ` +
+      `${rows.filter((row) => row.divergentParameters.length).length} décisions aux paramètres divergents`;
+    if (args.exportAll && dossiersWithoutDecision > 0) {
+      summary += `, ${dossiersWithoutDecision} dossiers sans décision COMED`;
+    }
+    console.log(`${summary} → ${output}`);
     return 0;
   } finally {
     await prisma.$disconnect();

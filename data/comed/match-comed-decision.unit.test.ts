@@ -55,6 +55,22 @@ describe("classifyComedDecision", () => {
     expect(classifyComedDecision(source("1_rejet_comed_17.12.24.pdf"))).toBe("certain");
   });
 
+  it("marks short Decision DALO names as probable, including in PRQ", () => {
+    expect(
+      classifyComedDecision(
+        source("1141365975_7_decision_dalo_du_24_mars_2023.pdf", {
+          dahliaNameNormalized: "007 decision dalo du 24 mars 2023",
+          fileTypeLabel: "Pièce jointe requête",
+        }),
+      ),
+    ).toBe("probable");
+    expect(
+      classifyComedDecision(
+        source("decision_dalo_du_12_octobre_2022.pdf", { fileTypeLabel: "Décision attaquée" }),
+      ),
+    ).toBe("probable");
+  });
+
   it("marks an explicit COMED decision as certain, including the decicsion typo", () => {
     expect(classifyComedDecision(source("decision_comed.pdf"))).toBe("certain");
     expect(classifyComedDecision(source("decicsion_commission_de_mediation.pdf"))).toBe("certain");
@@ -74,7 +90,8 @@ describe("classifyComedDecision", () => {
     ).toBe("certain");
   });
 
-  it("marks a DEC attacked act or litigated decision as probable", () => {
+  it("marks a decision or attacked act as probable, with or without family label Décision", () => {
+    expect(classifyComedDecision(source("acte_attaque_12.pdf"))).toBe("probable");
     expect(
       classifyComedDecision(source("acte_attaque_12.pdf", { fileTypeLabel: "Décision" })),
     ).toBe("probable");
@@ -109,14 +126,14 @@ describe("classifyComedDecision", () => {
     ).toBeNull();
   });
 
-  it("ignores a name that is neither a COMED decision nor a DEC attacked act", () => {
-    expect(classifyComedDecision(source("decision.pdf"))).toBeNull();
-    expect(classifyComedDecision(source("decision.pdf", { fileTypeLabel: null }))).toBeNull();
+  it("ignores names that do not suggest a decision or the Décision family", () => {
+    expect(classifyComedDecision(source("decision.pdf"))).toBe("probable");
+    expect(classifyComedDecision(source("decision.pdf", { fileTypeLabel: null }))).toBe("probable");
     expect(classifyComedDecision(source("comed_convocation.pdf"))).toBeNull();
     expect(classifyComedDecision(source("comedie.pdf"))).toBeNull();
-    expect(
-      classifyComedDecision(source("preference.pdf", { fileTypeLabel: "Décision" })),
-    ).toBeNull();
+    expect(classifyComedDecision(source("preference.pdf", { fileTypeLabel: "Décision" }))).toBe(
+      "probable",
+    );
   });
 });
 
