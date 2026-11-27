@@ -281,6 +281,7 @@ export function CaseFilesSearchFields({
               ) : (
                 <Input
                   label={field.label}
+                  hintText={field.hint}
                   className={FIELD_CLASSES}
                   classes={{
                     nativeInputOrTextArea: FACET_INPUT_CLASSES[field.key] ?? TEXT_INPUT_CLASSES,

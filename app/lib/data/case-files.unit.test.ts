@@ -863,6 +863,39 @@ describe("case-files", () => {
       );
     });
 
+    it("filtre par facette comdalo (correspondance partielle)", async () => {
+      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
+      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
+
+      await fetchCaseFilesTableData(1, 10, null, "descending", "comdalo:69-2024", "tous");
+
+      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            AND: [
+              { isDeleted: false },
+              { comDaloNumber: { contains: "69-2024", mode: "insensitive" } },
+            ],
+          },
+        }),
+      );
+    });
+
+    it("filtre les dossiers sans numéro ComDalo avec comdalo:vide", async () => {
+      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
+      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
+
+      await fetchCaseFilesTableData(1, 10, null, "descending", "comdalo:Vide", "tous");
+
+      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            AND: [{ isDeleted: false }, { OR: [{ comDaloNumber: null }, { comDaloNumber: "" }] }],
+          },
+        }),
+      );
+    });
+
     it("ajoute le périmètre de droit à la liste et à son décompte", async () => {
       mockCaseFileScopeWhere.mockResolvedValue({ jurisdictionId: { in: [3, 8] } });
       vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
