@@ -222,9 +222,13 @@ const cases: {
     expected: { rightType: "DALO" },
   },
   {
-    // "EXE" alone does not mean execution of a judgment; hébergement d'urgence is out of scope.
+    // Hébergement d'urgence is out of scope for right type; "EXE" marks an injunction procedure.
     title: "EXE - LOGEMENT : Demande de prise en charge d'un hébergement d'urgence",
-    expected: { rightType: "NI_DALO_NI_DAHO" },
+    expected: {
+      litigationType: "INJONCTION",
+      rightType: "NI_DALO_NI_DAHO",
+      summary: "Exécution de jugement",
+    },
   },
   {
     // Out of scope: nothing to deduce.
