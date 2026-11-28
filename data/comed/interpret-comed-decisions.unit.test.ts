@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mockDeep, type DeepMockProxy } from "vitest-mock-extended";
 import type { PrismaClient } from "@prisma/client";
 import type { DocumentIaClient } from "../document-ia/client";
@@ -236,5 +236,82 @@ describe("interpretComedDecisions", () => {
     });
 
     expect(stats).toMatchObject({ confirmed: 2, multipleDecisionCaseFiles: 1 });
+  });
+});
+
+describe("interpretComedDecisions anonymization", () => {
+  let prisma: DeepMockProxy<PrismaClient>;
+  let documentIa: DocumentIaClient;
+  const client = () =>
+    fakeTelerecoursClient({ downloadFile: vi.fn().mockResolvedValue({ data: PDF }) });
+
+  beforeEach(() => {
+    prisma = mockDeep<PrismaClient>();
+    prisma.caseFile.findMany.mockResolvedValue([]);
+    prisma.attachedFile.findMany.mockResolvedValue([attachedFile("A1")] as never);
+    prisma.attachedFileInterpretation.findMany.mockResolvedValue([]);
+    documentIa = {
+      workflowId: "wf",
+      interpret: vi.fn().mockResolvedValue({
+        status: "SUCCESS",
+        executionId: "exec",
+        result: {
+          classification: { document_type: "decision_comed", confidence: 0.9, explanation: "" },
+          extraction: {
+            type: "decision_comed",
+            properties: [
+              ...Object.entries(comedMetadata).map(([name, value]) => ({
+                name,
+                value,
+                type: "string",
+              })),
+              { name: "demandeur", type: "string", value: "MARTIN Lucie" },
+            ],
+          },
+        },
+      }),
+    };
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.stubEnv("ENVIRONMENT", "test");
+    vi.stubEnv("NO_ANONYMIZE", "");
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  async function storedRow(telerecours = client()) {
+    await interpretComedDecisions(prisma, {
+      filter: {},
+      force: false,
+      documentIa,
+      getTelerecoursClient: () => telerecours,
+      rateLimitMs: 0,
+    });
+    return prisma.attachedFileInterpretation.upsert.mock.calls[0]![0].create;
+  }
+
+  it("sends the real Télérecours pièce and stores an anonymized answer outside production", async () => {
+    const telerecours = client();
+    const row = await storedRow(telerecours);
+    expect(telerecours.downloadFile).toHaveBeenCalledWith("A1", "TA034");
+    expect(documentIa.interpret).toHaveBeenCalledWith(
+      expect.objectContaining({ data: PDF }),
+      expect.anything(),
+    );
+    expect(JSON.stringify(row)).not.toMatch(/MARTIN|Lucie/);
+    expect(row.metadata).toMatchObject(comedMetadata);
+  });
+
+  it("stores the answer as is in production", async () => {
+    vi.stubEnv("ENVIRONMENT", "production");
+    expect((await storedRow()).metadata).toMatchObject({ demandeur: "MARTIN Lucie" });
+  });
+
+  it("stores the answer as is with NO_ANONYMIZE=true", async () => {
+    vi.stubEnv("NO_ANONYMIZE", "true");
+    expect((await storedRow()).metadata).toMatchObject({ demandeur: "MARTIN Lucie" });
   });
 });

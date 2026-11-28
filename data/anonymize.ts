@@ -163,3 +163,133 @@ export function anonymizeCaseFileDetail(
     },
   };
 }
+
+// ───── DocumentIA results ─────
+
+const DEMANDEUR = "demandeur";
+
+type Json = unknown;
+
+function isRecord(value: Json): value is Record<string, Json> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function mapStrings(value: Json, fn: (text: string) => string): Json {
+  if (typeof value === "string") return fn(value);
+  if (Array.isArray(value)) return value.map((item) => mapStrings(item, fn));
+  if (isRecord(value)) {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, mapStrings(item, fn)]),
+    );
+  }
+  return value;
+}
+
+function isUpperCaseWord(word: string): boolean {
+  return word === word.toUpperCase() && word !== word.toLowerCase();
+}
+
+// The claimant as extracted by DocumentIA ("NOM Prénom", or { nom, prenom } in
+// older schemas) as a natural person: upper-case words make the last name, the
+// others the first name. Without any upper-case word, the whole value is taken
+// as the last name.
+export function demandeurActor(demandeur: Json): Actor | null {
+  let lastName: string | null = null;
+  let firstName: string | null = null;
+  if (typeof demandeur === "string") {
+    const words = demandeur.trim().split(/\s+/).filter(Boolean);
+    const upper = words.filter(isUpperCaseWord);
+    const others = words.filter((word) => !isUpperCaseWord(word));
+    if (upper.length > 0) {
+      lastName = upper.join(" ");
+      firstName = others.join(" ") || null;
+    } else {
+      lastName = words.join(" ") || null;
+    }
+  } else if (isRecord(demandeur)) {
+    const text = (value: Json) => (typeof value === "string" && value.trim()) || null;
+    lastName = text(demandeur.nom);
+    firstName = text(demandeur.prenom) ?? text(demandeur.prenoms);
+  }
+  if (!lastName && !firstName) return null;
+  return {
+    id: 0,
+    firstName,
+    lastName,
+    lastFirstName: null,
+    firstLastName: null,
+    legalPersonName: null,
+    legalEntityName: null,
+    legalEntityId: null,
+    actorType: "NATURAL_PERSON",
+  };
+}
+
+// Same shape as the source: a "NOM Prénom" string, or an object whose name
+// fields are replaced.
+function fakeDemandeur(source: Json, actor: Actor, scrubNames: NameScrubber): Json {
+  const fake = anonymizeActor(actor);
+  if (typeof source === "string") {
+    return [actor.lastName && fake.lastName, actor.firstName && fake.firstName]
+      .filter(Boolean)
+      .join(" ");
+  }
+  const scrubbed = mapStrings(source, scrubNames) as Record<string, Json>;
+  return {
+    ...scrubbed,
+    ...("nom" in scrubbed ? { nom: fake.lastName } : {}),
+    ...("prenom" in scrubbed ? { prenom: fake.firstName } : {}),
+    ...("prenoms" in scrubbed ? { prenoms: fake.firstName } : {}),
+  };
+}
+
+function extractedDemandeur(rawResult: Json): Json {
+  if (!isRecord(rawResult) || !isRecord(rawResult.extraction)) return undefined;
+  const properties = rawResult.extraction.properties;
+  if (!Array.isArray(properties)) return undefined;
+  const property = properties.find((item) => isRecord(item) && item.name === DEMANDEUR);
+  return isRecord(property) ? property.value : undefined;
+}
+
+// DocumentIA metadata and raw result stripped of personal data: the claimant is
+// replaced by the fake name anonymizeActor() gives them, their name is scrubbed
+// from every other text (decision grounds, classification explanation,
+// anomalies…) and the barcodes (a 2D-Doc may encode an identity) are dropped.
+// Field names and the other values are kept.
+export function anonymizeDocumentIaResult<T extends { metadata?: Json; rawResult?: Json }>(
+  outcome: T,
+): T {
+  const metadata = isRecord(outcome.metadata) ? outcome.metadata : undefined;
+  const source = metadata?.[DEMANDEUR] ?? extractedDemandeur(outcome.rawResult);
+  const actor = demandeurActor(source);
+  const scrubNames = actor ? createNameScrubber([actor]) : KEEP_NAMES;
+  const replaceDemandeur = (value: Json) =>
+    actor && value != null
+      ? fakeDemandeur(value, actor, scrubNames)
+      : mapStrings(value, scrubNames);
+
+  const result: T = { ...outcome };
+  if (metadata) {
+    const scrubbed = mapStrings(metadata, scrubNames) as Record<string, Json>;
+    if (DEMANDEUR in metadata) scrubbed[DEMANDEUR] = replaceDemandeur(metadata[DEMANDEUR]);
+    result.metadata = scrubbed;
+  }
+  if (isRecord(outcome.rawResult)) {
+    const raw = mapStrings(outcome.rawResult, scrubNames) as Record<string, Json>;
+    if ("barcodes" in raw) raw.barcodes = [];
+    const properties = isRecord(raw.extraction) ? raw.extraction.properties : undefined;
+    if (Array.isArray(properties)) {
+      const original = (outcome.rawResult.extraction as Record<string, Json>).properties as Json[];
+      properties.forEach((property, index) => {
+        const before = original[index];
+        if (!isRecord(property) || !isRecord(before) || before.name !== DEMANDEUR) return;
+        property.value = replaceDemandeur(before.value);
+        if (isRecord(property.anomaly) && isRecord(before.anomaly)) {
+          property.anomaly.raw_value = replaceDemandeur(before.anomaly.raw_value);
+        }
+      });
+    }
+    result.rawResult = raw;
+  }
+  return result;
+}

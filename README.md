@@ -699,6 +699,25 @@ est stocké dans `attached_file_interpretations` (une ligne par pièce) :
 
 Une pièce `SUCCESS` ou `SKIPPED` n'est plus renvoyée, sauf `--force-document-ia`.
 
+**Anonymisation.** DocumentIA reçoit toujours la **vraie pièce** Télérecours (jamais
+le faux PDF `mocked_pdfs` du visualiseur). Sa réponse est anonymisée avant d'être
+enregistrée, selon la même règle que `scrape:telerecours` (`syncAnonymizeByDefault()` :
+hors production, sauf `NO_ANONYMIZE=true`). La fonction est `anonymizeDocumentIaResult`
+(`data/anonymize.ts`) :
+
+- `demandeur` (`"NOM Prénom"`) est remplacé par le faux nom que `anonymizeActor()`
+  donne à cette personne, dans `metadata`, `rawResult.extraction.properties` et
+  `anomaly.raw_value` ;
+- ce nom est aussi remplacé dans tous les autres textes (`motifs_decision`,
+  `motifs_recours`, `classification.explanation`…) ;
+- `barcodes` est vidé (un 2D-Doc peut contenir une identité) ;
+- les autres champs restent en clair : `numero_recours`, `type_recours`, `sens_decision`,
+  les dates (`date_decision`, `date_courrier`, `date_reception_recours`),
+  `departement_commission`, `tribunal_competent`, la classification et la confiance.
+
+Les interprétations enregistrées avant cette règle sur une base non-prod sont en
+clair : relancer avec `--force-document-ia` pour les anonymiser.
+
 Le traitement se fait **dossier par dossier** (ici comme en Phase E du
 scraper) : toutes les pièces candidates du dossier sont interprétées, puis ses
 décisions confirmées (y compris celles des lancements précédents) sont

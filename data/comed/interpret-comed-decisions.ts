@@ -1,4 +1,5 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
+import { anonymizeDocumentIaResult } from "../anonymize";
 import {
   COMED_DOCUMENT_TYPE,
   COMED_DOCUMENT_TYPES,
@@ -10,6 +11,7 @@ import {
 } from "../document-ia/client";
 import type { TelerecoursClient } from "../telerecours/client.interface";
 import { describeError, sleep } from "../telerecours/http";
+import { syncAnonymizeByDefault } from "../sync-anonymize-default";
 import {
   addApplyComedStats,
   applyComedDecisions,
@@ -203,7 +205,10 @@ async function interpretOne(
       },
     },
   );
-  return interpretationFromExecution(execution);
+  // The real pièce is sent to DocumentIA; its answer is anonymized before being
+  // stored, under the same rule as the Télérecours sync.
+  const outcome = interpretationFromExecution(execution);
+  return syncAnonymizeByDefault() ? anonymizeDocumentIaResult(outcome) : outcome;
 }
 
 // Find the COMED-decision candidates (by name, see match-comed-decision), send
