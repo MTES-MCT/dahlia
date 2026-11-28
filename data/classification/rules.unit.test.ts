@@ -222,6 +222,15 @@ const cases: {
     expected: { rightType: "DALO" },
   },
   {
+    // Hébergement d'urgence is out of scope for right type; "EXE" marks an injunction procedure.
+    title: "EXE - LOGEMENT : Demande de prise en charge d'un hébergement d'urgence",
+    expected: {
+      litigationType: "INJONCTION",
+      rightType: "NI_DALO_NI_DAHO",
+      summary: "Exécution de jugement",
+    },
+  },
+  {
     // Out of scope: nothing to deduce.
     title: "POLICE: Suspension permis de conduire",
     expected: {},

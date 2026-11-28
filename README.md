@@ -39,7 +39,7 @@ Avant chaque commit, le hook **pre-commit** exécute :
 
 - `pnpm lint` (ESLint)
 - `pnpm exec tsc --noEmit` (vérification TypeScript)
-- `.agents/hooks/check-migrations.sh` (lignes Prisma parasites sur les colonnes générées de `actors`, cf. AGENTS.md)
+- `.agents/hooks/check-migrations.sh` (lignes Prisma parasites sur les colonnes générées — `actors.displayName*`, colonnes `*Normalized`, `memoryDeadlineDate` et son index —, cf. AGENTS.md)
 
 Si les hooks ne semblent pas actifs après un clone (par exemple si
 `git config core.hooksPath` ne renvoie rien), relancer :
@@ -88,12 +88,12 @@ Le dépôt embarque un « harnais » pour les agents IA. Ce sont des consignes, 
 
 ### Garde-fous automatiques (hooks)
 
-| Script          | Quand                                  | Rôle                                                                                                                                                                                                                                                                                                                                        |
-| --------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `guard-bash.sh` | avant chaque commande shell            | Refuse l'accès à `.env`, aux dossiers `tmp/` et `webapp_dbdata/`, l'envoi de données vers l'extérieur (`curl -d`, `scp`…), **`git commit` et `git push` (périmètre humain, cf. AGENTS.md)**, les commandes destructrices (`db:migrate`, `db:reset`, restauration prod) et les migrations qui contiennent les lignes parasites sur `actors`. |
-| `guard-read.sh` | avant la lecture d'un fichier (Cursor) | Même liste que `.cursorignore`. Sous Claude Code : `permissions.deny` Read dans `settings.json` (les deux doivent rester alignés).                                                                                                                                                                                                          |
-| `post-edit.sh`  | après chaque modification de fichier   | Prettier sur le fichier. Sous Claude Code, ESLint en plus, avec les erreurs renvoyées à l'agent.                                                                                                                                                                                                                                            |
-| `stop-check.sh` | en fin de tour de l'agent              | ESLint (Cursor), `tsc --noEmit` et les tests unitaires liés aux fichiers modifiés. En cas d'échec, l'agent est relancé pour corriger. Puis la **boucle d'apprentissage**, décrite ci-dessous.                                                                                                                                               |
+| Script          | Quand                                  | Rôle                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| --------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `guard-bash.sh` | avant chaque commande shell            | Refuse l'accès à `.env`, aux dossiers `tmp/` et `webapp_dbdata/`, l'envoi de données vers l'extérieur (`curl -d`, `scp`…), **`git commit` et `git push` (périmètre humain, cf. AGENTS.md)**, les commandes destructrices (`db:migrate`, `db:reset`, restauration prod) et les migrations qui contiennent des lignes parasites sur les colonnes générées. Le scratchpad de l'agent (`/tmp/claude-<uid>/`, hors dépôt) est autorisé. |
+| `guard-read.sh` | avant la lecture d'un fichier (Cursor) | Même liste que `.cursorignore`. Sous Claude Code : `permissions.deny` Read dans `settings.json` (les deux doivent rester alignés).                                                                                                                                                                                                                                                                                                 |
+| `post-edit.sh`  | après chaque modification de fichier   | Prettier sur le fichier. Sous Claude Code, ESLint en plus, avec les erreurs renvoyées à l'agent.                                                                                                                                                                                                                                                                                                                                   |
+| `stop-check.sh` | en fin de tour de l'agent              | ESLint (Cursor), `tsc --noEmit` et les tests unitaires liés aux fichiers modifiés. En cas d'échec, l'agent est relancé pour corriger. Puis la **boucle d'apprentissage**, décrite ci-dessous.                                                                                                                                                                                                                                      |
 
 Ces contrôles complètent, sans les remplacer, le hook Git `pre-commit` et la CI, qui s'appliquent à tout le monde, humains compris. Les règles ESLint `jsx-a11y` (accessibilité) sont actives partout.
 
@@ -347,6 +347,9 @@ sauf si `<JURIDICTION>_TELERECOURS_JURISDICTION` la surcharge :
 | `--force`                        | `false`                        | Phases B et C : supprime les événements, les pièces (avec leurs métadonnées Dahlia : nom, commentaire) et les liens entre dossiers présents en base mais plus renvoyés par Télérecours pour le dossier. Utile pour nettoyer les données fusionnées par une collision d'identifiants.                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `--classify`                     | `false`                        | Exécute la Phase D : déduit `litigationType`, `rightType` et `summary` de chaque dossier du périmètre à partir de son texte (titre, décision). Voir « Classification automatique ».                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `--classify-overwrite`           | `false`                        | Implique `--classify`. Réécrit aussi les caractéristiques **déjà renseignées** (par défaut, seuls les champs vides sont remplis, pour ne pas écraser la saisie des utilisateurs).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `--document-ia`                  | `false`                        | Exécute la Phase E : interprétation DocumentIA des décisions COMED du périmètre (cf. `--enrich`). Voir « Interprétation DocumentIA des décisions COMED ».                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `--force-document-ia`            | `false`                        | Implique `--document-ia`. Réinterprète aussi les pièces déjà interprétées, et remplace le n° ComDalo / la date COMED déjà renseignés s'ils diffèrent de la décision la plus récente (y compris une saisie manuelle).                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `--dry-run`                      | `false`                        | Qualification automatique sans écriture : la Phase D et le report des décisions COMED de la Phase E (n° ComDalo, date COMED, `dahliaType` des pièces) affichent les changements prévus sans les écrire. Les phases A à C et le stockage des interprétations DocumentIA écrivent normalement.                                                                                                                                                                                                                                                                                                                                                                                             |
 | `--help`, `-h`                   | —                              | Affiche la liste des options et quitte sans rien scraper.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 
 ### Anonymisation des textes du dossier
@@ -391,6 +394,10 @@ pnpm scrape:telerecours -- --enrich all --anonymize
 4. **Phase D** _(exécutée uniquement avec `--classify`)_ — applique le moteur de
    règles de classification aux dossiers du périmètre (voir « Classification
    automatique des dossiers » plus bas).
+5. **Phase E** _(exécutée uniquement avec `--document-ia`)_ — envoie à DocumentIA
+   les décisions COMED candidates des dossiers du périmètre (hors « Terminé »,
+   sauf `--enrich all`) qui ne sont pas encore interprétées (voir
+   « Interprétation DocumentIA des décisions COMED » plus bas).
 
 ### Suivi de synchronisation Télérecours
 
@@ -478,6 +485,9 @@ pnpm scrape:telerecours -- --classify
 
 # Idem, en recalculant aussi les caractéristiques déjà renseignées
 pnpm scrape:telerecours -- --classify-overwrite
+
+# Scrape complet + interprétation DocumentIA des décisions COMED pas encore interprétées
+pnpm scrape:telerecours -- --document-ia
 
 # Afficher l'aide (liste des options)
 pnpm scrape:telerecours -- --help
@@ -668,6 +678,86 @@ chaque exemple est reconnu par sa règle et qu'aucune règle antérieure ne lui 
 ses attributs, en plus du tableau de cas de bout en bout. Un
 `pnpm classify:case-files -- --jurisdiction TA069 --dry-run` liste les dossiers
 non reconnus, utile pour repérer les règles manquantes.
+
+## Interprétation DocumentIA des décisions COMED
+
+`pnpm interpret:comed` (`data/cli/interpret-comed-decisions.ts`) repère les
+décisions de la commission de médiation parmi les pièces jointes (mêmes règles
+de nommage que `pnpm find-comed-decisions`), télécharge chaque pièce depuis
+Télérecours et l'envoie à [DocumentIA](https://github.com/etalab-ia/document-ia)
+(workflow `document-classification-extraction-v2`, classification restreinte à
+`decision_comed` / `autre`, extraction du schéma `decision_comed`). Le résultat
+est stocké dans `attached_file_interpretations` (une ligne par pièce) :
+
+| Colonne        | Contenu                                                                                          |
+| -------------- | ------------------------------------------------------------------------------------------------ |
+| `status`       | `SUCCESS`, `FAILED` (réessayée au prochain lancement) ou `SKIPPED` (format/taille non supportés) |
+| `documentType` | classification DocumentIA (`decision_comed` = confirmée, `autre` = faux positif du nommage)      |
+| `confidence`   | confiance de la classification (0..1)                                                            |
+| `metadata`     | champs extraits `{ numero_recours, sens_decision, date_decision, demandeur, … }`                 |
+| `rawResult`    | réponse DocumentIA complète (sans `workflow_metadata`)                                           |
+
+Une pièce `SUCCESS` ou `SKIPPED` n'est plus renvoyée, sauf `--force-document-ia`.
+
+**Anonymisation.** DocumentIA reçoit toujours la **vraie pièce** Télérecours (jamais
+le faux PDF `mocked_pdfs` du visualiseur). Sa réponse est anonymisée avant d'être
+enregistrée, selon la même règle que `scrape:telerecours` (`syncAnonymizeByDefault()` :
+hors production, sauf `NO_ANONYMIZE=true`). La fonction est `anonymizeDocumentIaResult`
+(`data/anonymize.ts`) :
+
+- `demandeur` (`"NOM Prénom"`) est remplacé par le faux nom que `anonymizeActor()`
+  donne à cette personne, dans `metadata`, `rawResult.extraction.properties` et
+  `anomaly.raw_value` ;
+- ce nom est aussi remplacé dans tous les autres textes (`motifs_decision`,
+  `motifs_recours`, `classification.explanation`…) ;
+- `barcodes` est vidé (un 2D-Doc peut contenir une identité) ;
+- les autres champs restent en clair : `numero_recours`, `type_recours`, `sens_decision`,
+  les dates (`date_decision`, `date_courrier`, `date_reception_recours`),
+  `departement_commission`, `tribunal_competent`, la classification et la confiance.
+
+Les interprétations enregistrées avant cette règle sur une base non-prod sont en
+clair : relancer avec `--force-document-ia` pour les anonymiser.
+
+Le traitement se fait **dossier par dossier** (ici comme en Phase E du
+scraper) : toutes les pièces candidates du dossier sont interprétées, puis ses
+décisions confirmées (y compris celles des lancements précédents) sont
+aussitôt reportées sur le modèle (`data/comed/apply-comed-decisions.ts`) avant
+de passer au dossier suivant. Un lancement interrompu conserve donc les
+dossiers déjà traités. Les dossiers dont toutes les pièces sont déjà
+interprétées sont aussi mis à jour, sans appel à DocumentIA :
+
+- `attached_files.dahliaType` passe à `DECISION_COMED` pour chaque pièce
+  confirmée, et revient à `null` si une réinterprétation la classe autrement ;
+- le dossier reçoit le `numero_recours` (`comDaloNumber`) et la `date_decision`
+  (`comedDecisionDate`) de sa décision **la plus récente** (date de décision
+  extraite, puis date de dépôt de la pièce). Par défaut, **champs vides
+  uniquement** : une valeur déjà saisie est conservée. Avec
+  `--force-document-ia`, une valeur différente de la décision la plus récente
+  est remplacée, **y compris une saisie manuelle** (une valeur absente de la
+  décision ne vide jamais le champ) ;
+- chaque champ écrit est tracé dans `field_changes` (`origin = document-ia`) :
+  le bloc « Qualification du dossier » affiche « Qualification automatique à
+  valider » sous le champ, comme pour le type de contentieux et le droit
+  opposable.
+
+`--dry-run` affiche ces changements sans les écrire (les interprétations
+DocumentIA sont, elles, stockées).
+
+```sh
+# Pièces des dossiers non terminés, toutes juridictions
+pnpm interpret:comed
+# Un seul tribunal, y compris les dossiers terminés
+pnpm interpret:comed -- --jurisdiction TA034 --enrich all
+# Réinterpréter même les pièces déjà en base, et remplacer les valeurs du dossier
+pnpm interpret:comed -- --force-document-ia
+# Voir ce qui serait reporté sur les dossiers, sans l'écrire
+pnpm interpret:comed -- --dry-run
+```
+
+Variables d'environnement : `DOCUMENT_IA_URL`, `DOCUMENT_IA_API_KEY` (et,
+optionnelles, `DOCUMENT_IA_WORKFLOW_ID`, `DOCUMENT_IA_POLL_INTERVAL_MS`,
+`DOCUMENT_IA_TIMEOUT_MS`), cf. `.env.example`. Les identifiants Télérecours de
+chaque juridiction (`<JURIDICTION>_TELERECOURS_*`) sont aussi nécessaires.
 
 ## Schéma de base de données
 
@@ -900,12 +990,29 @@ erDiagram
         string dahliaName "nullable"
         string comment "nullable"
         boolean isFavorite
+        AttachedFileDahliaType dahliaType "nullable"
         string caseFileNumber FK
         int eventId FK
         string fileFamilyTypeCode FK
         DateTime createdAt
         DateTime updatedAt "écrit par le code, pas @updatedAt"
         DateTime telerecoursUpdatedAt "nullable"
+    }
+
+    AttachedFileInterpretation {
+        int id PK
+        string jurisdictionCode FK
+        string encodedFileId FK
+        enum status "SUCCESS | FAILED | SKIPPED"
+        string documentType "nullable, classification DocumentIA"
+        float confidence "nullable"
+        json metadata "nullable, champs extraits"
+        json rawResult "nullable"
+        string errorMessage "nullable"
+        string workflowId
+        string executionId "nullable"
+        DateTime createdAt
+        DateTime updatedAt
     }
 
     RelatedCaseFile {
@@ -987,6 +1094,7 @@ erDiagram
     CaseFile            ||--o{ AttachedFile : "attachedFiles"
     CaseFileEvent       ||--o{ AttachedFile : "event"
     FileFamilyType      ||--o{ AttachedFile : "family"
+    AttachedFile        ||--o| AttachedFileInterpretation : "interpretation"
     CaseFile            ||--o{ RelatedCaseFile : "source"
     CaseFile            ||--o{ RelatedCaseFile : "target"
     CaseFile            |o--o| LastDecisionReading : "lastDecisionReading"

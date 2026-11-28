@@ -7,6 +7,7 @@ import {
   plannedAutoRename,
   USER_ORIGIN,
 } from "../persistence/attached-file-dahlia-name";
+import { jurisdictionInstanceWhere } from "../jurisdiction-instance";
 
 // Rename the pièces already in DB from their Telerecours file name, with the
 // same rules as the scraper's --update-piece-name / --force-update-piece-name,
@@ -17,7 +18,8 @@ import {
 
 export const UPDATE_PIECE_NAMES_USAGE = `Usage: pnpm update:piece-names -- [options]
 
-  --jurisdiction <code>        Limite aux pièces d'un tribunal (ex. TA069). Défaut : tous.
+  --jurisdiction <code>        Limite aux pièces d'une juridiction Dahlia (ex. TA069, TA069bis),
+                               comme scrape:telerecours. Défaut : toutes.
   --dry-run                    Affiche le nombre de pièces à renommer, sans rien modifier.
   --force-update-piece-name    Renomme aussi les pièces déjà nommées (par le scraper ou un
                                script), sauf celles qu'un utilisateur a renommées.
@@ -46,7 +48,9 @@ export function parseUpdatePieceNamesArgs(argv: string[]): UpdatePieceNamesArgs 
     if (arg === "--jurisdiction") {
       const value = argv[++i];
       if (!value || value.startsWith("--")) {
-        throw new Error("--jurisdiction attend un code de juridiction (ex. TA069).");
+        throw new Error(
+          "--jurisdiction attend un code de juridiction Dahlia (ex. TA069, TA069bis).",
+        );
       }
       args.jurisdiction = value;
     } else if (arg === "--dry-run") {
@@ -75,7 +79,7 @@ export async function updatePieceNames(
 ): Promise<UpdatePieceNamesStats> {
   // Without force, only unnamed pièces can be renamed.
   const where: Prisma.AttachedFileWhereInput = {
-    ...(jurisdiction ? { jurisdictionCode: jurisdiction } : {}),
+    ...(jurisdiction ? { caseFile: jurisdictionInstanceWhere(jurisdiction) } : {}),
     ...(force ? {} : { OR: [{ dahliaName: null }, { dahliaName: "" }] }),
   };
   const stats: UpdatePieceNamesStats = { scanned: 0, renamed: 0 };

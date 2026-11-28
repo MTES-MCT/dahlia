@@ -29,6 +29,7 @@ Référence : audit `audits/rgaa-2026-07-20.md`. Les règles dures de AGENTS.md 
 
 - Chaque champ a un `<label>` visible associé (les composants `Input` / `Select` DSFR le font).
 - En cas d'erreur : `state="error"` + `stateRelatedMessage` (DSFR), ou `aria-invalid="true"` + `aria-describedby` vers le message.
+- Avertissement non bloquant (ex. valeur automatique à valider) : `<p class="fr-message fr-message--warning">` sous le champ, relié par `aria-describedby` au contrôle natif (`nativeInputProps` / `nativeSelectProps`), sans `aria-invalid` ni `state="error"`.
 - Champs obligatoires indiqués dans le label, pas seulement par la couleur.
 - Largeur adaptée à la saisie attendue (`max-w-*`, `fr-col-md-*`), jamais 100 %, sauf la recherche principale d'un tableau.
 - `autocomplete` sur les champs de données personnelles de l'utilisateur.

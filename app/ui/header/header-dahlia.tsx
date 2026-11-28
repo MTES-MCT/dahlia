@@ -89,7 +89,7 @@ export function HeaderDahlia({ user }: { user?: HeaderDahliaUser | null }) {
       quickAccessItems={quickAccessItems}
       classes={{
         // Align header content with <main> (fr-mx-3w); fr-container cannot be removed via props.
-        container: clsx("!max-w-none", "!px-3w"),
+        container: clsx("!max-w-none", fr.cx("fr-px-3w")),
       }}
     />
   );

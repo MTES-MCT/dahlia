@@ -32,7 +32,12 @@ if printf '%s' "$cmd" | grep -Eq '(^|[^A-Za-z0-9_.-])\.env(\.[A-Za-z]+)?([^A-Za-
 fi
 
 # 2. Personal data exports must not be read from the shell either.
-if printf '%s' "$cmd" | grep -Eq '(^|[^A-Za-z0-9_.-])(\./)?(tmp|webapp_dbdata)(/|[^A-Za-z0-9_.-]|$)'; then
+#    The agent's own scratchpad (absolute /tmp/claude-<uid>/… or
+#    /private/tmp/claude-<uid>/…, outside the repo) is not an export: it is
+#    removed before the check. Only an absolute path starting there is exempt,
+#    so <repo>/tmp/ and any other tmp/ path stay blocked.
+scratchpad_free=$(printf '%s' "$cmd" | sed -E "s#(^|[[:space:]\"'=])(/private)?/tmp/claude-[0-9]+/#\\1#g")
+if printf '%s' "$scratchpad_free" | grep -Eq '(^|[^A-Za-z0-9_.-])(\./)?(tmp|webapp_dbdata)(/|[^A-Za-z0-9_.-]|$)'; then
   block "local exports (tmp/ or webapp_dbdata/) may contain personal data: do not read them."
 fi
 

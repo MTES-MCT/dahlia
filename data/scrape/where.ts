@@ -1,3 +1,4 @@
+import { jurisdictionInstanceWhere } from "../jurisdiction-instance";
 import type { Args } from "./pipeline";
 
 // Statuses treated as closed. scrapedPerimeterWhere skips them when its
@@ -8,9 +9,10 @@ export const EXCLUDED_ENRICHMENT_STATUS_LABELS = ["Terminé"] as const;
 // Dahlia jurisdiction instance this scrape runs against (TA069 vs TA069bis).
 // Several instances can share one Télérecours court; without this clause a
 // run soft-deletes or enriches the other instance's case files. Rows still
-// at jurisdictionId null stay out of the perimeter until a scrape tags them.
+// at jurisdictionId null stay out of the perimeter until a scrape tags them
+// (see data/jurisdiction-instance.ts).
 function jurisdictionWhere(args: Args): { jurisdiction: { shortName: string } } {
-  return { jurisdiction: { shortName: args.jurisdiction } };
+  return jurisdictionInstanceWhere(args.jurisdiction);
 }
 
 // Build a Prisma where-fragment for the division filter. When no division is

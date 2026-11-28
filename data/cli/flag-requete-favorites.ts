@@ -2,6 +2,7 @@ import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { FAVORITE_ON_CREATE_FAMILY_TYPE } from "../persistence/enrich-case-file";
+import { jurisdictionInstanceWhere } from "../jurisdiction-instance";
 
 // One-off backfill: flag every "Requête" pièce already in DB as favorite, like
 // the scraper does for newly created ones. Already-flagged pièces are skipped.
@@ -14,7 +15,7 @@ export function parseFlagRequeteFavoritesArgs(argv: string[]): FlagRequeteFavori
   const index = argv.indexOf("--jurisdiction");
   const jurisdiction = index >= 0 ? (argv[index + 1] ?? null) : null;
   if (index >= 0 && (!jurisdiction || jurisdiction.startsWith("--"))) {
-    throw new Error("--jurisdiction attend un code de juridiction (ex. TA069).");
+    throw new Error("--jurisdiction attend un code de juridiction Dahlia (ex. TA069, TA069bis).");
   }
   return { jurisdiction, dryRun: argv.includes("--dry-run") };
 }
@@ -27,7 +28,7 @@ export async function flagRequeteFavorites(
   const where = {
     fileFamilyTypeCode: FAVORITE_ON_CREATE_FAMILY_TYPE,
     isFavorite: false,
-    ...(jurisdiction ? { jurisdictionCode: jurisdiction } : {}),
+    ...(jurisdiction ? { caseFile: jurisdictionInstanceWhere(jurisdiction) } : {}),
   };
   if (dryRun) {
     return prisma.attachedFile.count({ where });

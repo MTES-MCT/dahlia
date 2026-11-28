@@ -43,7 +43,7 @@ export type CaseFileQualificationPanelProps = {
   tags: CaseFileTagView[];
   availableTags: CaseFileTagView[];
   reviewState: QualificationReviewState;
-  // Fields whose classifier value awaits review (shown with a warning notice).
+  // Fields whose automated value awaits review (shown with a warning notice).
   fieldsToReview?: ClassifierQualificationField[];
   // Formatted on the server, in the court's time zone.
   validatedAtLabel: string;
@@ -187,6 +187,10 @@ export function CaseFileQualificationPanel(props: CaseFileQualificationPanelProp
   const rightTypeToReview = fieldsToReview.includes("rightType");
   const litigationTypeReviewId = `${formId}-litigation-type-review`;
   const rightTypeReviewId = `${formId}-right-type-review`;
+  const comDaloNumberToReview = fieldsToReview.includes("comDaloNumber");
+  const comedDecisionDateToReview = fieldsToReview.includes("comedDecisionDate");
+  const comDaloNumberReviewId = `${formId}-com-dalo-number-review`;
+  const comedDecisionDateReviewId = `${formId}-comed-decision-date-review`;
   // Saving also validates the classifier values when at least one field awaits review.
   const submitLabel = fieldsToReview.length > 0 ? "Valider et enregistrer" : "Enregistrer";
   const showValidatedStatus =
@@ -281,30 +285,40 @@ export function CaseFileQualificationPanel(props: CaseFileQualificationPanelProp
             {rightTypeToReview && <ReviewWarning id={rightTypeReviewId} />}
           </div>
 
-          <Input
-            label="Numéro ComDalo"
-            className={fr.cx("fr-col-12", "fr-col-md-6", "fr-mb-3w")}
-            nativeInputProps={{
-              autoComplete: "off",
-              name: "comDaloNumber",
-              defaultValue: comDaloNumber ?? "",
-              maxLength: 64,
-            }}
-            // `nativeInputProps.className` is overridden by react-dsfr's Input.
-            classes={{ nativeInputOrTextArea: clsx("max-w-64") }}
-          />
+          <div className={fr.cx("fr-col-12", "fr-col-md-6", "fr-mb-3w")}>
+            <Input
+              label="Numéro ComDalo"
+              className={fr.cx("fr-mb-0")}
+              nativeInputProps={{
+                autoComplete: "off",
+                name: "comDaloNumber",
+                defaultValue: comDaloNumber ?? "",
+                maxLength: 64,
+                "aria-describedby": comDaloNumberToReview ? comDaloNumberReviewId : undefined,
+              }}
+              // `nativeInputProps.className` is overridden by react-dsfr's Input.
+              classes={{ nativeInputOrTextArea: clsx("max-w-64") }}
+            />
+            {comDaloNumberToReview && <ReviewWarning id={comDaloNumberReviewId} />}
+          </div>
 
-          <Input
-            label="Date de la décision de la COMED"
-            className={fr.cx("fr-col-12", "fr-col-md-6", "fr-mb-3w")}
-            nativeInputProps={{
-              autoComplete: "off",
-              type: "date",
-              name: "comedDecisionDate",
-              defaultValue: formatDateInputValue(comedDecisionDate),
-            }}
-            classes={{ nativeInputOrTextArea: clsx("max-w-48") }}
-          />
+          <div className={fr.cx("fr-col-12", "fr-col-md-6", "fr-mb-3w")}>
+            <Input
+              label="Date de la décision de la COMED"
+              className={fr.cx("fr-mb-0")}
+              nativeInputProps={{
+                autoComplete: "off",
+                type: "date",
+                name: "comedDecisionDate",
+                defaultValue: formatDateInputValue(comedDecisionDate),
+                "aria-describedby": comedDecisionDateToReview
+                  ? comedDecisionDateReviewId
+                  : undefined,
+              }}
+              classes={{ nativeInputOrTextArea: clsx("max-w-48") }}
+            />
+            {comedDecisionDateToReview && <ReviewWarning id={comedDecisionDateReviewId} />}
+          </div>
         </div>
 
         <TagPicker

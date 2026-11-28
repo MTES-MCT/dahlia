@@ -143,10 +143,10 @@ function residualIsDecisionVocabulary(words: readonly string[]): boolean {
 }
 
 // `null` when the file is not a COMED decision (SQL verdict "non", dropped by
-// the WHERE). "certain" when the name states both the author and the nature,
-// or states nothing but the COMED. "probable" when the family label is
-// "Décision" (code DEC; null is not that family) and the name states a
-// decision or an attacked act without naming the COMED.
+// the WHERE). "certain" when the name states both the author and the nature, or
+// states nothing but the COMED. "probable" when the Télérecours family label is
+// "Décision", or the name states a decision or an attacked act (including short
+// "Decision DALO …" labels), without naming the COMED.
 export function classifyComedDecision(source: ComedNameSource): ComedVerdict | null {
   const name = normalizeComedSearchName(source.dahliaNameNormalized, source.fileNameNormalized);
   if (matchesAny(name, ANTI_MOTIF)) return null;
@@ -157,7 +157,7 @@ export function classifyComedDecision(source: ComedNameSource): ComedVerdict | n
 
   if (auteurComed && estDecision) return "certain";
   if (auteurComed && residualIsDecisionVocabulary(residualWords(name))) return "certain";
-  if (source.fileTypeLabel === "Décision" && (estDecision || estActeAttaque)) return "probable";
+  if (source.fileTypeLabel === "Décision" || estDecision || estActeAttaque) return "probable";
   return null;
 }
 

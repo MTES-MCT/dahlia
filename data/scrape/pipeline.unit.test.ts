@@ -19,6 +19,8 @@ const baseArgs: Args = {
   force: false,
   classify: false,
   classifyOverwrite: false,
+  documentIa: false,
+  forceDocumentIa: false,
 };
 
 describe("runScrape", () => {

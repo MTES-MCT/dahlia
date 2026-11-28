@@ -24,7 +24,12 @@ import {
   currentUserIsAdmin,
   logCaseFileScopeMiss,
 } from "@/app/lib/case-file-scope";
-import { normalizeForSearch, parseSearchQuery, type FacetKey } from "@/app/lib/case-file-search";
+import {
+  EMPTY_FACET_VALUE,
+  normalizeForSearch,
+  parseSearchQuery,
+  type FacetKey,
+} from "@/app/lib/case-file-search";
 import { buildWordAndFilter, combineAnd, facetSearchWords } from "@/app/lib/search-where";
 import {
   STATUS_GROUPS,
@@ -113,6 +118,15 @@ function buildRightTypeFacetFilter(normalized: string): Prisma.CaseFileWhereInpu
   return { rightType: { in: types } };
 }
 
+// `comdalo:` facet: partial, case-insensitive match on the ComDalo number;
+// `comdalo:vide` matches case files without one (null or blank).
+function buildComDaloFacetFilter(normalized: string, raw: string): Prisma.CaseFileWhereInput {
+  if (normalized.trim() === EMPTY_FACET_VALUE) {
+    return { OR: [{ comDaloNumber: null }, { comDaloNumber: "" }] };
+  }
+  return { comDaloNumber: { contains: raw.trim(), mode: "insensitive" } };
+}
+
 function buildTitreWordFilter(rawWord: string): Prisma.CaseFileWhereInput {
   const normalized = normalizeForSearch(rawWord);
   const litigationTypes = matchingLitigationTypesForSearchWord(normalized);
@@ -182,6 +196,7 @@ const FACET_BUILDERS: Record<
   statut: (normalized) => ({ lastStatus: { labelNormalized: normalized.trim() } }),
   droit: (normalized) => buildRightTypeFacetFilter(normalized),
   recours: (normalized) => buildLitigationTypeFacetFilter(normalized),
+  comdalo: (normalized, raw) => buildComDaloFacetFilter(normalized, raw),
 };
 
 function buildStatusGroupFilter(statusGroup: StatusGroup): Prisma.CaseFileWhereInput | null {

@@ -20,6 +20,7 @@ import {
   getCaseFileDisplayName,
 } from "@/app/lib/case-file-format";
 import {
+  COM_DALO_FACET_FIELD,
   DOSSIER_FACET_FIELDS,
   LITIGATION_TYPE_FACET_FIELD,
   RIGHT_TYPE_FACET_FIELD,
@@ -82,6 +83,7 @@ export type CaseFileDashboardColumnDef = {
     label: string;
     options?: readonly string[];
     optionAliases?: Readonly<Record<string, string>>;
+    hint?: string;
   }[];
   width?: string;
   exportValue: (row: CaseFileDashboardRow) => string;
@@ -107,6 +109,7 @@ export const CASE_FILES_DASHBOARD_COLUMNS: CaseFileDashboardColumnDef[] = [
           ]),
         ),
       },
+      COM_DALO_FACET_FIELD,
     ],
     width: "50%",
     exportValue: (caseFile) => getCaseFileDisplayName(caseFile),

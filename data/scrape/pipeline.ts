@@ -5,6 +5,8 @@ import { phaseA, reconcileDeleted } from "./phase-a-list";
 import { phaseB } from "./phase-b-enrich";
 import { phaseC } from "./phase-c-related";
 import { phaseD } from "./phase-d-classify";
+import { phaseE } from "./phase-e-document-ia";
+import type { DocumentIaClient } from "../document-ia/client";
 
 export const ENRICH_MODES = ["all", "ongoing", "none"] as const;
 export type EnrichMode = (typeof ENRICH_MODES)[number];
@@ -33,6 +35,13 @@ export interface Args {
   classify: boolean;
   // Phase D — also rewrite characteristics that already have a value.
   classifyOverwrite: boolean;
+  // Phase E — interpret the COMED decisions of the perimeter with DocumentIA.
+  documentIa: boolean;
+  // Phase E — also re-interpret pièces already interpreted. Implies documentIa.
+  forceDocumentIa: boolean;
+  // Phases D and E — report the automated qualification without writing it.
+  // Absent means false.
+  dryRun?: boolean;
 }
 
 // Everything the pipeline needs from the outside world. Injected so the phases
@@ -43,10 +52,13 @@ export interface ScrapeDeps {
   // Delay (ms) between per-item API calls to stay under Telerecours rate
   // limits. Defaults per phase when omitted; set to 0 in tests.
   rateLimitMs?: number;
+  // Required by phase E (--document-ia) only.
+  documentIa?: DocumentIaClient;
 }
 
 // Orchestrate the full scrape: A.0 (status catalogue) → A (list) → A.5
-// (reconcile) → B (enrich) → C (related links) → D (classification, opt-in).
+// (reconcile) → B (enrich) → C (related links) → D (classification, opt-in)
+// → E (DocumentIA interpretation of COMED decisions, opt-in).
 // Returns a process exit code (0 ok, 1 when some list pages failed, 2 when
 // nothing was scraped).
 export async function runScrape(args: Args, deps: ScrapeDeps): Promise<number> {
@@ -79,6 +91,10 @@ export async function runScrape(args: Args, deps: ScrapeDeps): Promise<number> {
 
   if (args.classify) {
     await phaseD(args, deps);
+  }
+
+  if (args.documentIa) {
+    await phaseE(args, deps);
   }
 
   logFailedPages(a.failedPages);

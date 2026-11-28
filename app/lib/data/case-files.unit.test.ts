@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import type { Prisma } from "@prisma/client";
 import { getActorDisplayName } from "@/app/lib/case-file-format";
+import { CLASSIFIER_QUALIFICATION_FIELDS } from "@/app/lib/case-file-qualification";
 import {
   CASE_FILES_DASHBOARD_INCLUDE,
   HEARING_CONVOCATION_SORT_KEY,
@@ -231,14 +232,14 @@ describe("case-files", () => {
       const result = await fetchCaseFileDetail("TA069", "CF-2024-001");
 
       expect(result).toEqual({ ...mockCaseFile, fieldChanges: [] });
-      // Only the case file's own classifier history, never pièce renames.
+      // Only the case file's automated qualification history, never pièce renames.
       expect(vi.mocked(prisma.fieldChange.findMany)).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {
             jurisdictionCode: "TA069",
             model: "CaseFile",
             modelId: "CF-2024-001",
-            field: { in: ["litigationType", "rightType"] },
+            field: { in: [...CLASSIFIER_QUALIFICATION_FIELDS] },
           },
         }),
       );
@@ -857,6 +858,39 @@ describe("case-files", () => {
         expect.objectContaining({
           where: {
             AND: [{ isDeleted: false }, { litigationType: { in: ["EXCES_DE_POUVOIR"] } }],
+          },
+        }),
+      );
+    });
+
+    it("filtre par facette comdalo (correspondance partielle)", async () => {
+      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
+      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
+
+      await fetchCaseFilesTableData(1, 10, null, "descending", "comdalo:69-2024", "tous");
+
+      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            AND: [
+              { isDeleted: false },
+              { comDaloNumber: { contains: "69-2024", mode: "insensitive" } },
+            ],
+          },
+        }),
+      );
+    });
+
+    it("filtre les dossiers sans numéro ComDalo avec comdalo:vide", async () => {
+      vi.mocked(prisma.caseFile.findMany).mockResolvedValue([]);
+      vi.mocked(prisma.caseFile.count).mockResolvedValue(0);
+
+      await fetchCaseFilesTableData(1, 10, null, "descending", "comdalo:Vide", "tous");
+
+      expect(vi.mocked(prisma.caseFile.findMany)).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            AND: [{ isDeleted: false }, { OR: [{ comDaloNumber: null }, { comDaloNumber: "" }] }],
           },
         }),
       );

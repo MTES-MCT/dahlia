@@ -9,6 +9,7 @@ import {
   logComedDecisionStats,
   countUniqueDossiers,
 } from "../comed/find-comed-decisions";
+import { jurisdictionInstanceWhere } from "../jurisdiction-instance";
 import { COMED_USAGE, parseComedArgs } from "./parse-comed-args";
 
 // CLI entrypoint: load attached files through Prisma, classify COMED decisions
@@ -25,7 +26,7 @@ async function main(): Promise<number> {
 
   try {
     const jurisdictionFilter = args.jurisdiction
-      ? { jurisdictionCode: args.jurisdiction }
+      ? { caseFile: jurisdictionInstanceWhere(args.jurisdiction) }
       : {};
     const decisions = await findComedDecisions(prisma, jurisdictionFilter);
     const nb_dossiers = await countUniqueDossiers(prisma, jurisdictionFilter);

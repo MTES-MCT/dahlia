@@ -18,8 +18,9 @@ export async function phaseD(args: Args, deps: ScrapeDeps): Promise<ClassifyCase
     jurisdiction: args.jurisdiction,
     legalEntityDivisionIds: args.legalEntityDivisionIds,
     overwrite: args.classifyOverwrite,
+    dryRun: args.dryRun,
   });
 
-  logClassificationStats(stats);
+  logClassificationStats(stats, args.dryRun);
   return stats;
 }

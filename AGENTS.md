@@ -50,7 +50,9 @@ Workflow obligatoire pour créer une migration tant que ces colonnes existent :
 # 1. Générer la migration SANS l'appliquer
 pnpm exec prisma migrate dev --create-only --name <nom>
 # 2. Éditer prisma/migrations/<…>_<nom>/migration.sql :
-#    supprimer toute ligne parasite ALTER TABLE "actors" ALTER COLUMN … DROP DEFAULT
+#    supprimer toute ligne parasite : ALTER COLUMN … DROP DEFAULT sur les colonnes
+#    générées (actors.displayName*, colonnes *Normalized de attached_files,
+#    case_file_events, measures, statuses) et DROP INDEX "case_files_memoryDeadlineDate_idx"
 #    (ne garder que les changements réellement voulus)
 # 3. Appliquer la migration corrigée
 pnpm exec prisma migrate deploy
@@ -63,6 +65,14 @@ applique aussitôt et échoue avant qu'on puisse corriger le SQL.
 ### Import de données
 
 `pnpm scrape:telerecours` (`data/cli/scrape-telerecours.ts`) : scrape l'API Télérecours et **upsert** en base. Nécessite `<JURIDICTION>_TELERECOURS_USERNAME/PASSWORD` dans `.env`. Args : `--jurisdiction TA069 --page 0 --size 30 --all --legalEntityDivisionIds 2488`. Documentation complète des options et du déroulé (phases A/B/C) dans le README, section « Import des données (scraping Télérecours) ».
+
+**`--jurisdiction` des scripts CLI de `data/`** : désigne toujours une **juridiction Dahlia** (`Jurisdiction.shortName` : `TA069`, `TA069bis`…), jamais un code tribunal. Elle détermine trois choses :
+
+- **Accès** : `<shortName>_TELERECOURS_USERNAME/PASSWORD`.
+- **Tribunal Télérecours** : `<shortName>_TELERECOURS_JURISDICTION`, sinon le `shortName`. Il sert d'en-tête `X-Jurisdiction-Code` et de colonne `jurisdictionCode` en base (`TA069` pour TA069 comme pour TA069bis).
+- **Périmètre en base** : les dossiers dont `jurisdiction.shortName` vaut la valeur passée.
+
+Ne jamais comparer `jurisdictionCode` à la valeur de `--jurisdiction` : TA069bis ne trouverait rien. Utiliser `jurisdictionInstanceWhere()` et `telerecoursCredentials()` de `data/jurisdiction-instance.ts`. Pour une pièce ou un autre modèle rattaché à un dossier, passer par la relation `caseFile`.
 
 ## Architecture & conventions
 
@@ -148,7 +158,7 @@ Ces contrôles tournent déjà : inutile de les relancer à la main.
 
 - `post-edit.sh` : prettier et eslint sur chaque fichier modifié.
 - `guard-read.sh` (Cursor uniquement) : refuse la lecture des mêmes chemins que `.cursorignore` / `permissions.deny` Read dans `settings.json` (`.env*`, `tmp/`, `webapp_dbdata/`). Sous Claude Code : `deny` uniquement (pas de hook Read).
-- `guard-bash.sh` : bloque l'accès à `.env`, la lecture shell de `tmp/` et `webapp_dbdata/`, l'exfiltration, les commandes destructrices, **`git commit` / `git push` (périmètre humain)** et les migrations parasites sur `actors`.
+- `guard-bash.sh` : bloque l'accès à `.env`, la lecture shell de `tmp/` et `webapp_dbdata/`, l'exfiltration, les commandes destructrices, **`git commit` / `git push` (périmètre humain)** et les migrations parasites sur les colonnes générées.
 - Sous Cursor, `pnpm db:migrate` est bloqué par `guard-bash.sh` ; sous Claude, le `PreToolUse` Bash doit être branché sur ce script (pas seulement l’allow-list).
 - `stop-check.sh` : `tsc` et les tests unitaires liés en fin de tour, puis la boucle d'apprentissage.
 

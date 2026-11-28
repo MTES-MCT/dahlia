@@ -49,6 +49,7 @@ export const DEFAULT_RULES: readonly ClassificationRule[] = [
     rightType: "NI_DALO_NI_DAHO",
     examples: [
       "LOGEMENT: Contestation de la fin de prise en charge d'un hébergement d'urgence - Décision du 28/07/2025",
+      "EXE - LOGEMENT : Demande de prise en charge d'un hébergement d'urgence",
     ],
   },
   {
@@ -111,12 +112,13 @@ export const DEFAULT_RULES: readonly ClassificationRule[] = [
     description:
       "Demande d'exécution d'un jugement / d'une décision / d'une ordonnance : recours injonction",
     pattern:
-      /\bexecution (du |de la |d une |d un )?(jugement|decision|ordonnance)\b|\bexe jugt\b|\bdemande (d )?execution\b/,
+      /\bexecution (du |de la |d une |d un )?(jugement|decision|ordonnance)\b|\bexe jugt\b|\bdemande (d )?execution\b|\bexe\b|\bexec\b/,
     litigationType: "INJONCTION",
     summary: "Exécution de jugement",
     examples: [
       "Exécution du jugement du 23/11/2020",
       "DAHO - exe jugt ordonnance du 23/09/24",
+      "EXE - LOGEMENT : Demande de prise en charge d'un hébergement d'urgence",
       "DAHO -demande execution de jugement du 18/10/2023",
       "DALO_Demande d'exécution décision TA 2501186",
       "DALO_Demande d'exécution ordonance TA 2403103 du 26/07/24",

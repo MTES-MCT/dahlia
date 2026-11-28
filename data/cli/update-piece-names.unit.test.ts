@@ -59,7 +59,13 @@ describe("updatePieceNames", () => {
     expect(await updatePieceNames(prisma, OPTIONS)).toEqual({ scanned: 1, renamed: 1 });
 
     expect(prisma.attachedFile.findMany.mock.calls[0][0]!.where).toEqual({
-      AND: [{ jurisdictionCode: "TA069", OR: [{ dahliaName: null }, { dahliaName: "" }] }, {}],
+      AND: [
+        {
+          caseFile: { jurisdiction: { shortName: "TA069" } },
+          OR: [{ dahliaName: null }, { dahliaName: "" }],
+        },
+        {},
+      ],
     });
     expect(prisma.fieldChange.findMany).not.toHaveBeenCalled();
     expect(prisma.fieldChange.create).toHaveBeenCalledWith({

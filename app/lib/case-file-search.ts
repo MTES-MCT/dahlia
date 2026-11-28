@@ -35,12 +35,25 @@ export const STATUS_FACET_FIELD = { key: "statut", label: "Statut" } as const;
 export const RIGHT_TYPE_FACET_FIELD = { key: "droit", label: "Droit opposable" } as const;
 export const LITIGATION_TYPE_FACET_FIELD = { key: "recours", label: "Type de recours" } as const;
 
+// Value of a free-text facet matching case files where the field is empty
+// (e.g. `comdalo:vide`).
+export const EMPTY_FACET_VALUE = "vide";
+
+// ComDalo number facet (`comdalo:<number>`): partial, case-insensitive match;
+// `comdalo:vide` matches case files without ComDalo number.
+export const COM_DALO_FACET_FIELD = {
+  key: "comdalo",
+  label: "Numéro ComDalo",
+  hint: `Saisir « ${EMPTY_FACET_VALUE} » pour les dossiers sans numéro`,
+} as const;
+
 export const FACET_KEYS = [
   ...DOSSIER_FACET_FIELDS.map((field) => field.key),
   STATUS_FACET_FIELD.key,
   "producteur",
   RIGHT_TYPE_FACET_FIELD.key,
   LITIGATION_TYPE_FACET_FIELD.key,
+  COM_DALO_FACET_FIELD.key,
 ] as const;
 
 export type FacetKey = (typeof FACET_KEYS)[number];
@@ -52,6 +65,8 @@ export type FacetField = {
   options?: readonly string[];
   // Other accepted spellings of an option (alias → option), e.g. short labels.
   optionAliases?: Readonly<Record<string, string>>;
+  // Help text shown under the field in the « Filtres avancés » panel.
+  hint?: string;
 };
 
 // Map a facet value as typed in the search box (e.g. `statut:termine`) to the
